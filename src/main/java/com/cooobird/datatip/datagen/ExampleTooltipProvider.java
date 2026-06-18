@@ -1,20 +1,26 @@
 package com.cooobird.datatip.datagen;
 
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
+import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import static com.cooobird.datatip.datagen.TipContentBuilder.*;
+
 /**
- * 用 {@link TooltipBuilder} 生成所有功能组合的示例 datatip.json。
- * 运行 gradle runData 生成到 src/generated/resources/assets/minecraft/datatip/datatip.json
+ * 示例 Tooltip 数据生成器。
+ * 展示如何使用新版本 API 生成 datatip.json。
+ *
+ * @author cooobird
+ * @since 1.2.0
  */
 public class ExampleTooltipProvider implements DataProvider {
     private final PackOutput output;
@@ -24,98 +30,74 @@ public class ExampleTooltipProvider implements DataProvider {
     }
 
     @Override
-    public CompletableFuture<?> run(CachedOutput cache) {
+    @NotNull
+    public CompletableFuture<?> run(@NotNull CachedOutput cache) {
         Path path = output.getOutputFolder(PackOutput.Target.RESOURCE_PACK)
             .resolve("minecraft/datatip/datatip.json");
 
-        Map<String, Object> map = new LinkedHashMap<>();
-        var b = TooltipBuilder.create();
+        JsonObject root = new JsonObject();
 
-        map.put("minecraft:diamond", List.of("A shiny diamond", "Worth a fortune"));
+        // 简单文本数组（老版本格式兼容）
+        root.add("minecraft:diamond", toJson(vbox(2,
+            text("A shiny diamond"),
+            text("Worth a fortune")
+        )));
 
-        put(map, b.key("minecraft:netherite_ingot").color("gold")
-            .line("zh_cn", "下界合金锭")
-            .line("zh_cn", TooltipBuilder.TooltipLine.of("不会被熔岩烧毁").color("dark_red").bold())
-            .line("en_us", "Netherite Ingot")
-            .line("en_us", TooltipBuilder.TooltipLine.of("Immune to lava").color("dark_red").bold())
-            .build());
+        // 带颜色的文本
+        root.add("minecraft:emerald", toJson(vbox(2,
+            text("Emerald", "green"),
+            text("Used for trading", "gray")
+        )));
 
-        put(map, b.key("minecraft:diamond_sword").shift().prepend()
-            .line("zh_cn", TooltipBuilder.TooltipLine.of("削铁如泥").color("aqua"))
-            .line("en_us", TooltipBuilder.TooltipLine.of("Cuts through iron like butter").color("aqua"))
-            .build());
+        // 多语言
+        Map<String, String> netheriteLang = new LinkedHashMap<>();
+        netheriteLang.put("zh_cn", "下界合金锭");
+        netheriteLang.put("en_us", "Netherite Ingot");
+        root.add("minecraft:netherite_ingot", toJson(vbox(2,
+            langText(netheriteLang, "gold"),
+            text("不会被熔岩烧毁 / Immune to lava", "dark_red")
+        )));
 
-        put(map, b.key("minecraft:diamond_pickaxe")
-            .line("zh_cn", "耐久: {durability} / {max_durability}")
-            .line("en_us", "Durability: {durability} / {max_durability}")
-            .build());
+        // 物品 + 文本
+        root.add("minecraft:diamond_sword", toJson(hbox(8,
+            item("minecraft:diamond_sword"),
+            vbox(2,
+                text("Diamond Sword", "aqua"),
+                text("削铁如泥", "gold")
+            )
+        )));
 
-        put(map, b.key("minecraft:enchanted_golden_apple").color("light_purple").shift()
-            .line("zh_cn",
-                TooltipBuilder.TooltipLine.of("稀有食物").color("gold").bold(),
-                TooltipBuilder.TooltipLine.of("生命恢复 IV").color("red").italic(),
-                TooltipBuilder.TooltipLine.of("伤害吸收 IV").color("aqua").italic())
-            .line("en_us",
-                TooltipBuilder.TooltipLine.of("Rare food").color("gold").bold(),
-                TooltipBuilder.TooltipLine.of("Regeneration IV").color("red").italic(),
-                TooltipBuilder.TooltipLine.of("Absorption IV").color("aqua").italic())
-            .build());
+        // 进度条
+        root.add("minecraft:diamond_pickaxe", toJson(vbox(4,
+            text("Diamond Pickaxe", "aqua"),
+            progress(0.75f, 100, "75% 耐久")
+        )));
 
-        put(map, b.key("minecraft:nether_star").color("light_purple")
-            .line("zh_cn",
-                TooltipBuilder.TooltipLine.of("Boss 掉落").color("#FFD700").bold(),
-                TooltipBuilder.TooltipLine.of("像素风标题").font("minecraft:alt"))
-            .line("en_us",
-                TooltipBuilder.TooltipLine.of("Boss drop").color("#FFD700").bold(),
-                TooltipBuilder.TooltipLine.of("Pixel title").font("minecraft:alt"))
-            .build());
+        // 轮播容器
+        root.add("minecraft:golden_apple", toJson(carousel(3,
+            vbox(2, text("Golden Apple", "gold"), text("恢复生命", "red")),
+            vbox(2, text("金苹果", "gold"), text("稀有食物", "light_purple"))
+        )));
 
-        put(map, b.key("minecraft:stone")
-            .line("zh_cn", TooltipBuilder.TooltipLine.of("这是删除线").strike())
-            .line("en_us", TooltipBuilder.TooltipLine.of("Strikethrough text").strike())
-            .build());
+        // 打字机效果
+        root.add("minecraft:nether_star", toJson(vbox(4,
+            text("Nether Star", "light_purple"),
+            typewriter("Boss 掉落", "用于合成信标")
+        )));
 
-        put(map, b.key("#minecraft:pickaxes").color("yellow")
-            .line("zh_cn", "所有镐子都显示这句话")
-            .line("en_us", "Common pickaxe info")
-            .build());
-
-        put(map, b.key("minecraft:diamond_block").color("dark_red")
-            .condition("dimension", "minecraft:the_nether")
-            .line("zh_cn", "只在下界显示")
-            .line("en_us", "Only visible in the Nether")
-            .build());
-
-        put(map, b.key("minecraft:bow").nbt("Damage", "0")
-            .line("zh_cn", TooltipBuilder.TooltipLine.of("满耐久才显示").underline())
-            .line("en_us", TooltipBuilder.TooltipLine.of("Full durability only").underline())
-            .build());
-
-        put(map, b.key("staticlogistics:*").color("light_purple")
-            .line("zh_cn", "静态物流物品")
-            .line("en_us", "Static Logistics item")
-            .build());
-
-        put(map, b.key("minecraft:totem_of_undying").color("gold").shift().prepend()
-            .condition("sneaking", true)
-            .line("zh_cn",
-                TooltipBuilder.TooltipLine.of("不死图腾").color("#FFD700").bold().underline(),
-                TooltipBuilder.TooltipLine.of("手持时免疫致命伤害").color("red").italic())
-            .line("en_us",
-                TooltipBuilder.TooltipLine.of("Totem of Undying").color("#FFD700").bold().underline(),
-                TooltipBuilder.TooltipLine.of("Prevents fatal damage when held").color("red").italic())
-            .build());
+        // 间距和分割线
+        root.add("minecraft:stone", toJson(vbox(4,
+            text("Stone", "gray"),
+            divider("dark_gray"),
+            text("基础方块", "white")
+        )));
 
         return DataProvider.saveStable(cache,
-            JsonParser.parseString(new GsonBuilder().setPrettyPrinting().create().toJson(map)), path);
+            JsonParser.parseString(new GsonBuilder().setPrettyPrinting().create().toJson(root)), path);
     }
 
     @Override
     public String getName() {
         return "Example Tooltips";
-    }
-
-    private static void put(Map<String, Object> map, Map.Entry<String, Object> entry) {
-        map.put(entry.getKey(), entry.getValue());
     }
 }

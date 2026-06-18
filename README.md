@@ -1,284 +1,506 @@
 # DataTip
 
-JSON-driven custom item tooltips. Define tooltips in resource packs at `assets/<modid>/datatip/datatip.json`.
+JSON-driven custom item tooltips for Minecraft. Define tooltips in resource packs at `assets/<modid>/datatip/datatip.json`.
 
 ## Quick Start
 
 ```json
 {
-  "minecraft:diamond": [
-    "A shiny diamond",
-    "Worth a fortune"
-  ]
+  "minecraft:diamond": {
+    "type": "text",
+    "text": "A shiny diamond",
+    "color": "#55FFFF"
+  }
 }
 ```
 
 Put this in a resource pack at `assets/minecraft/datatip/datatip.json`, then hover a diamond in-game. That's it.
 
-The array shorthand has no language or style support. When you need those, wrap it in an object and use a `text` key:
+## Content Types
+
+| Type         | Description        | Example                                                       |
+|--------------|--------------------|---------------------------------------------------------------|
+| `text`       | Text content       | `{"type": "text", "text": "Hello", "color": "white"}`         |
+| `item`       | Item icon          | `{"type": "item", "item": "minecraft:diamond", "size": 32}`   |
+| `block`      | 3D block           | `{"type": "block", "block": "minecraft:stone", "size": 48}`   |
+| `entity`     | 3D entity          | `{"type": "entity", "entity": "minecraft:wolf", "size": 48}`  |
+| `progress`   | Progress bar       | `{"type": "progress", "progress": 0.75, "width": 100}`        |
+| `carousel`   | Carousel container | `{"type": "carousel", "intervalSeconds": 3, "frames": [...]}` |
+| `typewriter` | Typewriter effect  | `{"type": "typewriter", "lines": ["Typing..."]}`              |
+| `atlas`      | Texture rendering  | `{"type": "atlas", "item": "minecraft:apple", "size": 32}`    |
+| `image`      | Image              | `{"type": "image", "texture": "mymod:gui/icon.png"}`          |
+| `chart`      | Chart              | `{"type": "chart", "chartType": "bar", "entries": [...]}`     |
+| `vbox`       | Vertical layout    | `{"type": "vbox", "gap": 4, "children": [...]}`               |
+| `hbox`       | Horizontal layout  | `{"type": "hbox", "gap": 8, "children": [...]}`               |
+| `divider`    | Divider line       | `{"type": "divider", "color": "#555555"}`                     |
+| `spacer`     | Spacing            | `{"type": "spacer", "height": 8}`                             |
+
+## Text Properties
+
+| Property        | Type          | Default | Description                                   |
+|-----------------|---------------|---------|-----------------------------------------------|
+| `text`          | String/Object | -       | Text content (supports multi-language object) |
+| `color`         | String        | "white" | Color (named or hex, supports expressions)    |
+| `align`         | String        | "left"  | Alignment: `left`, `center`, `right`          |
+| `bold`          | boolean       | false   | Bold text                                     |
+| `italic`        | boolean       | false   | Italic text                                   |
+| `underlined`    | boolean       | false   | Underlined text                               |
+| `strikethrough` | boolean       | false   | Strikethrough text                            |
+| `shift`         | boolean       | false   | Only show when holding Shift                  |
+| `maxWidth`      | int           | 0       | Maximum width (0=no wrap)                     |
+
+## Progress Bar Properties
+
+| Property     | Type    | Default    | Description                                        |
+|--------------|---------|------------|----------------------------------------------------|
+| `progress`   | float   | 0.0        | Progress value (0.0-1.0)                           |
+| `width`      | int     | 100        | Width                                              |
+| `height`     | int     | 8          | Height                                             |
+| `colorFg`    | String  | "#55FF55"  | Foreground color                                   |
+| `colorBg`    | String  | "#333333"  | Background color                                   |
+| `style`      | String  | "gradient" | Style: `flat`, `gradient`, `segmented`, `animated` |
+| `showLabel`  | boolean | false      | Show label                                         |
+| `label`      | String  | -          | Custom label text                                  |
+| `labelAlign` | String  | "left"     | Label alignment: `left`, `center`, `right`         |
+
+## Divider Properties
+
+| Property    | Type   | Default   | Description                        |
+|-------------|--------|-----------|------------------------------------|
+| `color`     | String | "#555555" | Color                              |
+| `style`     | String | "solid"   | Style: `solid`, `dashed`, `dotted` |
+| `width`     | int    | 0         | Width (0=fill)                     |
+| `widthMode` | String | "fill"    | Mode: `fill`, `fixed`, `centered`  |
+
+## Carousel Properties
+
+| Property          | Type  | Default | Description                     |
+|-------------------|-------|---------|---------------------------------|
+| `frames`          | Array | -       | Content frames array            |
+| `intervalSeconds` | int   | 3       | Frame switch interval (seconds) |
+
+## Typewriter Properties
+
+| Property         | Type    | Default | Description                   |
+|------------------|---------|---------|-------------------------------|
+| `lines`          | Array   | -       | Text lines array              |
+| `charsPerSecond` | int     | 2       | Characters per second         |
+| `pauseSeconds`   | int     | 1       | Pause between lines (seconds) |
+| `loop`           | boolean | false   | Loop animation                |
+
+## Variables
+
+| Variable               | Description             |
+|------------------------|-------------------------|
+| `{durability}`         | Current durability      |
+| `{max_durability}`     | Maximum durability      |
+| `{damage}`             | Damage value            |
+| `{durability_percent}` | Durability percentage   |
+| `{durability_bar}`     | Durability bar (visual) |
+| `{count}`              | Item count              |
+| `{item_name}`          | Item name               |
+| `{item_id}`            | Item ID                 |
+| `{enchantment_count}`  | Enchantment count       |
+| `{is_enchanted}`       | Is enchanted            |
+| `{rarity}`             | Rarity                  |
+| `{max_stack_size}`     | Max stack size          |
+| `{is_stackable}`       | Is stackable            |
+| `{is_damageable}`      | Is damageable           |
+| `{player_health}`      | Player health           |
+| `{player_max_health}`  | Player max health       |
+| `{player_hunger}`      | Player hunger           |
+| `{player_experience}`  | Player experience level |
+| `{game_time}`          | Game time               |
+| `{is_day}`             | Is daytime              |
+| `{is_raining}`         | Is raining              |
+| `{is_thundering}`      | Is thundering           |
+| `{health_bar}`         | Health bar (visual)     |
+
+## Conditions
+
+| Condition    | Description      | Example                                |
+|--------------|------------------|----------------------------------------|
+| `dimension`  | Dimension        | `"dimension": "minecraft:the_nether"`  |
+| `biome`      | Biome            | `"biome": "minecraft:desert"`          |
+| `holding`    | Held item        | `"holding": "minecraft:diamond_sword"` |
+| `sneaking`   | Is sneaking      | `"sneaking": true`                     |
+| `creative`   | Creative mode    | `"creative": true`                     |
+| `survival`   | Survival mode    | `"survival": true`                     |
+| `health`     | Health           | `"health": "50%"` or `"health": 10`    |
+| `hunger`     | Hunger           | `"hunger": 15`                         |
+| `experience` | Experience level | `"experience": 30`                     |
+| `time`       | Time             | `"time": "day"` or `"time": 6000`      |
+| `weather`    | Weather          | `"weather": "rain"`                    |
+| `light`      | Light level      | `"light": "dark"` or `"light": 8`      |
+| `altitude`   | Altitude         | `"altitude": ">=64"`                   |
+| `enchanted`  | Is enchanted     | `"enchanted": true`                    |
+| `damage`     | Damage value     | `"damage": 100`                        |
+| `count`      | Item count       | `"count": 16`                          |
+
+## Expressions
+
+Supports expressions in text and color:
 
 ```json
-// No language, plain text → array shorthand
-"minecraft:diamond": ["A shiny diamond", "Worth a fortune"]
-
-// Color / style / multi-language → wrap in object
-"minecraft:diamond": {
-    "color": "gold",
-    "text": {
-        "zh_cn": ["闪闪发光", "很值钱"],
-        "en_us": ["A shiny diamond", "Worth a fortune"]
-    }
-}
-
-// No language but want color → text as array
-"minecraft:emerald": {
-    "color": "green",
-    "text": ["Emerald", "Used for trading"]
+{
+  "type": "text",
+  "text": "Status: {durability > 100 ? 'Good' : 'Needs repair'}",
+  "color": "{durability > 100 ? 'green' : 'red'}"
 }
 ```
 
-## Entry Fields
+Supported operators:
+- Comparison: `>`, `<`, `==`, `!=`, `>=`, `<=`
+- Logic: `&&`, `||`, `!`
+- Arithmetic: `+`, `-`, `*`, `/`
+- Ternary: `condition ? true_value : false_value`
 
-An entry is the value under an item key. It can be a simple array of strings, or an object with options.
+## Multi-language
+
+```json
+{
+  "type": "text",
+  "text": {
+    "zh_cn": "你好世界",
+    "en_us": "Hello World"
+  },
+  "color": "aqua"
+}
+```
+
+## Special Properties
+
+| Property     | Description                                                       |
+|--------------|-------------------------------------------------------------------|
+| `align`      | Alignment: `left`, `center`, `right` (works on all content types) |
+| `shift`      | Only show when holding Shift                                      |
+| `prepend`    | Show after item name (before original content)                    |
+| `conditions` | Conditions configuration                                          |
+
+## Colors
+
+### Named Colors
+
+| Color               | Hex       |
+|---------------------|-----------|
+| black               | #000000   |
+| dark_blue           | #0000AA   |
+| dark_green          | #00AA00   |
+| dark_aqua           | #00AAAA   |
+| dark_red            | #AA0000   |
+| dark_purple         | #AA00AA   |
+| gold                | #FFAA00   |
+| gray/grey           | #AAAAAA   |
+| dark_gray/dark_grey | #555555   |
+| blue                | #5555FF   |
+| green               | #55FF55   |
+| aqua                | #55FFFF   |
+| red                 | #FF5555   |
+| light_purple        | #FF55FF   |
+| yellow              | #FFFF55   |
+| white               | #FFFFFF   |
+
+### Hex Colors
+
+Any 6-digit hex with `#` prefix: `"#FF6600"`, `"#AABBCC"`, `"#00FF00"`
+
+## Configuration
+
+File: `config/datatip-common.toml`
+
+| Option              | Type    | Default    | Description            |
+|---------------------|---------|------------|------------------------|
+| `enabled`           | boolean | true       | Enable/disable DataTip |
+| `defaultColor`      | int     | 0xFFAAAAAA | Default text color     |
+| `defaultLineHeight` | int     | 12         | Default line height    |
+| `maxWidth`          | int     | 200        | Maximum tooltip width  |
+| `enableAnimations`  | boolean | true       | Enable animations      |
+| `debugMode`         | boolean | false      | Debug mode             |
+
+## Legacy Format Support
+
+Old format is automatically converted:
 
 ```json
 {
   "minecraft:diamond": ["Line 1", "Line 2"],
-
   "minecraft:diamond_sword": {
-    "text": {
-      "zh_cn": ["削铁如泥"],
-      "en_us": ["Cuts through iron like butter"]
-    },
+    "text": {"zh_cn": ["Sharp"], "en_us": ["Sharp"]},
     "color": "gold",
-    "shift": true,
-    "prepend": true
+    "shift": true
   }
 }
 ```
-
-| Field        | Type           | Default | Description                                                                                                                                                                                                                                                                                                                                                        |
-|--------------|----------------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `text`       | object / array | —       | Two forms: **language object** — language code → line array, e.g. `{"zh_cn": ["Line 1"], "en_us": ["Line 1"]}`; falls back to the first available language. **shorthand array** — `["Line 1", "Line 2"]` for language-agnostic text that shows for all players. Single-line values can be a plain string: `"text": {"zh_cn": "One line"}` or `"text": "One line"`. |
-| `color`      | string         | gray    | Default text color for all lines when not overridden per-line. Supports hex (`"#FF6600"`) and the 16 named Minecraft colors listed below.                                                                                                                                                                                                                          |
-| `shift`      | bool           | false   | When `true`, the tooltip lines are hidden behind a "Hold key" hint. The content only appears when the player holds the configured key (default: Left Shift, rebindable in Controls → DataTip). Useful for long descriptions that shouldn't clutter the default view.                                                                                               |
-| `prepend`    | bool           | false   | When `true`, custom lines are inserted right after the item name (before enchantments, attributes, etc.) instead of being appended at the very end of the tooltip.                                                                                                                                                                                                 |
-| `conditions` | object         | —       | A set of requirements that must all be met for the tooltip to appear. See the Conditions section below.                                                                                                                                                                                                                                                            |
-| `nbt`        | object         | —       | If set, only items whose NBT data matches these key-value pairs will show the tooltip. Values are compared as strings. Example: `{"Damage": "0"}` matches an undamaged tool.                                                                                                                                                                                       |
-
-### Color Values
-
-Hex colors: `"#FF6600"`, `"#AABBCC"`, `"#00FF00"` — any 6-digit hex with `#` prefix.
-
-Named colors (standard Minecraft formatting codes):
-
-| Color                     | Name         |
-|---------------------------|--------------|
-| `black`                   | Black        |
-| `dark_blue`               | Dark Blue    |
-| `dark_green`              | Dark Green   |
-| `dark_aqua`               | Dark Aqua    |
-| `dark_red`                | Dark Red     |
-| `dark_purple`             | Dark Purple  |
-| `gold`                    | Gold         |
-| `gray` / `grey`           | Gray         |
-| `dark_gray` / `dark_grey` | Dark Gray    |
-| `blue`                    | Blue         |
-| `green`                   | Green        |
-| `aqua`                    | Aqua         |
-| `red`                     | Red          |
-| `light_purple`            | Light Purple |
-| `yellow`                  | Yellow       |
-| `white`                   | White        |
-
-### Conditions
-
-All conditions in the object must be met for the tooltip to show. They are AND-ed together.
-
-| Type        | Value                                                    | Description                                                     |
-|-------------|----------------------------------------------------------|-----------------------------------------------------------------|
-| `dimension` | A dimension ID, e.g. `"minecraft:the_nether"`            | Only shows when the player is in this dimension.                |
-| `biome`     | A biome ID like `"minecraft:plains"`, or an array of IDs | Only shows when the player is in one of these biomes.           |
-| `holding`   | An item ID, e.g. `"minecraft:diamond_pickaxe"`           | Only shows when the player is holding this item in either hand. |
-| `sneaking`  | `true`                                                   | Only shows when the player is sneaking (holding Shift).         |
-
-## Per-line Styling
-
-Each line in the `text` arrays can be a plain string or an object with style options:
-
-```json
-{"text": "Bold gold", "color": "gold", "bold": true}
-{"text": "Italic blue", "color": "blue", "italic": true}
-{"text": "Underlined", "underlined": true}
-{"text": "Crossed out", "strikethrough": true}
-{"text": "Pixel font", "font": "minecraft:alt"}
-```
-
-When a line has no `color`, it inherits the entry-level `color`. When neither is set, it defaults to gray.
-
-| Field           | Type   | Description                                                                                                                                                                                                     |
-|-----------------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `text`          | string | The text to display. Required.                                                                                                                                                                                  |
-| `color`         | string | Overrides the entry-level color for this line. Hex or named.                                                                                                                                                    |
-| `bold`          | bool   | Bold text.                                                                                                                                                                                                      |
-| `italic`        | bool   | Italic text.                                                                                                                                                                                                    |
-| `underlined`    | bool   | Underlined text.                                                                                                                                                                                                |
-| `strikethrough` | bool   | Strikethrough text.                                                                                                                                                                                             |
-| `font`          | string | A font from a resource pack. Built-in options include `minecraft:default` (the normal font), `minecraft:alt` (the enchanting table runes), `minecraft:uniform` (monospace). Custom resource packs may add more. |
-
-## Variables
-
-These placeholders are replaced with live values at render time. They only have meaning on items that are damageable or stackable.
-
-| Variable           | Replaced with                       |
-|--------------------|-------------------------------------|
-| `{durability}`     | Remaining durability (max - damage) |
-| `{max_durability}` | Maximum durability                  |
-| `{count}`          | Stack size                          |
-
-## Matching
-
-Items are matched in order. Multiple rules can match the same item — they all show, stacked together.
-
-| Method     | Key Example                                  | What it matches                                                                                                                      |
-|------------|----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| Exact      | `"minecraft:diamond"`                        | Only that specific item.                                                                                                             |
-| Tag        | `"#minecraft:swords"`                        | All items with that tag. The `#` prefix is stripped and the rest is used as a tag ID.                                                |
-| Wildcard   | `"staticlogistics:*"`                        | `*` matches any sequence of characters, `?` matches exactly one. `"minecraft:*_sword"` matches `wooden_sword`, `diamond_sword`, etc. |
-| NBT        | Same as exact, plus `"nbt": {"Damage": "0"}` | Only exact matches with matching NBT key-value pairs.                                                                                |
-| Conditions | Same as exact, plus `"conditions": {...}`    | Only when all conditions are satisfied.                                                                                              |
-
-## Config
-
-- File: `config/datatip.toml`
-- `enabled`: Set to `false` to disable all DataTip tooltips.
-- The key for showing Shift-protected tooltips can be rebound in **Options → Controls → DataTip** (default: Left Shift).
-- Changes to JSON resource files take effect after `/reload` or F3+T — no restart needed.
 
 ## Complete Example
 
 ```json
 {
-  "minecraft:diamond": [
-    "A shiny diamond",
-    "Worth a fortune"
-  ],
-
-  // Array + color: text as array inside an object with metadata
-  "minecraft:emerald": {
-    "color": "green",
-    "text": ["Emerald", "Used for trading"]
+  "minecraft:diamond": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Diamond", "color": "#55FFFF", "align": "center"},
+      {"type": "divider", "color": "#555555", "widthMode": "centered", "width": 80},
+      {"type": "text", "text": "A precious gem", "color": "gray", "align": "center"},
+      {"type": "spacer", "height": 4},
+      {"type": "text", "text": "Left aligned", "color": "white", "align": "left"},
+      {"type": "text", "text": "Centered", "color": "gold", "align": "center"},
+      {"type": "text", "text": "Right aligned", "color": "aqua", "align": "right"}
+    ]
   },
 
-  // Multi-language with per-line styling
-  "minecraft:netherite_ingot": {
-    "text": {
-      "zh_cn": [
-        "下界合金锭",
-        {"text": "不会被熔岩烧毁", "color": "dark_red", "bold": true}
-      ],
-      "en_us": [
-        "Netherite Ingot",
-        {"text": "Immune to lava", "color": "dark_red", "bold": true}
-      ]
-    },
-    "color": "gold"
-  },
-
-  // shift + prepend: hidden until Shift, shown after item name
   "minecraft:diamond_sword": {
-    "text": {
-      "zh_cn": [{"text": "削铁如泥", "color": "aqua"}],
-      "en_us": [{"text": "Cuts through iron like butter", "color": "aqua"}]
-    },
-    "shift": true,
-    "prepend": true
+    "type": "hbox",
+    "gap": 8,
+    "children": [
+      {"type": "item", "item": "minecraft:diamond_sword", "size": 32},
+      {"type": "vbox", "gap": 2, "children": [
+        {"type": "text", "text": "Diamond Sword", "color": "aqua", "align": "center"},
+        {"type": "text", "text": "Durability: {durability}/{max_durability}", "color": "gray"},
+        {"type": "text", "text": "Percent: {durability_percent}%", "color": "gold"}
+      ]}
+    ]
   },
 
-  // Variables: {durability} {max_durability} {count}
   "minecraft:diamond_pickaxe": {
-    "text": {
-      "zh_cn": ["耐久: {durability} / {max_durability}"],
-      "en_us": ["Durability: {durability} / {max_durability}"]
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Diamond Pickaxe", "color": "aqua", "align": "center"},
+      {"type": "progress", "progress": 0.75, "width": 100, "height": 6, "colorFg": "#55FF55", "showLabel": true, "label": "75%", "labelAlign": "right"},
+      {"type": "progress", "progress": 0.5, "width": 100, "height": 8, "style": "segmented"},
+      {"type": "progress", "progress": 0.9, "width": 100, "height": 6, "colorFg": "#FFD700", "animated": true, "animSpeed": 3}
+    ]
+  },
+
+  "minecraft:golden_apple": {
+    "type": "carousel",
+    "intervalSeconds": 10,
+    "frames": [
+      {"type": "vbox", "gap": 2, "children": [
+        {"type": "text", "text": "Golden Apple", "color": "gold", "align": "center"},
+        {"type": "text", "text": "Restores health", "color": "red"}
+      ]},
+      {"type": "vbox", "gap": 2, "children": [
+        {"type": "text", "text": "Golden Apple", "color": "gold", "align": "center"},
+        {"type": "text", "text": "Restores health", "color": "red"}
+      ]},
+      {"type": "vbox", "gap": 2, "children": [
+        {"type": "text", "text": "Golden Apple", "color": "gold", "align": "center"},
+        {"type": "text", "text": "Restores health", "color": "red"}
+      ]}
+    ]
+  },
+
+  "minecraft:nether_star": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Nether Star", "color": "light_purple", "align": "center"},
+      {"type": "typewriter", "lines": ["Boss drop", "Used for beacon", "Rare item"], "charsPerSecond": 10, "pauseSeconds": 1, "color": "gray"}
+    ]
+  },
+
+  "minecraft:stone": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Stone", "color": "gray"},
+      {"type": "divider", "color": "#555555", "style": "solid"},
+      {"type": "text", "text": "Above solid line", "color": "white"},
+      {"type": "divider", "color": "#555555", "style": "dashed"},
+      {"type": "text", "text": "Above dashed line", "color": "white"},
+      {"type": "divider", "color": "#555555", "style": "dotted"},
+      {"type": "text", "text": "Above dotted line", "color": "white"}
+    ]
+  },
+
+  "minecraft:bow": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Durability: {durability}/{max_durability}", "color": "gray"},
+      {"type": "text", "text": "Percent: {durability_percent}%", "color": "gold"},
+      {"type": "text", "text": "Durability bar: {durability_bar}", "color": "green"},
+      {"type": "text", "text": "Health bar: {health_bar}", "color": "red"}
+    ]
+  },
+
+  "minecraft:iron_ingot": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Iron Ingot", "color": "white", "align": "center"},
+      {"type": "divider", "color": "#555555", "widthMode": "centered", "width": 60},
+      {"type": "text", "text": "Health: {player_health}/{player_max_health}", "color": "red"},
+      {"type": "text", "text": "Hunger: {player_hunger}", "color": "gold"},
+      {"type": "text", "text": "Experience: {player_experience}", "color": "green"}
+    ]
+  },
+
+  "minecraft:clock": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Time: {game_time}", "color": "gold"},
+      {"type": "text", "text": "Daytime: {is_day}", "color": "yellow"},
+      {"type": "text", "text": "Raining: {is_raining}", "color": "aqua"},
+      {"type": "text", "text": "Thundering: {is_thundering}", "color": "red"}
+    ]
+  },
+
+  "#minecraft:swords": {
+    "type": "text",
+    "text": "All swords", "color": "yellow"
+  },
+
+  "minecraft:diamond_block": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Diamond Block", "color": "aqua", "align": "center"},
+      {"type": "text", "text": "Only in Nether", "color": "dark_red"}
+    ],
+    "conditions": {
+      "dimension": "minecraft:the_nether"
     }
   },
 
-  // Bold, italic, shift — multiple styled lines from different entries stack
-  "minecraft:enchanted_golden_apple": {
-    "text": {
-      "zh_cn": [
-        {"text": "稀有食物", "color": "gold", "bold": true},
-        {"text": "生命恢复 IV", "color": "red", "italic": true},
-        {"text": "伤害吸收 IV", "color": "aqua", "italic": true}
-      ],
-      "en_us": [
-        {"text": "Rare food", "color": "gold", "bold": true},
-        {"text": "Regeneration IV", "color": "red", "italic": true},
-        {"text": "Absorption IV", "color": "aqua", "italic": true}
-      ]
-    },
-    "color": "light_purple",
+  "minecraft:emerald_block": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Emerald Block", "color": "green"},
+      {"type": "text", "text": "Hold Shift to see this", "color": "gray", "shift": true}
+    ]
+  },
+
+  "minecraft:gold_block": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Gold Block", "color": "gold"},
+      {"type": "text", "text": "Hold Shift for full tooltip", "color": "gray"},
+      {"type": "text", "text": "All content will be folded", "color": "yellow"}
+    ],
     "shift": true
   },
 
-  // Bold + custom font
-  "minecraft:nether_star": {
-    "text": {
-      "zh_cn": [
-        {"text": "Boss 掉落", "bold": true},
-        {"text": "像素风标题", "font": "minecraft:alt"}
-      ],
-      "en_us": [
-        {"text": "Boss drop", "bold": true},
-        {"text": "Pixel title", "font": "minecraft:alt"}
-      ]
-    },
-    "color": "light_purple"
+  "minecraft:iron_block": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Iron Block", "color": "white"},
+      {"type": "text", "text": "This shows after item name", "color": "gray"}
+    ],
+    "prepend": true
   },
 
-  // Strikethrough
-  "minecraft:stone": {
-    "text": {
-      "zh_cn": [{"text": "这是删除线", "strikethrough": true}],
-      "en_us": [{"text": "Strikethrough text", "strikethrough": true}]
-    }
+  "minecraft:enchanted_golden_apple": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Enchanted Golden Apple", "color": "gold", "bold": true, "align": "center"},
+      {"type": "divider", "color": "#FFD700", "widthMode": "centered", "width": 80},
+      {"type": "hbox", "gap": 8, "children": [
+        {"type": "item", "item": "minecraft:enchanted_golden_apple", "size": 32},
+        {"type": "vbox", "gap": 2, "children": [
+          {"type": "text", "text": "Rare food", "color": "light_purple"},
+          {"type": "progress", "progress": 1.0, "width": 80, "height": 6, "colorFg": "#FFD700", "showLabel": true, "label": "Full", "labelAlign": "left"}
+        ]}
+      ]},
+      {"type": "text", "text": "Durability bar: {durability_bar}", "color": "gray"},
+      {"type": "text", "text": "Health bar: {health_bar}", "color": "red"}
+    ]
   },
 
-  // Tag match — all items with the #minecraft:pickaxes tag
-  "#minecraft:pickaxes": {
-    "text": {
-      "zh_cn": ["所有镐子都显示这句话"],
-      "en_us": ["Common pickaxe info"]
-    },
-    "color": "yellow"
+  "minecraft:wolf_spawn_egg": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Wolf Spawn Egg", "color": "white", "align": "center"},
+      {"type": "entity", "entity": "minecraft:wolf", "size": 48, "rotationSpeed": 1.0, "autoRotate": true},
+      {"type": "text", "text": "Can be tamed", "color": "gray"}
+    ]
   },
 
-  // Condition: only in the Nether
-  "minecraft:diamond_block": {
-    "text": {
-      "zh_cn": ["只在下界显示"],
-      "en_us": ["Only visible in the Nether"]
-    },
-    "color": "dark_red",
-    "conditions": { "dimension": "minecraft:the_nether" }
+  "minecraft:crafting_table": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Crafting Table", "color": "white", "align": "center"},
+      {"type": "block", "block": "minecraft:crafting_table", "size": 48, "rotationSpeed": 0.5, "autoRotate": true},
+      {"type": "text", "text": "Used for crafting", "color": "gray"}
+    ]
   },
 
-  // NBT match: only when undamaged (Damage = 0)
-  "minecraft:bow": {
-    "text": {
-      "zh_cn": [{"text": "满耐久才显示这句话", "underlined": true}],
-      "en_us": [{"text": "Full durability only", "underlined": true}]
-    },
-    "nbt": { "Damage": "0" }
+  "minecraft:apple": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Apple", "color": "red", "align": "center"},
+      {"type": "atlas", "item": "minecraft:apple", "size": 32},
+      {"type": "text", "text": "Restores hunger", "color": "gray"}
+    ]
   },
 
-  // Wildcard match — all items from a namespace
-  "staticlogistics:*": {
+  "minecraft:red_concrete": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Red Concrete", "color": "red", "align": "center"},
+      {"type": "atlas", "block": "minecraft:red_concrete", "size": 32},
+      {"type": "text", "text": "Decorative block", "color": "gray"}
+    ]
+  },
+
+  "minecraft:iron_sword": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Iron Sword", "color": "white", "align": "center"},
+      {"type": "text", "text": "Status: {durability > 100 ? 'Good' : 'Needs repair'}", "color": "{durability > 100 ? 'green' : 'red'}"},
+      {"type": "text", "text": "Durability: {durability}/{max_durability} ({durability_percent}%)", "color": "gray"}
+    ]
+  },
+
+  "minecraft:ender_pearl": {
+    "type": "text",
     "text": {
-      "zh_cn": ["静态物流物品"],
-      "en_us": ["Static Logistics item"]
+      "zh_cn": "末影珍珠 - 可用于传送",
+      "en_us": "Ender Pearl - Can be used for teleportation"
     },
-    "color": "light_purple"
+    "color": "#00AAAA"
+  },
+
+  "minecraft:coal": {
+    "type": "vbox",
+    "gap": 0,
+    "children": [
+      {"type": "text", "text": "Coal", "color": "gray"},
+      {"type": "spacer", "height": 8},
+      {"type": "text", "text": "8px spacer above", "color": "white"}
+    ]
+  },
+
+  "minecraft:emerald": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Bold text", "color": "green", "bold": true},
+      {"type": "text", "text": "Italic text", "color": "green", "italic": true},
+      {"type": "text", "text": "Underlined text", "color": "green", "underlined": true},
+      {"type": "text", "text": "Strikethrough text", "color": "green", "strikethrough": true}
+    ]
   }
 }
 ```
+
+## Hot Reload
+
+Press F3+T or use `/reload` command to reload tooltips without restarting.
+
+## License
+
+GNU LGPL 3.0

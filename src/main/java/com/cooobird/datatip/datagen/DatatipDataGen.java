@@ -1,12 +1,12 @@
 package com.cooobird.datatip.datagen;
 
+import com.cooobird.datatip.Datatip;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
-import com.cooobird.datatip.Datatip;
 
 /**
- * 其他模组的 datagen 参照这里的写法，核心就是调 {@link TooltipBuilder}。
+ * 其他模组的 datagen 参照这里的写法，核心就是调 {@link TipContentBuilder}。
  * 默认不生成文件，取消下面注释即可激活示例：
  */
 @EventBusSubscriber(modid = Datatip.MODID)

@@ -1,285 +1,506 @@
 # DataTip
 
-JSON 驱动的自定义物品 tooltip。在资源包的 `assets/<模组id>/datatip/datatip.json` 里定义。
+JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，路径为 `assets/<modid>/datatip/datatip.json`。
 
 ## 快速开始
 
 ```json
 {
-  "minecraft:diamond": [
-    "一颗闪闪发光的钻石",
-    "据说很值钱"
-  ]
-}
-```
-
-放到资源包的 `assets/minecraft/datatip/datatip.json`，悬停钻石。成了。
-
-数组简写不带语言和样式——需要这些时，包一层 object 把 `text` 换成对象：
-
-```json
-// 无语言分、纯文本 → 数组简写
-"minecraft:diamond": ["闪闪发光", "很值钱"]
-
-// 有颜色/样式/多语言 → 包 object
-"minecraft:diamond": {
-    "color": "gold",
-    "text": {
-        "zh_cn": ["闪闪发光", "很值钱"],
-        "en_us": ["A shiny diamond", "Worth a fortune"]
-    }
-}
-
-// 不分语言但要颜色 → text 用数组
-"minecraft:emerald": {
-    "color": "green",
-    "text": ["绿宝石", "可用于交易"]
-}
-```
-
-## 条目字段
-
-条目是物品键下面的值。可以是简单的字符串数组，也可以是带选项的对象。
-
-```json
-{
-  "minecraft:diamond": ["第一行", "第二行"],
-
-  "minecraft:diamond_sword": {
-    "text": {
-      "zh_cn": ["削铁如泥"],
-      "en_us": ["Cuts through iron like butter"]
-    },
-    "color": "gold",
-    "shift": true,
-    "prepend": true
+  "minecraft:diamond": {
+    "type": "text",
+    "text": "一颗闪亮的钻石",
+    "color": "#55FFFF"
   }
 }
 ```
 
-| 字段           | 类型             | 默认值   | 说明                                                                                                                                                                                                     |
-|--------------|----------------|-------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `text`       | object / array | —     | 两种形式：**多语言对象** — 语言代码 → 行数组，如 `{"zh_cn": ["行1"], "en_us": ["Line 1"]}`。当前语言找不到时自动 fallback 到第一个写了内容的语言。**简写数组** — 直接 `["行1", "行2"]`，不区分语言、全语言通用。单行时可直接写字符串 `"text": {"zh_cn": "一行"}` 或 `"text": "一行"`。 |
-| `color`      | string         | gray  | 所有行的默认颜色。支持十六进制（`"#FF6600"`）和下方列出的 16 种命名色。                                                                                                                                                            |
-| `shift`      | bool           | false | `true` 时，tooltip 内容隐藏，显示"按住按键查看详情"。按住配置的按键（默认左Shift，可在 选项→控制→DataTip 里修改）才展开。适合不想在默认视图占太多空间的长描述。                                                                                                       |
-| `prepend`    | bool           | false | `true` 时，自定义行插在物品名字后面、原版 tooltip（附魔、属性等）前面。`false` 时追加在 tooltip 最末尾。                                                                                                                                   |
-| `conditions` | object         | —     | 一组必须全部满足的条件，不满足就不显示此条 tooltip。详见下方条件说明。                                                                                                                                                                |
-| `nbt`        | object         | —     | 设置了之后，只有 NBT 数据匹配的物品才显示。值按字符串比较。例如 `{"Damage": "0"}` 只匹配满耐久的工具。                                                                                                                                        |
+将此文件放入资源包的 `assets/minecraft/datatip/datatip.json`，然后在游戏中悬停钻石即可看到效果。
 
-### 颜色值
+## 内容类型
 
-十六进制：`"#FF6600"`、`"#AABBCC"`、`"#00FF00"`——任意 6 位十六进制加 `#` 前缀。
+| 类型           | 说明    | 示例                                                            |
+|--------------|-------|---------------------------------------------------------------|
+| `text`       | 文本内容  | `{"type": "text", "text": "Hello", "color": "white"}`         |
+| `item`       | 物品图标  | `{"type": "item", "item": "minecraft:diamond", "size": 32}`   |
+| `block`      | 3D 方块 | `{"type": "block", "block": "minecraft:stone", "size": 48}`   |
+| `entity`     | 3D 实体 | `{"type": "entity", "entity": "minecraft:wolf", "size": 48}`  |
+| `progress`   | 进度条   | `{"type": "progress", "progress": 0.75, "width": 100}`        |
+| `carousel`   | 轮播容器  | `{"type": "carousel", "intervalSeconds": 3, "frames": [...]}` |
+| `typewriter` | 打字机效果 | `{"type": "typewriter", "lines": ["逐字显示"]}`                   |
+| `atlas`      | 纹理渲染  | `{"type": "atlas", "item": "minecraft:apple", "size": 32}`    |
+| `image`      | 图片    | `{"type": "image", "texture": "mymod:gui/icon.png"}`          |
+| `chart`      | 图表    | `{"type": "chart", "chartType": "bar", "entries": [...]}`     |
+| `vbox`       | 垂直布局  | `{"type": "vbox", "gap": 4, "children": [...]}`               |
+| `hbox`       | 水平布局  | `{"type": "hbox", "gap": 8, "children": [...]}`               |
+| `divider`    | 分割线   | `{"type": "divider", "color": "#555555"}`                     |
+| `spacer`     | 间距    | `{"type": "spacer", "height": 8}`                             |
 
-命名色（Minecraft 标准 16 色）：
+## 文本属性
 
-| 颜色                        | 代码 | 中文 |
-|---------------------------|----|----|
-| `black`                   | 黑色 |    |
-| `dark_blue`               | 深蓝 |    |
-| `dark_green`              | 深绿 |    |
-| `dark_aqua`               | 深青 |    |
-| `dark_red`                | 深红 |    |
-| `dark_purple`             | 深紫 |    |
-| `gold`                    | 金色 |    |
-| `gray` / `grey`           | 灰色 |    |
-| `dark_gray` / `dark_grey` | 深灰 |    |
-| `blue`                    | 蓝色 |    |
-| `green`                   | 绿色 |    |
-| `aqua`                    | 青色 |    |
-| `red`                     | 红色 |    |
-| `light_purple`            | 浅紫 |    |
-| `yellow`                  | 黄色 |    |
-| `white`                   | 白色 |    |
+| 属性              | 类型            | 默认值     | 说明                         |
+|-----------------|---------------|---------|----------------------------|
+| `text`          | String/Object | -       | 文本内容（支持多语言对象）              |
+| `color`         | String        | "white" | 颜色（命名色或十六进制，支持表达式）         |
+| `align`         | String        | "left"  | 对齐：`left`、`center`、`right` |
+| `bold`          | boolean       | false   | 粗体                         |
+| `italic`        | boolean       | false   | 斜体                         |
+| `underlined`    | boolean       | false   | 下划线                        |
+| `strikethrough` | boolean       | false   | 删除线                        |
+| `shift`         | boolean       | false   | 需要按住 Shift 才显示             |
+| `maxWidth`      | int           | 0       | 最大宽度（0=不换行）                |
 
-### 条件
+## 进度条属性
 
-对象里的所有条件必须**同时**满足，tooltip 才会显示。
+| 属性           | 类型      | 默认值        | 说明                                          |
+|--------------|---------|------------|---------------------------------------------|
+| `progress`   | float   | 0.0        | 进度值（0.0-1.0）                                |
+| `width`      | int     | 100        | 宽度                                          |
+| `height`     | int     | 8          | 高度                                          |
+| `colorFg`    | String  | "#55FF55"  | 前景色                                         |
+| `colorBg`    | String  | "#333333"  | 背景色                                         |
+| `style`      | String  | "gradient" | 样式：`flat`、`gradient`、`segmented`、`animated` |
+| `showLabel`  | boolean | false      | 显示标签                                        |
+| `label`      | String  | -          | 自定义标签文本                                     |
+| `labelAlign` | String  | "left"     | 标签对齐：`left`、`center`、`right`                |
 
-| 类型          | 值                                      | 说明                  |
-|-------------|----------------------------------------|---------------------|
-| `dimension` | 维度 ID，如 `"minecraft:the_nether"`       | 玩家在此维度时才显示。         |
-| `biome`     | 生物群系 ID，如 `"minecraft:plains"`；或 ID 数组 | 玩家在任一指定生物群系时才显示。    |
-| `holding`   | 物品 ID，如 `"minecraft:diamond_pickaxe"`  | 玩家主手或副手拿着该物品时才显示。   |
-| `sneaking`  | `true`                                 | 玩家潜行（按住 Shift）时才显示。 |
+## 分割线属性
 
-## 单行样式
+| 属性          | 类型     | 默认值       | 说明                           |
+|-------------|--------|-----------|------------------------------|
+| `color`     | String | "#555555" | 颜色                           |
+| `style`     | String | "solid"   | 样式：`solid`、`dashed`、`dotted` |
+| `width`     | int    | 0         | 宽度（0=填充）                     |
+| `widthMode` | String | "fill"    | 模式：`fill`、`fixed`、`centered` |
 
-`text` 里的每一行可以是纯字符串，也可以是带样式的对象：
+## 轮播容器属性
 
-```json
-{"text": "金色加粗", "color": "gold", "bold": true}
-{"text": "蓝色斜体", "color": "blue", "italic": true}
-{"text": "带下划线", "underlined": true}
-{"text": "删除线", "strikethrough": true}
-{"text": "像素字体", "font": "minecraft:alt"}
-```
+| 属性                | 类型    | 默认值 | 说明       |
+|-------------------|-------|-----|----------|
+| `frames`          | Array | -   | 内容帧数组    |
+| `intervalSeconds` | int   | 3   | 帧切换间隔（秒） |
 
-行不写 `color` 时继承条目级的 `color`，都没写时默认灰色。
+## 打字机属性
 
-| 字段              | 类型     | 说明                                                                                               |
-|-----------------|--------|--------------------------------------------------------------------------------------------------|
-| `text`          | string | 显示的文字。必填。                                                                                        |
-| `color`         | string | 覆盖条目级的颜色。十六进制或命名色。                                                                               |
-| `bold`          | bool   | 粗体                                                                                               |
-| `italic`        | bool   | 斜体                                                                                               |
-| `underlined`    | bool   | 下划线                                                                                              |
-| `strikethrough` | bool   | 删除线                                                                                              |
-| `font`          | string | 资源包中的字体。内置可选：`minecraft:default`（默认）、`minecraft:alt`（附魔台符文）、`minecraft:uniform`（等宽）。自定义资源包可添加更多。 |
+| 属性               | 类型      | 默认值   | 说明      |
+|------------------|---------|-------|---------|
+| `lines`          | Array   | -     | 文本行数组   |
+| `charsPerSecond` | int     | 2     | 每秒字符数   |
+| `pauseSeconds`   | int     | 1     | 行间暂停（秒） |
+| `loop`           | boolean | false | 循环播放    |
 
 ## 变量
 
-渲染时自动替换为当前值。只在可损坏或有堆叠的物品上有实际意义。
+| 变量                     | 说明       |
+|------------------------|----------|
+| `{durability}`         | 当前耐久     |
+| `{max_durability}`     | 最大耐久     |
+| `{damage}`             | 已损坏值     |
+| `{durability_percent}` | 耐久百分比    |
+| `{durability_bar}`     | 耐久条（可视化） |
+| `{count}`              | 物品数量     |
+| `{item_name}`          | 物品名称     |
+| `{item_id}`            | 物品 ID    |
+| `{enchantment_count}`  | 附魔数量     |
+| `{is_enchanted}`       | 是否附魔     |
+| `{rarity}`             | 稀有度      |
+| `{max_stack_size}`     | 最大堆叠数    |
+| `{is_stackable}`       | 是否可堆叠    |
+| `{is_damageable}`      | 是否可损坏    |
+| `{player_health}`      | 玩家生命值    |
+| `{player_max_health}`  | 玩家最大生命值  |
+| `{player_hunger}`      | 玩家饥饿值    |
+| `{player_experience}`  | 玩家经验等级   |
+| `{game_time}`          | 游戏时间     |
+| `{is_day}`             | 是否白天     |
+| `{is_raining}`         | 是否下雨     |
+| `{is_thundering}`      | 是否雷暴     |
+| `{health_bar}`         | 生命条（可视化） |
 
-| 变量                 | 替换为            |
-|--------------------|----------------|
-| `{durability}`     | 剩余耐久（最大 - 已损耗） |
-| `{max_durability}` | 最大耐久           |
-| `{count}`          | 堆叠数量           |
+## 条件
 
-## 匹配方式
+| 条件           | 说明   | 示例                                     |
+|--------------|------|----------------------------------------|
+| `dimension`  | 维度   | `"dimension": "minecraft:the_nether"`  |
+| `biome`      | 生物群系 | `"biome": "minecraft:desert"`          |
+| `holding`    | 手持物品 | `"holding": "minecraft:diamond_sword"` |
+| `sneaking`   | 是否潜行 | `"sneaking": true`                     |
+| `creative`   | 创造模式 | `"creative": true`                     |
+| `survival`   | 生存模式 | `"survival": true`                     |
+| `health`     | 生命值  | `"health": "50%"` 或 `"health": 10`     |
+| `hunger`     | 饥饿值  | `"hunger": 15`                         |
+| `experience` | 经验等级 | `"experience": 30`                     |
+| `time`       | 时间   | `"time": "day"` 或 `"time": 6000`       |
+| `weather`    | 天气   | `"weather": "rain"`                    |
+| `light`      | 光照   | `"light": "dark"` 或 `"light": 8`       |
+| `altitude`   | 海拔   | `"altitude": ">=64"`                   |
+| `enchanted`  | 是否附魔 | `"enchanted": true`                    |
+| `damage`     | 损坏值  | `"damage": 100`                        |
+| `count`      | 物品数量 | `"count": 16`                          |
 
-多条规则可同时命中同一个物品——全部叠加显示。
+## 表达式
 
-| 方式  | 键示例                             | 匹配范围                                                  |
-|-----|---------------------------------|-------------------------------------------------------|
-| 精确  | `"minecraft:diamond"`           | 仅该物品                                                  |
-| 标签  | `"#minecraft:swords"`           | 所有带该标签的物品。`#` 前缀会被去掉，剩下的作为标签 ID 查找。                   |
-| 通配符 | `"staticlogistics:*"`           | `*` 匹配任意字符串，`?` 匹配单个字符。如 `"minecraft:*_sword"` 匹配所有剑。 |
-| NBT | 精确匹配 + `"nbt": {"Damage": "0"}` | 物品 ID 和 NBT 键值都匹配时才显示。                                |
-| 条件  | 精确匹配 + `"conditions": {...}`    | 物品 ID 匹配且所有条件都满足时才显示。                                 |
+支持在文本和颜色中使用表达式：
+
+```json
+{
+  "type": "text",
+  "text": "状态: {durability > 100 ? '良好' : '需要修复'}",
+  "color": "{durability > 100 ? 'green' : 'red'}"
+}
+```
+
+支持的运算符：
+- 比较：`>`、`<`、`==`、`!=`、`>=`、`<=`
+- 逻辑：`&&`、`||`、`!`
+- 算术：`+`、`-`、`*`、`/`
+- 三元：`condition ? true_value : false_value`
+
+## 多语言
+
+```json
+{
+  "type": "text",
+  "text": {
+    "zh_cn": "你好世界",
+    "en_us": "Hello World"
+  },
+  "color": "aqua"
+}
+```
+
+## 特殊属性
+
+| 属性           | 说明                                    |
+|--------------|---------------------------------------|
+| `align`      | 对齐：`left`、`center`、`right`（所有内容类型都支持） |
+| `shift`      | 需要按住 Shift 才显示                        |
+| `prepend`    | 显示在物品名之后（原版内容之前）                      |
+| `conditions` | 条件配置                                  |
+
+## 颜色
+
+### 命名颜色
+
+| 颜色                  | 十六进制      |
+|---------------------|-----------|
+| black               | #000000   |
+| dark_blue           | #0000AA   |
+| dark_green          | #00AA00   |
+| dark_aqua           | #00AAAA   |
+| dark_red            | #AA0000   |
+| dark_purple         | #AA00AA   |
+| gold                | #FFAA00   |
+| gray/grey           | #AAAAAA   |
+| dark_gray/dark_grey | #555555   |
+| blue                | #5555FF   |
+| green               | #55FF55   |
+| aqua                | #55FFFF   |
+| red                 | #FF5555   |
+| light_purple        | #FF55FF   |
+| yellow              | #FFFF55   |
+| white               | #FFFFFF   |
+
+### 十六进制颜色
+
+任何 6 位十六进制值，带 `#` 前缀：`"#FF6600"`、`"#AABBCC"`、`"#00FF00"`
 
 ## 配置
 
-- 文件：`config/datatip.toml`
-- `enabled`：设为 `false` 关闭所有 DataTip 的 tooltip
-- 展开隐藏 tooltip 的按键可在 **选项→控制→DataTip** 里自定义（默认左 Shift）
-- 修改 JSON 后 `/reload` 或 F3+T 即时生效，无需重启游戏
+文件：`config/datatip-common.toml`
+
+| 选项                  | 类型      | 默认值        | 说明            |
+|---------------------|---------|------------|---------------|
+| `enabled`           | boolean | true       | 启用/禁用 DataTip |
+| `defaultColor`      | int     | 0xFFAAAAAA | 默认文本颜色        |
+| `defaultLineHeight` | int     | 12         | 默认行高          |
+| `maxWidth`          | int     | 200        | 最大 tooltip 宽度 |
+| `enableAnimations`  | boolean | true       | 启用动画          |
+| `debugMode`         | boolean | false      | 调试模式          |
+
+## 旧格式支持
+
+旧格式会自动转换：
+
+```json
+{
+  "minecraft:diamond": ["第 1 行", "第 2 行"],
+  "minecraft:diamond_sword": {
+    "text": {"zh_cn": ["削铁如泥"], "en_us": ["Cuts through iron"]},
+    "color": "gold",
+    "shift": true
+  }
+}
+```
 
 ## 完整示例
 
 ```json
 {
-  // 最简单：纯字符串数组
-  "minecraft:diamond": [
-    "一颗闪闪发光的钻石",
-    "据说很值钱"
-  ],
-
-  // 数组 + 颜色：text 用数组，外面套 object 设 color
-  "minecraft:emerald": {
-    "color": "green",
-    "text": ["绿宝石", "可用于交易"]
+  "minecraft:diamond": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "钻石", "color": "#55FFFF", "align": "center"},
+      {"type": "divider", "color": "#555555", "widthMode": "centered", "width": 80},
+      {"type": "text", "text": "一种珍贵的宝石", "color": "gray", "align": "center"},
+      {"type": "spacer", "height": 4},
+      {"type": "text", "text": "左对齐文本", "color": "white", "align": "left"},
+      {"type": "text", "text": "居中文本", "color": "gold", "align": "center"},
+      {"type": "text", "text": "右对齐文本", "color": "aqua", "align": "right"}
+    ]
   },
 
-  // 多语言 + 单行样式
-  "minecraft:netherite_ingot": {
-    "text": {
-      "zh_cn": [
-        "下界合金锭",
-        {"text": "不会被熔岩烧毁", "color": "dark_red", "bold": true}
-      ],
-      "en_us": [
-        "Netherite Ingot",
-        {"text": "Immune to lava", "color": "dark_red", "bold": true}
-      ]
-    },
-    "color": "gold"
-  },
-
-  // shift + prepend：按 Shift 才展开，放在物品名后面
   "minecraft:diamond_sword": {
-    "text": {
-      "zh_cn": [{"text": "削铁如泥", "color": "aqua"}],
-      "en_us": [{"text": "Cuts through iron like butter", "color": "aqua"}]
-    },
-    "shift": true,
-    "prepend": true
+    "type": "hbox",
+    "gap": 8,
+    "children": [
+      {"type": "item", "item": "minecraft:diamond_sword", "size": 32},
+      {"type": "vbox", "gap": 2, "children": [
+        {"type": "text", "text": "钻石剑", "color": "aqua", "align": "center"},
+        {"type": "text", "text": "耐久: {durability}/{max_durability}", "color": "gray"},
+        {"type": "text", "text": "百分比: {durability_percent}%", "color": "gold"}
+      ]}
+    ]
   },
 
-  // 变量：{durability} {max_durability} {count}
   "minecraft:diamond_pickaxe": {
-    "text": {
-      "zh_cn": ["耐久: {durability} / {max_durability}"],
-      "en_us": ["Durability: {durability} / {max_durability}"]
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "钻石镐", "color": "aqua", "align": "center"},
+      {"type": "progress", "progress": 0.75, "width": 100, "height": 6, "colorFg": "#55FF55", "showLabel": true, "label": "75%", "labelAlign": "right"},
+      {"type": "progress", "progress": 0.5, "width": 100, "height": 8, "style": "segmented"},
+      {"type": "progress", "progress": 0.9, "width": 100, "height": 6, "colorFg": "#FFD700", "animated": true, "animSpeed": 3}
+    ]
+  },
+
+  "minecraft:golden_apple": {
+    "type": "carousel",
+    "intervalSeconds": 10,
+    "frames": [
+      {"type": "vbox", "gap": 2, "children": [
+        {"type": "text", "text": "金苹果", "color": "gold", "align": "center"},
+        {"type": "text", "text": "恢复生命值", "color": "red"}
+      ]},
+      {"type": "vbox", "gap": 2, "children": [
+        {"type": "text", "text": "Golden Apple", "color": "gold", "align": "center"},
+        {"type": "text", "text": "Restores health", "color": "red"}
+      ]},
+      {"type": "vbox", "gap": 2, "children": [
+        {"type": "text", "text": "金蘋果", "color": "gold", "align": "center"},
+        {"type": "text", "text": "恢復生命值", "color": "red"}
+      ]}
+    ]
+  },
+
+  "minecraft:nether_star": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "下界之星", "color": "light_purple", "align": "center"},
+      {"type": "typewriter", "lines": ["Boss 掉落物", "用于合成信标", "稀有物品"], "charsPerSecond": 10, "pauseSeconds": 1, "color": "gray"}
+    ]
+  },
+
+  "minecraft:stone": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "石头", "color": "gray"},
+      {"type": "divider", "color": "#555555", "style": "solid"},
+      {"type": "text", "text": "实线上方", "color": "white"},
+      {"type": "divider", "color": "#555555", "style": "dashed"},
+      {"type": "text", "text": "虚线上方", "color": "white"},
+      {"type": "divider", "color": "#555555", "style": "dotted"},
+      {"type": "text", "text": "点线上方", "color": "white"}
+    ]
+  },
+
+  "minecraft:bow": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "耐久: {durability}/{max_durability}", "color": "gray"},
+      {"type": "text", "text": "百分比: {durability_percent}%", "color": "gold"},
+      {"type": "text", "text": "耐久条: {durability_bar}", "color": "green"},
+      {"type": "text", "text": "生命条: {health_bar}", "color": "red"}
+    ]
+  },
+
+  "minecraft:iron_ingot": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "铁锭", "color": "white", "align": "center"},
+      {"type": "divider", "color": "#555555", "widthMode": "centered", "width": 60},
+      {"type": "text", "text": "生命: {player_health}/{player_max_health}", "color": "red"},
+      {"type": "text", "text": "饥饿: {player_hunger}", "color": "gold"},
+      {"type": "text", "text": "经验: {player_experience}", "color": "green"}
+    ]
+  },
+
+  "minecraft:clock": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "时间: {game_time}", "color": "gold"},
+      {"type": "text", "text": "白天: {is_day}", "color": "yellow"},
+      {"type": "text", "text": "下雨: {is_raining}", "color": "aqua"},
+      {"type": "text", "text": "雷暴: {is_thundering}", "color": "red"}
+    ]
+  },
+
+  "#minecraft:swords": {
+    "type": "text",
+    "text": "所有剑类武器", "color": "yellow"
+  },
+
+  "minecraft:diamond_block": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "钻石块", "color": "aqua", "align": "center"},
+      {"type": "text", "text": "只在下界显示", "color": "dark_red"}
+    ],
+    "conditions": {
+      "dimension": "minecraft:the_nether"
     }
   },
 
-  // 粗体、斜体、shift — 多个条目可叠加
-  "minecraft:enchanted_golden_apple": {
-    "text": {
-      "zh_cn": [
-        {"text": "稀有食物", "color": "gold", "bold": true},
-        {"text": "生命恢复 IV", "color": "red", "italic": true},
-        {"text": "伤害吸收 IV", "color": "aqua", "italic": true}
-      ],
-      "en_us": [
-        {"text": "Rare food", "color": "gold", "bold": true},
-        {"text": "Regeneration IV", "color": "red", "italic": true},
-        {"text": "Absorption IV", "color": "aqua", "italic": true}
-      ]
-    },
-    "color": "light_purple",
+  "minecraft:emerald_block": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "绿宝石块", "color": "green"},
+      {"type": "text", "text": "按住 Shift 才能看到这段文字", "color": "gray", "shift": true}
+    ]
+  },
+
+  "minecraft:gold_block": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "金块", "color": "gold"},
+      {"type": "text", "text": "整条 tooltip 需要按住 Shift", "color": "gray"},
+      {"type": "text", "text": "所有内容都会被折叠", "color": "yellow"}
+    ],
     "shift": true
   },
 
-  // 粗体 + 自定义字体
-  "minecraft:nether_star": {
-    "text": {
-      "zh_cn": [
-        {"text": "Boss 掉落", "bold": true},
-        {"text": "像素风标题", "font": "minecraft:alt"}
-      ],
-      "en_us": [
-        {"text": "Boss drop", "bold": true},
-        {"text": "Pixel title", "font": "minecraft:alt"}
-      ]
-    },
-    "color": "light_purple"
+  "minecraft:iron_block": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "铁块", "color": "white"},
+      {"type": "text", "text": "这段内容会显示在物品名后面", "color": "gray"}
+    ],
+    "prepend": true
   },
 
-  // 删除线
-  "minecraft:stone": {
-    "text": {
-      "zh_cn": [{"text": "这是删除线", "strikethrough": true}],
-      "en_us": [{"text": "Strikethrough text", "strikethrough": true}]
-    }
+  "minecraft:enchanted_golden_apple": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "附魔金苹果", "color": "gold", "bold": true, "align": "center"},
+      {"type": "divider", "color": "#FFD700", "widthMode": "centered", "width": 80},
+      {"type": "hbox", "gap": 8, "children": [
+        {"type": "item", "item": "minecraft:enchanted_golden_apple", "size": 32},
+        {"type": "vbox", "gap": 2, "children": [
+          {"type": "text", "text": "稀有食物", "color": "light_purple"},
+          {"type": "progress", "progress": 1.0, "width": 80, "height": 6, "colorFg": "#FFD700", "showLabel": true, "label": "满耐久", "labelAlign": "left"}
+        ]}
+      ]},
+      {"type": "text", "text": "耐久条: {durability_bar}", "color": "gray"},
+      {"type": "text", "text": "生命条: {health_bar}", "color": "red"}
+    ]
   },
 
-  // 标签匹配 — 所有带 #minecraft:pickaxes 标签的物品
-  "#minecraft:pickaxes": {
-    "text": {
-      "zh_cn": ["所有镐子都显示这句话"],
-      "en_us": ["Common pickaxe info"]
-    },
-    "color": "yellow"
+  "minecraft:wolf_spawn_egg": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "狼刷怪蛋", "color": "white", "align": "center"},
+      {"type": "entity", "entity": "minecraft:wolf", "size": 48, "rotationSpeed": 1.0, "autoRotate": true},
+      {"type": "text", "text": "可以驯服为宠物", "color": "gray"}
+    ]
   },
 
-  // 条件：只在下界显示
-  "minecraft:diamond_block": {
-    "text": {
-      "zh_cn": ["只在下界显示"],
-      "en_us": ["Only visible in the Nether"]
-    },
-    "color": "dark_red",
-    "conditions": { "dimension": "minecraft:the_nether" }
+  "minecraft:crafting_table": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "工作台", "color": "white", "align": "center"},
+      {"type": "block", "block": "minecraft:crafting_table", "size": 48, "rotationSpeed": 0.5, "autoRotate": true},
+      {"type": "text", "text": "用于合成物品", "color": "gray"}
+    ]
   },
 
-  // NBT 匹配：只匹配满耐久的（Damage = 0）
-  "minecraft:bow": {
-    "text": {
-      "zh_cn": [{"text": "满耐久才显示这句话", "underlined": true}],
-      "en_us": [{"text": "Full durability only", "underlined": true}]
-    },
-    "nbt": { "Damage": "0" }
+  "minecraft:apple": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "苹果", "color": "red", "align": "center"},
+      {"type": "atlas", "item": "minecraft:apple", "size": 32},
+      {"type": "text", "text": "恢复饥饿值", "color": "gray"}
+    ]
   },
 
-  // 通配符匹配 — 某个命名空间下的所有物品
-  "staticlogistics:*": {
+  "minecraft:red_concrete": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "红色混凝土", "color": "red", "align": "center"},
+      {"type": "atlas", "block": "minecraft:red_concrete", "size": 32},
+      {"type": "text", "text": "装饰方块", "color": "gray"}
+    ]
+  },
+
+  "minecraft:iron_sword": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "铁剑", "color": "white", "align": "center"},
+      {"type": "text", "text": "状态: {durability > 100 ? '良好' : '需要修复'}", "color": "{durability > 100 ? 'green' : 'red'}"},
+      {"type": "text", "text": "耐久: {durability}/{max_durability} ({durability_percent}%)", "color": "gray"}
+    ]
+  },
+
+  "minecraft:ender_pearl": {
+    "type": "text",
     "text": {
-      "zh_cn": ["静态物流物品"],
-      "en_us": ["Static Logistics item"]
+      "zh_cn": "末影珍珠 - 可用于传送",
+      "en_us": "Ender Pearl - Can be used for teleportation"
     },
-    "color": "light_purple"
+    "color": "#00AAAA"
+  },
+
+  "minecraft:coal": {
+    "type": "vbox",
+    "gap": 0,
+    "children": [
+      {"type": "text", "text": "煤炭", "color": "gray"},
+      {"type": "spacer", "height": 8},
+      {"type": "text", "text": "上面有 8px 间距", "color": "white"}
+    ]
+  },
+
+  "minecraft:emerald": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "粗体文本", "color": "green", "bold": true},
+      {"type": "text", "text": "斜体文本", "color": "green", "italic": true},
+      {"type": "text", "text": "下划线文本", "color": "green", "underlined": true},
+      {"type": "text", "text": "删除线文本", "color": "green", "strikethrough": true}
+    ]
   }
 }
 ```
+
+## 热重载
+
+按 F3+T 或使用 `/reload` 命令重新加载 tooltip，无需重启游戏。
+
+## 许可证
+
+GNU LGPL 3.0
