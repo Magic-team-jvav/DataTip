@@ -4,7 +4,10 @@ import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.content.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.Map;
 
@@ -84,8 +87,8 @@ public class TipContentBuilder {
      * 创建物品内容
      */
     public static ItemContent item(String itemId) {
-        return ItemContent.of(new net.minecraft.world.item.ItemStack(
-            net.minecraft.core.registries.BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId))
+        return ItemContent.of(new ItemStack(
+            BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId))
         ));
     }
 
@@ -94,10 +97,10 @@ public class TipContentBuilder {
      */
     public static ItemContent item(String itemId, String label) {
         return ItemContent.withLabel(
-            new net.minecraft.world.item.ItemStack(
-                net.minecraft.core.registries.BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId))
+            new ItemStack(
+                BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId))
             ),
-            net.minecraft.network.chat.Component.literal(label)
+            Component.literal(label)
         );
     }
 

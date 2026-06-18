@@ -3,6 +3,7 @@ package com.cooobird.datatip.api.condition;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -240,7 +241,7 @@ public class ConditionChecker {
         if (value instanceof String itemStr) {
             ResourceLocation itemId = ResourceLocation.tryParse(itemStr);
             if (itemId != null) {
-                Item item = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(itemId);
+                Item item = BuiltInRegistries.ITEM.get(itemId);
                 return mainHand.is(item) || offHand.is(item);
             }
         } else if (value instanceof List<?> list) {
@@ -248,7 +249,7 @@ public class ConditionChecker {
                 if (item instanceof String str) {
                     ResourceLocation id = ResourceLocation.tryParse(str);
                     if (id != null) {
-                        Item checkItem = net.minecraft.core.registries.BuiltInRegistries.ITEM.get(id);
+                        Item checkItem = BuiltInRegistries.ITEM.get(id);
                         if (mainHand.is(checkItem) || offHand.is(checkItem)) return true;
                     }
                 }

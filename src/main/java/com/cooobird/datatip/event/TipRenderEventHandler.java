@@ -5,21 +5,17 @@ import com.cooobird.datatip.api.TipRenderer;
 import com.cooobird.datatip.api.component.TipContentTooltipComponent;
 import com.cooobird.datatip.api.loader.TipContentLoader;
 import com.cooobird.datatip.api.util.PerformanceOptimizer;
-import com.cooobird.datatip.api.util.TipDebugger;
 import com.cooobird.datatip.config.DatatipConfig;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
@@ -180,32 +176,6 @@ public class TipRenderEventHandler {
         for (TipContent content : normalContents) {
             event.getTooltipElements().add(Either.right(new TipContentTooltipComponent(content, stack)));
         }
-    }
-
-    /**
-     * 渲染 Tooltip 前事件处理。
-     * 仅用于调试模式渲染边界。
-     *
-     * @param event 渲染前事件
-     */
-    @SubscribeEvent(priority = EventPriority.LOW)
-    public static void onRenderTooltipPre(RenderTooltipEvent.Pre event) {
-        // 检查是否启用调试模式
-        if (!DatatipConfig.ENABLED.get() || !DatatipConfig.DEBUG_MODE.get()) return;
-
-        ItemStack stack = event.getItemStack();
-        if (stack.isEmpty()) return;
-
-        // 获取或解析内容
-        List<TipContentLoader.ContentEntry> entries = getOrParseContents(stack);
-        if (entries == null || entries.isEmpty()) return;
-
-        // 调试模式：渲染调试信息
-        GuiGraphics graphics = event.getGraphics();
-        Font font = event.getFont();
-        int mouseX = (int) Minecraft.getInstance().mouseHandler.xpos();
-        int mouseY = (int) Minecraft.getInstance().mouseHandler.ypos();
-        TipDebugger.render(graphics, font, stack, mouseX, mouseY);
     }
 
     /**

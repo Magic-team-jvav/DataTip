@@ -43,15 +43,15 @@ import org.jetbrains.annotations.Nullable;
  * @since 1.2.0
  */
 public record BlockContent(
-    /** 方块实例 */
+    /* 方块实例 */
     Block block,
-    /** 渲染大小（像素），内部根据此值自动缩放 */
+    /* 渲染大小（像素），内部根据此值自动缩放 */
     int size,
-    /** 旋转速度（度/tick），默认 0.5 */
+    /* 旋转速度（度/tick），默认 0.5 */
     float rotationSpeed,
-    /** 是否自动旋转 */
+    /* 是否自动旋转 */
     boolean autoRotate,
-    /** 可选的标签文本，显示在方块旁边 */
+    /* 可选的标签文本，显示在方块旁边 */
     @Nullable Component label
 ) implements TipContent {
 
@@ -179,8 +179,8 @@ public record BlockContent(
         poseStack.mulPose(Axis.XP.rotationDegrees(-35));
 
 
-        // 设置光照
-        Lighting.setupFor3DItems();
+        // 设置平面光照
+        Lighting.setupForFlatItems();
 
         // 使用物品渲染器渲染
         Minecraft mc = Minecraft.getInstance();

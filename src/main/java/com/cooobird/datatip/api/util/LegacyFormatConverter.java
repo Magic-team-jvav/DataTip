@@ -51,23 +51,33 @@ public class LegacyFormatConverter {
 
     /**
      * 检测是否为老版本格式。
+     * 如果任何条目没有 "type" 字段，则认为是老版本格式。
      */
     public static boolean isLegacyFormat(JsonObject json) {
-        // 检查是否有 "type" 字段（新版本格式的标志）
         for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
+            String key = entry.getKey();
             JsonElement value = entry.getValue();
+            
+            // 跳过注释字段
+            if (key.startsWith("_")) continue;
+            
             if (value.isJsonObject()) {
                 JsonObject obj = value.getAsJsonObject();
-                if (obj.has("type")) {
-                    return false; // 新版本格式
+                // 如果没有 "type" 字段，说明是老版本格式
+                if (!obj.has("type")) {
+                    return true;
                 }
+            } else if (value.isJsonArray() || value.isJsonPrimitive()) {
+                // 数组或字符串格式也是老版本
+                return true;
             }
         }
-        return true; // 老版本格式
+        return false; // 所有条目都有 "type" 字段，是新版本格式
     }
 
     /**
      * 将老版本格式转换为新版本格式。
+     * 保留 shift、prepend、conditions 等顶层属性。
      */
     public static JsonObject convert(JsonObject legacyJson) {
         JsonObject result = new JsonObject();
@@ -79,7 +89,23 @@ public class LegacyFormatConverter {
             TipContent content = convertEntry(key, value);
             if (content != null) {
                 // 将 TipContent 转换为 JSON
-                result.add(key, convertToJson(content));
+                JsonObject contentJson = convertToJson(content);
+                
+                // 保留旧格式的顶层属性
+                if (value.isJsonObject()) {
+                    JsonObject originalObj = value.getAsJsonObject();
+                    if (originalObj.has("shift")) {
+                        contentJson.add("shift", originalObj.get("shift"));
+                    }
+                    if (originalObj.has("prepend")) {
+                        contentJson.add("prepend", originalObj.get("prepend"));
+                    }
+                    if (originalObj.has("conditions")) {
+                        contentJson.add("conditions", originalObj.get("conditions"));
+                    }
+                }
+                
+                result.add(key, contentJson);
             }
         }
 
@@ -133,6 +159,12 @@ public class LegacyFormatConverter {
             color = parseColor(obj.get("color").getAsString());
         }
 
+        // 获取顶层样式属性
+        boolean topStrikethrough = obj.has("strikethrough") && obj.get("strikethrough").getAsBoolean();
+        boolean topBold = obj.has("bold") && obj.get("bold").getAsBoolean();
+        boolean topItalic = obj.has("italic") && obj.get("italic").getAsBoolean();
+        boolean topUnderlined = obj.has("underlined") && obj.get("underlined").getAsBoolean();
+
         // 获取文本
         if (obj.has("text")) {
             JsonElement textElement = obj.get("text");
@@ -145,7 +177,7 @@ public class LegacyFormatConverter {
                         vbox.addChild(TextContent.of(item.getAsString(), color));
                     } else if (item.isJsonObject()) {
                         // 带样式的行
-                        vbox.addChild(convertStyledLine(item.getAsJsonObject()));
+                        vbox.addChild(convertStyledLine(item.getAsJsonObject(), color, topStrikethrough, topBold, topItalic, topUnderlined));
                     }
                 }
             } else if (textElement.isJsonObject()) {
@@ -158,7 +190,7 @@ public class LegacyFormatConverter {
                         if (line.isJsonPrimitive()) {
                             vbox.addChild(TextContent.of(line.getAsString(), color));
                         } else if (line.isJsonObject()) {
-                            vbox.addChild(convertStyledLine(line.getAsJsonObject()));
+                            vbox.addChild(convertStyledLine(line.getAsJsonObject(), color, topStrikethrough, topBold, topItalic, topUnderlined));
                         }
                     }
                     break; // 只使用第一个语言
@@ -174,34 +206,26 @@ public class LegacyFormatConverter {
 
     /**
      * 转换带样式的行。
+     * 返回包含文本和样式的 TextContent（使用文本字符串，而非 Component）。
      */
-    private static TipContent convertStyledLine(JsonObject line) {
+    private static TipContent convertStyledLine(JsonObject line, int defaultColor, boolean topStrikethrough, boolean topBold, boolean topItalic, boolean topUnderlined) {
         String text = line.has("text") ? line.get("text").getAsString() : "";
 
-        // 获取颜色
-        int color = 0xFFFFFF;
+        // 获取颜色（行级覆盖顶层）
+        int color = defaultColor;
         if (line.has("color")) {
             color = parseColor(line.get("color").getAsString());
         }
 
-        // 创建带样式的 Component
-        Style style = Style.EMPTY.withColor(color);
+        // 获取行级样式（覆盖顶层样式）
+        boolean bold = line.has("bold") ? line.get("bold").getAsBoolean() : topBold;
+        boolean italic = line.has("italic") ? line.get("italic").getAsBoolean() : topItalic;
+        boolean underlined = line.has("underlined") ? line.get("underlined").getAsBoolean() : topUnderlined;
+        boolean strikethrough = line.has("strikethrough") ? line.get("strikethrough").getAsBoolean() : topStrikethrough;
 
-        if (line.has("bold") && line.get("bold").getAsBoolean()) {
-            style = style.withBold(true);
-        }
-        if (line.has("italic") && line.get("italic").getAsBoolean()) {
-            style = style.withItalic(true);
-        }
-        if (line.has("underlined") && line.get("underlined").getAsBoolean()) {
-            style = style.withUnderlined(true);
-        }
-        if (line.has("strikethrough") && line.get("strikethrough").getAsBoolean()) {
-            style = style.withStrikethrough(true);
-        }
-
-        Component component = Component.literal(text).withStyle(style);
-        return new TextContent(null, component, null, null, null, color, null, true, TextContent.TextAlign.LEFT, 12, 0, false, false, false, false, false);
+        // 创建 TextContent（使用文本字符串，而非 Component）
+        return new TextContent(text, null, null, null, null, color, null, true, 
+            TextContent.TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
     }
 
     /**
@@ -209,35 +233,41 @@ public class LegacyFormatConverter {
      */
     public static JsonObject convertToJson(TipContent content) {
         JsonObject json = new JsonObject();
-
-        if (content instanceof TextContent textContent) {
-            json.addProperty("type", "text");
-            // 获取文本内容
-            if (textContent.text() != null) {
-                json.addProperty("text", textContent.text());
+        switch (content) {
+            case TextContent textContent -> {
+                json.addProperty("type", "text");
+                // 获取文本内容
+                if (textContent.text() != null) {
+                    json.addProperty("text", textContent.text());
+                }
+                if (textContent.color() != 0xFFFFFF) {
+                    json.addProperty("color", String.format("#%06X", textContent.color() & 0xFFFFFF));
+                }
+                if (textContent.align() == TextContent.TextAlign.CENTER) {
+                    json.addProperty("align", "center");
+                } else if (textContent.align() == TextContent.TextAlign.RIGHT) {
+                    json.addProperty("align", "right");
+                }
             }
-            if (textContent.color() != 0xFFFFFF) {
-                json.addProperty("color", String.format("#%06X", textContent.color() & 0xFFFFFF));
+            case VBoxContent vbox -> {
+                json.addProperty("type", "vbox");
+                json.addProperty("gap", vbox.gap());
+                JsonArray children = new JsonArray();
+                for (TipContent child : vbox.children()) {
+                    children.add(convertToJson(child));
+                }
+                json.add("children", children);
             }
-            if (textContent.align() == TextContent.TextAlign.CENTER) {
-                json.addProperty("align", "center");
-            } else if (textContent.align() == TextContent.TextAlign.RIGHT) {
-                json.addProperty("align", "right");
+            case SpacerContent(int height) -> {
+                json.addProperty("type", "spacer");
+                json.addProperty("height", height);
             }
-        } else if (content instanceof VBoxContent vbox) {
-            json.addProperty("type", "vbox");
-            json.addProperty("gap", vbox.gap());
-            JsonArray children = new JsonArray();
-            for (TipContent child : vbox.children()) {
-                children.add(convertToJson(child));
+            case DividerContent divider -> {
+                json.addProperty("type", "divider");
+                json.addProperty("color", String.format("#%06X", divider.color() & 0xFFFFFF));
             }
-            json.add("children", children);
-        } else if (content instanceof SpacerContent(int height)) {
-            json.addProperty("type", "spacer");
-            json.addProperty("height", height);
-        } else if (content instanceof DividerContent divider) {
-            json.addProperty("type", "divider");
-            json.addProperty("color", String.format("#%06X", divider.color() & 0xFFFFFF));
+            default -> {
+            }
         }
 
         return json;
