@@ -2,12 +2,128 @@ package com.cooobird.datatip.config;
 
 import net.minecraftforge.common.ForgeConfigSpec;
 
+/**
+ * DataTip 配置类。
+ * <p>
+ * 定义了 DataTip 模组的所有配置选项。
+ * 配置文件位于 {@code config/datatip-common.toml}。
+ * </p>
+ *
+ * <h3>配置选项</h3>
+ * <table border="1">
+ *   <tr><th>选项</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+ *   <tr><td>enabled</td><td>boolean</td><td>true</td><td>启用/禁用 DataTip</td></tr>
+ *   <tr><td>defaultColor</td><td>int</td><td>0xFFAAAAAA</td><td>默认文本颜色（ARGB）</td></tr>
+ *   <tr><td>defaultLineHeight</td><td>int</td><td>12</td><td>默认行高（像素）</td></tr>
+ *   <tr><td>maxWidth</td><td>int</td><td>200</td><td>最大 tooltip 宽度（像素）</td></tr>
+ *   <tr><td>enableAnimations</td><td>boolean</td><td>true</td><td>启用动画效果</td></tr>
+ *   <tr><td>debugMode</td><td>boolean</td><td>false</td><td>调试模式</td></tr>
+ * </table>
+ *
+ * <h3>配置文件示例</h3>
+ * <pre>{@code
+ * # DataTip 配置文件
+ *
+ * # 启用 DataTip
+ * enabled = true
+ *
+ * # 默认文本颜色（ARGB 格式）
+ * defaultColor = -5592406  # 0xFFAAAAAA
+ *
+ * # 默认行高（像素）
+ * defaultLineHeight = 12
+ *
+ * # 最大 tooltip 宽度（像素）
+ * maxWidth = 200
+ *
+ * # 启用动画效果
+ * enableAnimations = true
+ *
+ * # 调试模式
+ * debugMode = false
+ * }</pre>
+ *
+ * @author cooobird
+ * @since 1.2.0
+ */
 public class DatatipConfig {
+    /**
+     * 配置构建器
+     */
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
+    /**
+     * 启用/禁用 DataTip。
+     * <p>
+     * 设置为 false 可禁用所有自定义 tooltip，但保留原版 tooltip。
+     * </p>
+     */
     public static final ForgeConfigSpec.BooleanValue ENABLED = BUILDER
-        .comment("Enable JSON-driven tooltips. When disabled, no custom tooltips are added.")
+        .comment("Enable DataTip tooltips. Set to false to disable all custom tooltips.")
         .define("enabled", true);
 
+    /**
+     * 默认文本颜色。
+     * <p>
+     * 使用 ARGB 格式。例如：
+     * <ul>
+     *   <li>0xFFFFFFFF = 白色</li>
+     *   <li>0xFFFF5555 = 红色</li>
+     *   <li>0xFF55FF55 = 绿色</li>
+     *   <li>0xFF5555FF = 蓝色</li>
+     * </ul>
+     * </p>
+     */
+    public static final ForgeConfigSpec.IntValue DEFAULT_COLOR = BUILDER
+        .comment("Default text color (ARGB format).")
+        .defineInRange("defaultColor", 0xFFAAAAAA, Integer.MIN_VALUE, Integer.MAX_VALUE);
+
+    /**
+     * 默认行高。
+     * <p>
+     * 文本行与行之间的间距（像素）。
+     * 建议值：10-16。
+     * </p>
+     */
+    public static final ForgeConfigSpec.IntValue DEFAULT_LINE_HEIGHT = BUILDER
+        .comment("Default line height in pixels.")
+        .defineInRange("defaultLineHeight", 12, 8, 32);
+
+    /**
+     * 最大宽度。
+     * <p>
+     * Tooltip 的最大宽度（像素）。
+     * 超过此宽度的内容会自动换行。
+     * </p>
+     */
+    public static final ForgeConfigSpec.IntValue MAX_WIDTH = BUILDER
+        .comment("Maximum tooltip width in pixels.")
+        .defineInRange("maxWidth", 200, 50, 500);
+
+    /**
+     * 启用动画。
+     * <p>
+     * 控制是否启用动画效果（轮播、打字机等）。
+     * 禁用可提升性能。
+     * </p>
+     */
+    public static final ForgeConfigSpec.BooleanValue ENABLE_ANIMATIONS = BUILDER
+        .comment("Enable animations (carousel, typewriter, etc.).")
+        .define("enableAnimations", true);
+
+    /**
+     * 调试模式。
+     * <p>
+     * 启用后会显示匹配信息和渲染边界。
+     * 仅用于开发调试。
+     * </p>
+     */
+    public static final ForgeConfigSpec.BooleanValue DEBUG_MODE = BUILDER
+        .comment("Enable debug mode to show match info and render bounds.")
+        .define("debugMode", false);
+
+    /**
+     * 配置规范（用于注册）
+     */
     public static final ForgeConfigSpec SPEC = BUILDER.build();
 }

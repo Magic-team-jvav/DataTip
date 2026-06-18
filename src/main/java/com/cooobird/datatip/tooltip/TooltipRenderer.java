@@ -34,16 +34,16 @@ public class TooltipRenderer {
     }
 
     /**
-     * 支持十六进制 #FF6600 和命名色 gold/red/...
-     * 1.20.1: TextColor.parseColor() 直接返回 @Nullable TextColor
+     * 鏀寔鍗佸叚杩涘埗 #FF6600 鍜屽懡鍚嶈壊 gold/red/...
+     * 1.20.1: TextColor.parseColor() 鐩存帴杩斿洖 @Nullable TextColor
      */
     @Nullable
     public static TextColor parseColor(@Nullable String name) {
         if (name == null || name.isEmpty()) return null;
-        // 十六进制
+        // 鍗佸叚杩涘埗
         TextColor tc = TextColor.parseColor(name);
         if (tc != null) return tc;
-        // 命名色
+        // 鍛藉悕鑹?
         return TextColor.fromLegacyFormat(switch (name.toLowerCase()) {
             case "black" -> net.minecraft.ChatFormatting.BLACK;
             case "dark_blue" -> net.minecraft.ChatFormatting.DARK_BLUE;

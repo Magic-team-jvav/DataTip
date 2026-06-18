@@ -1,5 +1,18 @@
 {
     "tooltip.datatip.hold_shift": "按住%s查看详细信息",
     "key.categories.datatip": "DataTip",
-    "key.datatip.show_tip": "显示详细提示"
+    "key.datatip.show_tip": "显示详细提示",
+    
+    "config.datatip.enabled": "启用 DataTip",
+    "config.datatip.enabled.tooltip": "启用 DataTip tooltip。设为 false 时禁用所有自定义 tooltip。",
+    "config.datatip.default_color": "默认文本颜色",
+    "config.datatip.default_color.tooltip": "默认文本颜色（ARGB 格式）。",
+    "config.datatip.default_line_height": "默认行高",
+    "config.datatip.default_line_height.tooltip": "默认行高（像素）。",
+    "config.datatip.max_width": "最大宽度",
+    "config.datatip.max_width.tooltip": "tooltip 最大宽度（像素）。",
+    "config.datatip.enable_animations": "启用动画",
+    "config.datatip.enable_animations.tooltip": "启用动画效果（轮播、打字机等）。",
+    "config.datatip.debug_mode": "调试模式",
+    "config.datatip.debug_mode.tooltip": "启用调试模式，显示匹配信息和渲染边界。"
 }

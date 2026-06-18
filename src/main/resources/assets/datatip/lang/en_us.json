@@ -1,5 +1,18 @@
 {
     "tooltip.datatip.hold_shift": "Hold %s to view detailed information",
     "key.categories.datatip": "DataTip",
-    "key.datatip.show_tip": "Show Detailed Tooltip"
+    "key.datatip.show_tip": "Show Detailed Tooltip",
+    
+    "config.datatip.enabled": "Enable DataTip",
+    "config.datatip.enabled.tooltip": "Enable DataTip tooltips. Set to false to disable all custom tooltips.",
+    "config.datatip.default_color": "Default Text Color",
+    "config.datatip.default_color.tooltip": "Default text color (ARGB format).",
+    "config.datatip.default_line_height": "Default Line Height",
+    "config.datatip.default_line_height.tooltip": "Default line height in pixels.",
+    "config.datatip.max_width": "Maximum Width",
+    "config.datatip.max_width.tooltip": "Maximum tooltip width in pixels.",
+    "config.datatip.enable_animations": "Enable Animations",
+    "config.datatip.enable_animations.tooltip": "Enable animations (carousel, typewriter, etc.).",
+    "config.datatip.debug_mode": "Debug Mode",
+    "config.datatip.debug_mode.tooltip": "Enable debug mode to show match info and render bounds."
 }

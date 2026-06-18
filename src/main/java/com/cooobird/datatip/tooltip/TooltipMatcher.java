@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 找出所有匹配当前物品的规则。
+ * 鎵惧嚭鎵€鏈夊尮閰嶅綋鍓嶇墿鍝佺殑瑙勫垯銆?
  */
 public class TooltipMatcher {
 
@@ -40,7 +40,7 @@ public class TooltipMatcher {
         };
     }
 
-    // NBT 匹配
+    // NBT 鍖归厤
     private static boolean nbtMatches(TooltipEntry e, ItemStack stack) {
         if (e.nbt() == null) return true;
         CompoundTag tag = stack.getTag();

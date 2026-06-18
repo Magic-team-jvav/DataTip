@@ -48,7 +48,7 @@ public class TooltipBuilder {
     }
 
     /**
-     * 无语言区分的简单行
+     * 鏃犺瑷€鍖哄垎鐨勭畝鍗曡
      */
     public TooltipBuilder simpleLine(String... lines) {
         langText.putIfAbsent("", new ArrayList<>());
@@ -57,7 +57,7 @@ public class TooltipBuilder {
     }
 
     /**
-     * 指定语言的纯文本行
+     * 鎸囧畾璇█鐨勭函鏂囨湰琛?
      */
     public TooltipBuilder line(String lang, String... lines) {
         langText.putIfAbsent(lang, new ArrayList<>());
@@ -66,7 +66,7 @@ public class TooltipBuilder {
     }
 
     /**
-     * 指定语言的带样式行
+     * 鎸囧畾璇█鐨勫甫鏍峰紡琛?
      */
     public TooltipBuilder line(String lang, TooltipLine... lines) {
         langText.putIfAbsent(lang, new ArrayList<>());
@@ -83,7 +83,7 @@ public class TooltipBuilder {
         if (nbt != null) entry.put("nbt", nbt);
         if (conditions != null) entry.put("conditions", conditions);
 
-        // 重置状态，允许复用
+        // 閲嶇疆鐘舵€侊紝鍏佽澶嶇敤
         String builtKey = key;
         reset();
         return new AbstractMap.SimpleEntry<>(builtKey, entry);
@@ -100,7 +100,7 @@ public class TooltipBuilder {
     }
 
     /**
-     * 行样式构造
+     * 琛屾牱寮忔瀯閫?
      */
     public static class TooltipLine {
         private String text, color, font;
