@@ -1,17 +1,16 @@
 package com.cooobird.datatip.api.component;
 
 import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.TipEventManager;
 import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.config.DatatipConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 
@@ -36,34 +35,29 @@ public record TipContentTooltipComponent(TipContent content, @Nullable ItemStack
     }
 
     @Override
-    public int getWidth(@NotNull Font font) {
+    public int getWidth(Font font) {
         int maxWidth = DatatipConfig.MAX_WIDTH.get();
         return content.getWidth(maxWidth);
     }
 
     @Override
-    public void renderText(@NotNull Font font, int x, int y, @NotNull Matrix4f matrix, @NotNull MultiBufferSource.BufferSource bufferSource) {
+    public void renderText(Font font, int x, int y, Matrix4f matrix, MultiBufferSource.BufferSource bufferSource) {
     }
 
     @Override
-    public void renderImage(@NotNull Font font, int x, int y, @NotNull GuiGraphics graphics) {
+    public void renderImage(Font font, int x, int y, GuiGraphics graphics) {
         // 获取物品栈
-        ItemStack stack = itemStack;
-        if (stack == null || stack.isEmpty()) {
-            var mc = Minecraft.getInstance();
-            if (mc.screen instanceof AbstractContainerScreen containerScreen) {
-                stack = containerScreen.getMenu().getCarried();
-            }
-            if (stack == null || stack.isEmpty()) {
-                stack = ItemStack.EMPTY;
-            }
-        }
+        ItemStack stack = itemStack != null ? itemStack : ItemStack.EMPTY;
+
+        // 触发渲染前事件
+        TipEventManager.PreRenderEvent preEvent = TipEventManager.firePreRender(stack);
+        if (preEvent.isCanceled()) return;
 
         // 创建渲染上下文
         TipRenderContext context = new TipRenderContext(graphics, font,
             Minecraft.getInstance().gui.getGuiTicks(),
             Minecraft.getInstance().getDeltaFrameTime(),
-            stack);
+            preEvent.getItemStack());
 
         // 更新动画
         if (content.isAnimated()) {
@@ -73,5 +67,8 @@ public record TipContentTooltipComponent(TipContent content, @Nullable ItemStack
         // 渲染内容
         int maxWidth = DatatipConfig.MAX_WIDTH.get();
         content.render(context, x, y, maxWidth, 1.0f);
+
+        // 触发渲染后事件
+        TipEventManager.firePostRender(preEvent.getItemStack());
     }
 }

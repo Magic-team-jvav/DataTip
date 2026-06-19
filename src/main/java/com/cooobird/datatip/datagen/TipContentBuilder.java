@@ -273,9 +273,9 @@ public class TipContentBuilder {
             } else if (textContent.align() == TextContent.TextAlign.RIGHT) {
                 json.addProperty("align", "right");
             }
-        } else if (content instanceof SpacerContent(int height)) {
+        } else if (content instanceof SpacerContent spacer) {
             json.addProperty("type", "spacer");
-            json.addProperty("height", height);
+            json.addProperty("height", spacer.height());
         } else if (content instanceof DividerContent divider) {
             json.addProperty("type", "divider");
             json.addProperty("color", String.format("#%06X", divider.color() & 0xFFFFFF));

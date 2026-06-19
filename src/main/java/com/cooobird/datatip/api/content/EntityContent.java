@@ -15,63 +15,64 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * 实体渲染内容类。
- * <p>
- * 在 tooltip 中渲染 3D 实体模型。每个实体类型维护独立的旋转状态，
- * 避免多个实体同时渲染时出现抖动。
- * </p>
- *
- * <h3>渲染原理</h3>
- * <p>
- * 使用 {@link EntityRenderDispatcher} 渲染实体，内部使用 {@link ConcurrentHashMap}
- * 存储每个实体类型的旋转状态，确保多实例渲染时的稳定性。
- * </p>
- *
- * <h3>JSON 示例</h3>
- * <pre>{@code
- * // 基础实体渲染
- * {"type": "entity", "entity": "minecraft:wolf", "size": 48}
- *
- * // 带旋转动画
- * {"type": "entity", "entity": "minecraft:wolf", "size": 48, "rotationSpeed": 1.0, "autoRotate": true}
- *
- * // 带标签
- * {"type": "entity", "entity": "minecraft:creeper", "size": 48, "label": "苦力怕"}
- * }</pre>
- *
- * @author cooobird
- * @see com.cooobird.datatip.api.parser.EntityContentParser JSON 解析器
- * @since 1.2.0
+ * 在 tooltip 中渲染 3D 实体模型。
  */
-public record EntityContent(
-    EntityType<?> entityType,  // 实体类型
-    int size,                  // 渲染大小
-    float rotationSpeed,       // 旋转速度
-    boolean autoRotate,        // 是否自动旋转
-    int offsetX,               // X 轴偏移量
-    int offsetY,               // Y 轴偏移量
-    @Nullable Component label  // 可选的标签文本
-) implements TipContent {
+public class EntityContent implements TipContent {
 
-    /**
-     * 旋转状态存储。
-     * 使用 ConcurrentHashMap 按实体类型存储，避免多实例渲染时的抖动问题。
-     */
-    private static final Map<EntityType<?>, RotationState> ROTATION_STATES = new ConcurrentHashMap<>();
+    private final EntityType<?> entityType;  // 实体类型
+    private final int size;                  // 渲染大小
+    private final float rotationSpeed;       // 旋转速度
+    private final boolean autoRotate;        // 是否自动旋转
+    private final int offsetX;               // X 轴偏移量
+    private final int offsetY;               // Y 轴偏移量
+    @Nullable
+    private final Component label;           // 可选的标签文本
 
-    // 旋转状态内部类
-    private static class RotationState {
-        float rotation = 0;  // 当前旋转角度
-        int lastTick = -1;   // 上次更新的 tick 计数
+    // 实例级别的旋转状态
+    private float currentRotation = 0;
+    private int lastTick = -1;
+
+    public EntityContent(EntityType<?> entityType, int size, float rotationSpeed,
+                         boolean autoRotate, int offsetX, int offsetY, @Nullable Component label) {
+        this.entityType = entityType;
+        this.size = size;
+        this.rotationSpeed = rotationSpeed;
+        this.autoRotate = autoRotate;
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
+        this.label = label;
     }
 
-    // 获取或创建指定实体类型的旋转状态
-    private static RotationState getRotationState(EntityType<?> type) {
-        return ROTATION_STATES.computeIfAbsent(type, k -> new RotationState());
+    // Getter 方法
+    public EntityType<?> entityType() {
+        return entityType;
+    }
+
+    public int size() {
+        return size;
+    }
+
+    public float rotationSpeed() {
+        return rotationSpeed;
+    }
+
+    public boolean autoRotate() {
+        return autoRotate;
+    }
+
+    public int offsetX() {
+        return offsetX;
+    }
+
+    public int offsetY() {
+        return offsetY;
+    }
+
+    @Nullable
+    public Component label() {
+        return label;
     }
 
     // 创建实体内容
@@ -116,15 +117,12 @@ public record EntityContent(
 
     @Override
     public void tick(int tickCount) {
-        // 更新旋转状态
-        if (autoRotate) {
-            RotationState state = getRotationState(entityType);
-            if (tickCount != state.lastTick) {
-                state.lastTick = tickCount;
-                state.rotation += rotationSpeed;
-                if (state.rotation >= 360) {
-                    state.rotation -= 360;
-                }
+        // 更新实例级别的旋转状态
+        if (autoRotate && tickCount != lastTick) {
+            lastTick = tickCount;
+            currentRotation += rotationSpeed;
+            if (currentRotation >= 360) {
+                currentRotation -= 360;
             }
         }
     }
@@ -141,8 +139,7 @@ public record EntityContent(
         if (entity == null) return;
 
         // 获取旋转角度，使用 partialTick 进行插值让旋转更平滑
-        RotationState state = getRotationState(entityType);
-        float rotation = autoRotate ? state.rotation + rotationSpeed * context.partialTick() : 0;
+        float rotation = autoRotate ? currentRotation + rotationSpeed * context.partialTick() : 0;
 
         // 渲染实体
         renderEntity(context.graphics(), entity, x + size / 2 + offsetX, y + size + offsetY, size, rotation);
@@ -169,9 +166,9 @@ public record EntityContent(
 
         // 渲染实体
         EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-        dispatcher.setRenderShadow(false);  // 禁用阴影
+        dispatcher.setRenderShadow(false);
 
-        // 设置全局光照
+        // 设置全局光照，无阴影
         Lighting.setupForFlatItems();
 
         MultiBufferSource.BufferSource bufferSource = graphics.bufferSource();
