@@ -88,6 +88,27 @@ Put this in a resource pack at `assets/minecraft/datatip/datatip.json`, then hov
 | `pauseSeconds`   | int     | 1       | Pause between lines (seconds) |
 | `loop`           | boolean | false   | Loop animation                |
 
+## Chart Properties
+
+| Property        | Type   | Default    | Description                              |
+|-----------------|--------|------------|------------------------------------------|
+| `chartType`     | String | "bar"      | Chart type: `bar`, `pie`, `line`         |
+| `width`         | int    | 100        | Width                                    |
+| `height`        | int    | 60         | Height                                   |
+| `title`         | String | -          | Title                                    |
+| `entries`       | Array  | -          | Data entries array                       |
+| `titleColor`    | String | "#FFFFFF"  | Title color                              |
+| `labelColor`    | String | "#AAAAAA"  | Label color                              |
+| `valueColor`    | String | "#FFFFFF"  | Value color                              |
+| `zeroLineColor` | String | "#888888"  | Zero line color (for positive/negative)  |
+
+## Entity/Item/Block/Atlas/Image Common Properties
+
+| Property  | Type | Default | Description                                     |
+|-----------|------|---------|-------------------------------------------------|
+| `offsetX` | int  | 0       | X-axis offset (positive=right, negative=left)   |
+| `offsetY` | int  | 0       | Y-axis offset (positive=down, negative=up)      |
+
 ## Variables
 
 | Variable               | Description             |
@@ -110,6 +131,9 @@ Put this in a resource pack at `assets/minecraft/datatip/datatip.json`, then hov
 | `{player_max_health}`  | Player max health       |
 | `{player_hunger}`      | Player hunger           |
 | `{player_experience}`  | Player experience level |
+| `{player_x}`           | Player X coordinate     |
+| `{player_y}`           | Player Y coordinate     |
+| `{player_z}`           | Player Z coordinate     |
 | `{game_time}`          | Game time               |
 | `{is_day}`             | Is daytime              |
 | `{is_raining}`         | Is raining              |
@@ -214,8 +238,6 @@ File: `config/datatip-common.toml`
 | `defaultColor`      | int     | 0xFFAAAAAA | Default text color     |
 | `defaultLineHeight` | int     | 12         | Default line height    |
 | `maxWidth`          | int     | 200        | Maximum tooltip width  |
-| `enableAnimations`  | boolean | true       | Enable animations      |
-| `debugMode`         | boolean | false      | Debug mode             |
 
 ## Legacy Format Support
 
@@ -492,6 +514,64 @@ Old format is automatically converted:
       {"type": "text", "text": "Italic text", "color": "green", "italic": true},
       {"type": "text", "text": "Underlined text", "color": "green", "underlined": true},
       {"type": "text", "text": "Strikethrough text", "color": "green", "strikethrough": true}
+    ]
+  },
+
+  "minecraft:compass": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Compass", "color": "#FF5555", "bold": true},
+      {"type": "text", "text": "Position: {player_x}, {player_y}, {player_z}", "color": "white"},
+      {"type": "chart", "chartType": "bar", "width": 100, "height": 60,
+       "entries": [
+         {"label": "X", "value": "{player_x}", "color": "#FF5555"},
+         {"label": "Y", "value": "{player_y}", "color": "#55FF55"},
+         {"label": "Z", "value": "{player_z}", "color": "#5555FF"}
+       ]
+      }
+    ]
+  },
+
+  "minecraft:redstone": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Redstone", "color": "#FF0000", "bold": true},
+      {"type": "chart", "chartType": "pie", "width": 80,
+       "entries": [
+         {"label": "Redstone Dust", "value": 60, "color": "#FF0000"},
+         {"label": "Redstone Torch", "value": 25, "color": "#FF5555"},
+         {"label": "Redstone Repeater", "value": 15, "color": "#FFAAAA"}
+       ]
+      }
+    ]
+  },
+
+  "minecraft:wheat_seeds": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Wheat Seeds", "color": "#55AA55", "bold": true},
+      {"type": "chart", "chartType": "line", "width": 100, "height": 60,
+       "entries": [
+         {"label": "1", "value": 10, "color": "#55AA55"},
+         {"label": "2", "value": 25, "color": "#55AA55"},
+         {"label": "3", "value": 45, "color": "#55AA55"},
+         {"label": "4", "value": 40, "color": "#55AA55"},
+         {"label": "5", "value": 60, "color": "#55AA55"}
+       ]
+      }
+    ]
+  },
+
+  "minecraft:painting": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "Painting", "color": "#AAAAAA", "bold": true},
+      {"type": "entity", "entity": "minecraft:painting", "size": 48, "autoRotate": false, "offsetY": 8},
+      {"type": "text", "text": "Decorative item", "color": "gray"}
     ]
   }
 }

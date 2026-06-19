@@ -4,45 +4,31 @@ import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipRenderContext;
 
 /**
- * 间距内容。
- * 用于在内容之间添加空白间距。
- *
- * @author cooobird
- * @since 1.2.0
+ * 间距内容，用于在内容之间添加空白间距。
  */
 public record SpacerContent(int height) implements TipContent {
 
-    /**
-     * 创建默认间距（4px）。
-     */
+    // 创建默认间距
     public static SpacerContent create() {
         return new SpacerContent(4);
     }
 
-    /**
-     * 创建指定高度的间距。
-     */
+    // 创建指定高度的间距
     public static SpacerContent of(int height) {
         return new SpacerContent(height);
     }
 
-    /**
-     * 创建小间距（2px）。
-     */
+    // 创建小间距
     public static SpacerContent small() {
         return new SpacerContent(2);
     }
 
-    /**
-     * 创建中等间距（8px）。
-     */
+    // 创建中等间距
     public static SpacerContent medium() {
         return new SpacerContent(8);
     }
 
-    /**
-     * 创建大间距（16px）。
-     */
+    // 创建大间距
     public static SpacerContent large() {
         return new SpacerContent(16);
     }

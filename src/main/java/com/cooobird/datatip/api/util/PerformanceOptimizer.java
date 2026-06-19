@@ -50,7 +50,7 @@ public class PerformanceOptimizer {
      * 获取物品 ID（带缓存）。
      */
     public static String getItemId(ItemStack stack) {
-        return itemIdCache.computeIfAbsent(stack, s -> 
+        return itemIdCache.computeIfAbsent(stack, s ->
             BuiltInRegistries.ITEM.getKey(s.getItem()).toString());
     }
 

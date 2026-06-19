@@ -5,7 +5,11 @@ import com.cooobird.datatip.api.content.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 
 import java.util.Map;
 
@@ -85,8 +89,8 @@ public class TipContentBuilder {
      * 创建物品内容
      */
     public static ItemContent item(String itemId) {
-        return ItemContent.of(new net.minecraft.world.item.ItemStack(
-            net.minecraft.core.registries.BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId))
+        return ItemContent.of(new ItemStack(
+            BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId))
         ));
     }
 
@@ -95,10 +99,10 @@ public class TipContentBuilder {
      */
     public static ItemContent item(String itemId, String label) {
         return ItemContent.withLabel(
-            new net.minecraft.world.item.ItemStack(
-                net.minecraft.core.registries.BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId))
+            new ItemStack(
+                BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId))
             ),
-            net.minecraft.network.chat.Component.literal(label)
+            Component.literal(label)
         );
     }
 
@@ -180,6 +184,77 @@ public class TipContentBuilder {
     }
 
     /**
+     * 创建实体内容
+     */
+    public static EntityContent entity(String entityId, int size) {
+        EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(entityId));
+        return EntityContent.of(entityType, size);
+    }
+
+    /**
+     * 创建实体内容（带偏移）
+     */
+    public static EntityContent entity(String entityId, int size, int offsetX, int offsetY) {
+        EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(entityId));
+        return EntityContent.withOffset(entityType, size, offsetX, offsetY);
+    }
+
+    /**
+     * 创建方块内容
+     */
+    public static BlockContent block(String blockId, int size) {
+        Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(blockId));
+        return BlockContent.of(block, size);
+    }
+
+    /**
+     * 创建方块内容（带偏移）
+     */
+    public static BlockContent block(String blockId, int size, int offsetX, int offsetY) {
+        Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(blockId));
+        return BlockContent.withOffset(block, size, offsetX, offsetY);
+    }
+
+    /**
+     * 创建纹理内容（从物品 ID）
+     */
+    public static AtlasContent atlas(String itemId, int size) {
+        return AtlasContent.fromItem(ResourceLocation.parse(itemId), size);
+    }
+
+    /**
+     * 创建纹理内容（带偏移）
+     */
+    public static AtlasContent atlas(String itemId, int size, int offsetX, int offsetY) {
+        return AtlasContent.withOffset(ResourceLocation.parse(itemId), size, offsetX, offsetY);
+    }
+
+    /**
+     * 创建图片内容
+     */
+    public static ImageContent image(String texture, int width, int height) {
+        return ImageContent.of(ResourceLocation.parse(texture), width, height);
+    }
+
+    /**
+     * 创建图片内容（带偏移）
+     */
+    public static ImageContent image(String texture, int width, int height, int offsetX, int offsetY) {
+        return ImageContent.withOffset(ResourceLocation.parse(texture), width, height, offsetX, offsetY);
+    }
+
+    /**
+     * 创建图表内容
+     */
+    public static ChartContent chart(String chartType, int width, int height) {
+        return switch (chartType.toLowerCase()) {
+            case "pie" -> ChartContent.pie(width);
+            case "line" -> ChartContent.line(width, height);
+            default -> ChartContent.bar(width, height);
+        };
+    }
+
+    /**
      * 将 TipContent 转换为 JSON
      */
     public static JsonObject toJson(TipContent content) {
@@ -198,9 +273,9 @@ public class TipContentBuilder {
             } else if (textContent.align() == TextContent.TextAlign.RIGHT) {
                 json.addProperty("align", "right");
             }
-        } else if (content instanceof SpacerContent spacer) {
+        } else if (content instanceof SpacerContent(int height)) {
             json.addProperty("type", "spacer");
-            json.addProperty("height", spacer.height());
+            json.addProperty("height", height);
         } else if (content instanceof DividerContent divider) {
             json.addProperty("type", "divider");
             json.addProperty("color", String.format("#%06X", divider.color() & 0xFFFFFF));
@@ -234,6 +309,72 @@ public class TipContentBuilder {
                 frames.add(toJson(frame));
             }
             json.add("frames", frames);
+        } else if (content instanceof EntityContent entity) {
+            json.addProperty("type", "entity");
+            json.addProperty("entity", BuiltInRegistries.ENTITY_TYPE.getKey(entity.entityType()).toString());
+            json.addProperty("size", entity.size());
+            json.addProperty("autoRotate", entity.autoRotate());
+            if (entity.offsetX() != 0) {
+                json.addProperty("offsetX", entity.offsetX());
+            }
+            if (entity.offsetY() != 0) {
+                json.addProperty("offsetY", entity.offsetY());
+            }
+        } else if (content instanceof BlockContent block) {
+            json.addProperty("type", "block");
+            json.addProperty("block", BuiltInRegistries.BLOCK.getKey(block.block()).toString());
+            json.addProperty("size", block.size());
+            json.addProperty("autoRotate", block.autoRotate());
+            if (block.offsetX() != 0) {
+                json.addProperty("offsetX", block.offsetX());
+            }
+            if (block.offsetY() != 0) {
+                json.addProperty("offsetY", block.offsetY());
+            }
+        } else if (content instanceof AtlasContent atlas) {
+            json.addProperty("type", "atlas");
+            json.addProperty("texture", atlas.texturePath().toString());
+            json.addProperty("size", atlas.width());
+            if (atlas.offsetX() != 0) {
+                json.addProperty("offsetX", atlas.offsetX());
+            }
+            if (atlas.offsetY() != 0) {
+                json.addProperty("offsetY", atlas.offsetY());
+            }
+        } else if (content instanceof ImageContent image) {
+            json.addProperty("type", "image");
+            json.addProperty("texture", image.texture().toString());
+            json.addProperty("width", image.width());
+            json.addProperty("height", image.height());
+            if (image.offsetX() != 0) {
+                json.addProperty("offsetX", image.offsetX());
+            }
+            if (image.offsetY() != 0) {
+                json.addProperty("offsetY", image.offsetY());
+            }
+        } else if (content instanceof ChartContent chart) {
+            json.addProperty("type", "chart");
+            json.addProperty("chartType", chart.type().toString().toLowerCase());
+            json.addProperty("width", chart.width());
+            json.addProperty("height", chart.height());
+            JsonArray entries = new JsonArray();
+            for (var entry : chart.entries()) {
+                JsonObject entryJson = new JsonObject();
+                entryJson.addProperty("label", entry.label());
+                entryJson.addProperty("value", entry.valueExpr());
+                entryJson.addProperty("color", String.format("#%06X", entry.color() & 0xFFFFFF));
+                entries.add(entryJson);
+            }
+            json.add("entries", entries);
+        } else if (content instanceof TypewriterContent typewriter) {
+            json.addProperty("type", "typewriter");
+            JsonArray lines = new JsonArray();
+            for (String line : typewriter.getLines()) {
+                lines.add(line);
+            }
+            json.add("lines", lines);
+            json.addProperty("charsPerSecond", typewriter.getCharsPerSecond());
+            json.addProperty("loop", typewriter.isLoop());
         }
 
         return json;

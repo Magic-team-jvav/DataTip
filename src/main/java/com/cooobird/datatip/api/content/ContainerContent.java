@@ -14,7 +14,7 @@ import java.util.List;
 public interface ContainerContent extends TipContent {
 
     /**
-     * 获取子元素列表（只读）。
+     * 获取子元素列表。
      *
      * @return 子元素列表
      */

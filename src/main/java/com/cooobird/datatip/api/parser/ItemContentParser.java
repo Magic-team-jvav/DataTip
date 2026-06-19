@@ -12,13 +12,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 /**
- * ItemContent 解析器。
+ * ItemContent 解析器�?
  * <p>
- * 负责将 JSON 对象解析为 {@link ItemContent} 实例。
- * 物品内容用于渲染物品图标，支持显示数量、耐久、标签等。
+ * 负责�?JSON 对象解析�?{@link ItemContent} 实例�?
+ * 物品内容用于渲染物品图标，支持显示数量、耐久、标签等�?
  * </p>
  *
- * <h3>支持的 JSON 格式</h3>
+ * <h3>支持�?JSON 格式</h3>
  * <pre>{@code
  * // 基础物品渲染
  * {
@@ -26,7 +26,7 @@ import net.minecraft.world.item.Items;
  *   "item": "minecraft:diamond"
  * }
  *
- * // 指定数量和大小
+ * // 指定数量和大�?
  * {
  *   "type": "item",
  *   "item": "minecraft:golden_apple",
@@ -40,27 +40,27 @@ import net.minecraft.world.item.Items;
  *   "item": "minecraft:diamond_sword",
  *   "size": 32,
  *   "showLabel": true,
- *   "label": "钻石剑",
+ *   "label": "钻石�?,
  *   "labelColor": "#55FFFF"
  * }
  * }</pre>
  *
  * <h3>字段说明</h3>
  * <table border="1">
- *   <tr><th>字段</th><th>类型</th><th>默认值</th><th>说明</th></tr>
+ *   <tr><th>字段</th><th>类型</th><th>默认�?/th><th>说明</th></tr>
  *   <tr><td>item</td><td>String</td><td>"minecraft:air"</td><td>物品 ID</td></tr>
  *   <tr><td>count</td><td>int</td><td>1</td><td>物品数量</td></tr>
  *   <tr><td>size</td><td>int</td><td>16</td><td>渲染大小（像素）</td></tr>
  *   <tr><td>showCount</td><td>boolean</td><td>true</td><td>是否显示数量</td></tr>
- *   <tr><td>showDurability</td><td>boolean</td><td>true</td><td>是否显示耐久条</td></tr>
+ *   <tr><td>showDurability</td><td>boolean</td><td>true</td><td>是否显示耐久�?/td></tr>
  *   <tr><td>showLabel</td><td>boolean</td><td>false</td><td>是否显示标签</td></tr>
- *   <tr><td>label</td><td>String</td><td>null</td><td>自定义标签文本</td></tr>
+ *   <tr><td>label</td><td>String</td><td>null</td><td>自定义标签文�?/td></tr>
  *   <tr><td>labelColor</td><td>String</td><td>"#FFFFFF"</td><td>标签颜色</td></tr>
- *   <tr><td>align</td><td>String</td><td>"left"</td><td>对齐方式（left/center/right）</td></tr>
+ *   <tr><td>align</td><td>String</td><td>"left"</td><td>对齐方式（left/center/right�?/td></tr>
  * </table>
  *
  * @author cooobird
- * @see ItemContent 物品内容类
+ * @see ItemContent 物品内容�?
  * @since 1.2.0
  */
 public class ItemContentParser implements ContentParser {
@@ -86,6 +86,7 @@ public class ItemContentParser implements ContentParser {
         boolean showCount = context.getBoolean(json, "showCount", true);
         boolean showDurability = context.getBoolean(json, "showDurability", true);
         boolean showLabel = context.getBoolean(json, "showLabel", false);
+        int offsetX = context.getInt(json, "offsetX", 0);`n        int offsetY = context.getInt(json, "offsetY", 0);
 
         // 获取标签
         Component label = null;
@@ -101,6 +102,6 @@ public class ItemContentParser implements ContentParser {
             labelColor = context.getColor(json, "labelColor", 0xFFFFFF);
         }
 
-        return new ItemContent(stack, size, showCount, showDurability, showLabel, label, labelColor);
+        return new ItemContent(stack, size, showCount, showDurability, showLabel, label, labelColor, offsetX, offsetY);
     }
 }

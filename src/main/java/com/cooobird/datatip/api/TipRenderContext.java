@@ -236,12 +236,8 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
         graphics.blit(texture, x, y, width, height, u1, v1, u2, v2, textureWidth, textureHeight);
     }
 
-    /**
-     * 绘制精灵（从 TextureAtlas）
-     * 注意：1.20.1 没有 blitSprite，使用 blit 替代
-     */
+    // 绘制精灵（从 TextureAtlas）
     public void blitSprite(ResourceLocation sprite, int x, int y, int width, int height) {
-        // 1.20.1: 使用 blit 替代
         graphics.blit(sprite, x, y, 0, 0, width, height, width, height);
     }
 
@@ -341,6 +337,26 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
      */
     public boolean hasVariables(String text) {
         return VariableResolver.hasVariables(text);
+    }
+
+    /**
+     * 启用裁剪区域（Scissor）。
+     * 超出区域的内容将被裁剪，不会渲染。
+     *
+     * @param x      X 坐标
+     * @param y      Y 坐标
+     * @param width  宽度
+     * @param height 高度
+     */
+    public void enableScissor(int x, int y, int width, int height) {
+        graphics.enableScissor(x, y, x + width, y + height);
+    }
+
+    /**
+     * 禁用裁剪区域。
+     */
+    public void disableScissor() {
+        graphics.disableScissor();
     }
 
     /**

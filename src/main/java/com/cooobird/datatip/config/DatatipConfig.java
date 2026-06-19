@@ -1,5 +1,6 @@
 package com.cooobird.datatip.config;
 
+
 import net.minecraftforge.common.ForgeConfigSpec;
 
 /**
@@ -16,8 +17,6 @@ import net.minecraftforge.common.ForgeConfigSpec;
  *   <tr><td>defaultColor</td><td>int</td><td>0xFFAAAAAA</td><td>默认文本颜色（ARGB）</td></tr>
  *   <tr><td>defaultLineHeight</td><td>int</td><td>12</td><td>默认行高（像素）</td></tr>
  *   <tr><td>maxWidth</td><td>int</td><td>200</td><td>最大 tooltip 宽度（像素）</td></tr>
- *   <tr><td>enableAnimations</td><td>boolean</td><td>true</td><td>启用动画效果</td></tr>
- *   <tr><td>debugMode</td><td>boolean</td><td>false</td><td>调试模式</td></tr>
  * </table>
  *
  * <h3>配置文件示例</h3>
@@ -35,12 +34,6 @@ import net.minecraftforge.common.ForgeConfigSpec;
  *
  * # 最大 tooltip 宽度（像素）
  * maxWidth = 200
- *
- * # 启用动画效果
- * enableAnimations = true
- *
- * # 调试模式
- * debugMode = false
  * }</pre>
  *
  * @author cooobird
@@ -99,28 +92,6 @@ public class DatatipConfig {
     public static final ForgeConfigSpec.IntValue MAX_WIDTH = BUILDER
         .comment("Maximum tooltip width in pixels.")
         .defineInRange("maxWidth", 200, 50, 500);
-
-    /**
-     * 启用动画。
-     * <p>
-     * 控制是否启用动画效果（轮播、打字机等）。
-     * 禁用可提升性能。
-     * </p>
-     */
-    public static final ForgeConfigSpec.BooleanValue ENABLE_ANIMATIONS = BUILDER
-        .comment("Enable animations (carousel, typewriter, etc.).")
-        .define("enableAnimations", true);
-
-    /**
-     * 调试模式。
-     * <p>
-     * 启用后会显示匹配信息和渲染边界。
-     * 仅用于开发调试。
-     * </p>
-     */
-    public static final ForgeConfigSpec.BooleanValue DEBUG_MODE = BUILDER
-        .comment("Enable debug mode to show match info and render bounds.")
-        .define("debugMode", false);
 
     /**
      * 配置规范（用于注册）

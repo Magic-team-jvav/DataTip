@@ -1,7 +1,6 @@
 package com.cooobird.datatip.api.util;
 
 import com.cooobird.datatip.api.expression.ExpressionParser;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 
@@ -50,6 +49,9 @@ import java.util.function.Function;
  *   <tr><td>player_max_health</td><td>玩家最大生命值</td><td>20</td></tr>
  *   <tr><td>player_hunger</td><td>玩家饥饿值</td><td>20</td></tr>
  *   <tr><td>player_experience</td><td>玩家经验等级</td><td>30</td></tr>
+ *   <tr><td>player_x</td><td>玩家 X 坐标</td><td>100</td></tr>
+ *   <tr><td>player_y</td><td>玩家 Y 坐标</td><td>64</td></tr>
+ *   <tr><td>player_z</td><td>玩家 Z 坐标</td><td>-200</td></tr>
  *   <tr><td>game_time</td><td>游戏时间</td><td>6000</td></tr>
  *   <tr><td>is_day</td><td>是否白天</td><td>true</td></tr>
  *   <tr><td>is_raining</td><td>是否下雨</td><td>false</td></tr>
@@ -173,6 +175,20 @@ public class VariableResolver {
         BUILT_IN_VARS.put("is_thundering", stack -> {
             var level = net.minecraft.client.Minecraft.getInstance().level;
             return level != null ? String.valueOf(level.isThundering()) : "false";
+        });
+
+        // ========== 玩家位置 ==========
+        BUILT_IN_VARS.put("player_x", stack -> {
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            return player != null ? String.valueOf((int) player.getX()) : "0";
+        });
+        BUILT_IN_VARS.put("player_y", stack -> {
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            return player != null ? String.valueOf((int) player.getY()) : "0";
+        });
+        BUILT_IN_VARS.put("player_z", stack -> {
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            return player != null ? String.valueOf((int) player.getZ()) : "0";
         });
 
         // ========== 格式化显示 ==========

@@ -88,6 +88,27 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 | `pauseSeconds`   | int     | 1     | 行间暂停（秒） |
 | `loop`           | boolean | false | 循环播放    |
 
+## 图表属性
+
+| 属性              | 类型     | 默认值       | 说明                      |
+|-----------------|--------|-----------|-------------------------|
+| `chartType`     | String | "bar"     | 图表类型：`bar`、`pie`、`line` |
+| `width`         | int    | 100       | 宽度                      |
+| `height`        | int    | 60        | 高度                      |
+| `title`         | String | -         | 标题                      |
+| `entries`       | Array  | -         | 数据条目数组                  |
+| `titleColor`    | String | "#FFFFFF" | 标题颜色                    |
+| `labelColor`    | String | "#AAAAAA" | 标签颜色                    |
+| `valueColor`    | String | "#FFFFFF" | 数值颜色                    |
+| `zeroLineColor` | String | "#888888" | 零线颜色（区分正负值）             |
+
+## 实体/物品/方块/纹理/图片通用属性
+
+| 属性        | 类型  | 默认值 | 说明                        |
+|-----------|-----|-----|---------------------------|
+| `offsetX` | int | 0   | X 轴偏移（正值向右，负值向左） |
+| `offsetY` | int | 0   | Y 轴偏移（正值向下，负值向上） |
+
 ## 变量
 
 | 变量                     | 说明       |
@@ -98,7 +119,7 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 | `{durability_percent}` | 耐久百分比    |
 | `{durability_bar}`     | 耐久条（可视化） |
 | `{count}`              | 物品数量     |
-| `{item_name}`          | 物品名称     |
+| `{item_name}`          | 物品称      |
 | `{item_id}`            | 物品 ID    |
 | `{enchantment_count}`  | 附魔数量     |
 | `{is_enchanted}`       | 是否附魔     |
@@ -110,6 +131,9 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 | `{player_max_health}`  | 玩家最大生命值  |
 | `{player_hunger}`      | 玩家饥饿值    |
 | `{player_experience}`  | 玩家经验等级   |
+| `{player_x}`           | 玩家 X 坐标  |
+| `{player_y}`           | 玩家 Y 坐标  |
+| `{player_z}`           | 玩家 Z 坐标  |
 | `{game_time}`          | 游戏时间     |
 | `{is_day}`             | 是否白天     |
 | `{is_raining}`         | 是否下雨     |
@@ -214,8 +238,6 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 | `defaultColor`      | int     | 0xFFAAAAAA | 默认文本颜色        |
 | `defaultLineHeight` | int     | 12         | 默认行高          |
 | `maxWidth`          | int     | 200        | 最大 tooltip 宽度 |
-| `enableAnimations`  | boolean | true       | 启用动画          |
-| `debugMode`         | boolean | false      | 调试模式          |
 
 ## 旧格式支持
 
@@ -492,6 +514,64 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
       {"type": "text", "text": "斜体文本", "color": "green", "italic": true},
       {"type": "text", "text": "下划线文本", "color": "green", "underlined": true},
       {"type": "text", "text": "删除线文本", "color": "green", "strikethrough": true}
+    ]
+  },
+
+  "minecraft:compass": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "指南针", "color": "#FF5555", "bold": true},
+      {"type": "text", "text": "位置: {player_x}, {player_y}, {player_z}", "color": "white"},
+      {"type": "chart", "chartType": "bar", "width": 100, "height": 60,
+       "entries": [
+         {"label": "X", "value": "{player_x}", "color": "#FF5555"},
+         {"label": "Y", "value": "{player_y}", "color": "#55FF55"},
+         {"label": "Z", "value": "{player_z}", "color": "#5555FF"}
+       ]
+      }
+    ]
+  },
+
+  "minecraft:redstone": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "红石", "color": "#FF0000", "bold": true},
+      {"type": "chart", "chartType": "pie", "width": 80,
+       "entries": [
+         {"label": "红石粉", "value": 60, "color": "#FF0000"},
+         {"label": "红石火把", "value": 25, "color": "#FF5555"},
+         {"label": "红石中继器", "value": 15, "color": "#FFAAAA"}
+       ]
+      }
+    ]
+  },
+
+  "minecraft:wheat_seeds": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "小麦种子", "color": "#55AA55", "bold": true},
+      {"type": "chart", "chartType": "line", "width": 100, "height": 60,
+       "entries": [
+         {"label": "1", "value": 10, "color": "#55AA55"},
+         {"label": "2", "value": 25, "color": "#55AA55"},
+         {"label": "3", "value": 45, "color": "#55AA55"},
+         {"label": "4", "value": 40, "color": "#55AA55"},
+         {"label": "5", "value": 60, "color": "#55AA55"}
+       ]
+      }
+    ]
+  },
+
+  "minecraft:painting": {
+    "type": "vbox",
+    "gap": 4,
+    "children": [
+      {"type": "text", "text": "画", "color": "#AAAAAA", "bold": true},
+      {"type": "entity", "entity": "minecraft:painting", "size": 48, "autoRotate": false, "offsetY": 8},
+      {"type": "text", "text": "装饰性物品", "color": "gray"}
     ]
   }
 }

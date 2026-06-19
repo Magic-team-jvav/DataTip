@@ -4,28 +4,24 @@ import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipRenderContext;
 
 /**
- * 分割线内容。
- * 用于视觉上分隔不同的内容区域。
- *
- * @author cooobird
- * @since 1.2.0
+ * 分割线内容，用于视觉上分隔不同的内容区域。
  */
 public record DividerContent(
-    int color,
-    int thickness,
-    int width,        // 0 表示填充可用宽度
-    int marginTop,
-    int marginBottom,
-    DividerStyle style,
-    WidthMode widthMode
+    int color,          // 颜色
+    int thickness,      // 厚度
+    int width,          // 宽度
+    int marginTop,      // 上边距
+    int marginBottom,   // 下边距
+    DividerStyle style, // 样式
+    WidthMode widthMode // 宽度模式
 ) implements TipContent {
 
     public enum DividerStyle {SOLID, DASHED, DOTTED}
 
     public enum WidthMode {
-        FIXED,      // 固定宽度
-        FILL,       // 填充可用宽度
-        CENTERED    // 居中（固定宽度）
+        FIXED,    // 固定宽度
+        FILL,     // 填充可用宽度
+        CENTERED  // 居中
     }
 
     public static DividerContent create() {

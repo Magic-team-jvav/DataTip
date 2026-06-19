@@ -6,6 +6,7 @@ import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
@@ -23,7 +24,7 @@ import org.jetbrains.annotations.Nullable;
  * <h3>渲染原理</h3>
  * <p>
  * 使用 {@link ItemDisplayContext#GUI} 上下文渲染方块，内部根据 size 自动计算缩放。
- * 旋转顺序：先绕 X 轴倾斜（固定视角），再绕 Y 轴水平旋转（转盘效果）。
+ * 旋转顺序：先绕 X 轴倾斜，再绕 Y 轴水平旋转。
  * </p>
  *
  * <h3>JSON 示例</h3>
@@ -43,58 +44,36 @@ import org.jetbrains.annotations.Nullable;
  * @since 1.2.0
  */
 public record BlockContent(
-    /** 方块实例 */
-    Block block,
-    /** 渲染大小（像素），内部根据此值自动缩放 */
-    int size,
-    /** 旋转速度（度/tick），默认 0.5 */
-    float rotationSpeed,
-    /** 是否自动旋转 */
-    boolean autoRotate,
-    /** 可选的标签文本，显示在方块旁边 */
-    @Nullable Component label
+    Block block,                // 方块实例
+    int size,                   // 渲染大小
+    float rotationSpeed,        // 旋转速度
+    boolean autoRotate,         // 是否自动旋转
+    @Nullable Component label,  // 可选的标签文本
+    int offsetX,                // X 轴偏移量
+    int offsetY                 // Y 轴偏移量
 ) implements TipContent {
 
-    /**
-     * 当前旋转角度（度）
-     */
-    private static float rotationAngle = 0;
-    /**
-     * 上次更新的 tick 计数
-     */
-    private static int lastTickCount = 0;
+    private static float rotationAngle = 0;  // 当前旋转角度
+    private static int lastTickCount = 0;    // 上次更新的 tick 计数
 
-    /**
-     * 创建方块内容（默认参数）。
-     * 默认大小 32px，旋转速度 0.5 度/tick，自动旋转。
-     *
-     * @param block 方块实例
-     * @return 新的 BlockContent 实例
-     */
+    // 创建方块内容
     public static BlockContent of(Block block) {
-        return new BlockContent(block, 32, 0.5f, true, null);
+        return new BlockContent(block, 32, 0.5f, true, null, 0, 0);
     }
 
-    /**
-     * 创建带标签的方块内容。
-     *
-     * @param block 方块实例
-     * @param label 标签文本
-     * @return 新的 BlockContent 实例
-     */
+    // 创建带标签的方块内容
     public static BlockContent withLabel(Block block, Component label) {
-        return new BlockContent(block, 32, 0.5f, true, label);
+        return new BlockContent(block, 32, 0.5f, true, label, 0, 0);
     }
 
-    /**
-     * 创建指定尺寸的方块内容。
-     *
-     * @param block 方块实例
-     * @param size  渲染大小（像素）
-     * @return 新的 BlockContent 实例
-     */
+    // 创建指定尺寸的方块内容
     public static BlockContent of(Block block, int size) {
-        return new BlockContent(block, size, 0.5f, true, null);
+        return new BlockContent(block, size, 0.5f, true, null, 0, 0);
+    }
+
+    // 创建带偏移的方块内容
+    public static BlockContent withOffset(Block block, int size, int offsetX, int offsetY) {
+        return new BlockContent(block, size, 0.5f, true, null, offsetX, offsetY);
     }
 
     @Override
@@ -106,9 +85,10 @@ public record BlockContent(
     public int getWidth(int maxWidth) {
         int width = size;
         if (label != null) {
-            width += 4 + label.getString().length() * 6;
+            Font font = Minecraft.getInstance().font;
+            width += 4 + font.width(label.getString());
         }
-        return width;
+        return Math.min(width, maxWidth);
     }
 
     @Override
@@ -132,14 +112,24 @@ public record BlockContent(
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0) return;
 
+        // 应用偏移
+        int renderX = x + offsetX;
+        int renderY = y + offsetY;
+
+        // 使用 partialTick 进行插值，让旋转更平滑
+        float smoothRotation = rotationAngle;
+        if (autoRotate) {
+            smoothRotation += rotationSpeed * context.partialTick();
+        }
+
         // 创建物品栈用于渲染
         ItemStack stack = new ItemStack(block);
-        renderBlockAsItem(context.graphics(), stack, x + size / 2, y + size / 2, size, rotationAngle);
+        renderBlockAsItem(context.graphics(), stack, renderX + size / 2, renderY + size / 2, size, smoothRotation);
 
-        // 渲染标签（如果存在）
+        // 渲染标签
         if (label != null) {
             int labelX = x + size + 4;
-            int labelY = y + (size - 8) / 2;
+            int labelY = renderY + (size - 8) / 2;
             context.drawString(label, labelX, labelY, 0xFFFFFF);
         }
     }
@@ -150,9 +140,9 @@ public record BlockContent(
      * 渲染流程：
      * <ol>
      *   <li>移动到指定位置</li>
-     *   <li>根据 size 自动缩放（物品默认 16x16）</li>
-     *   <li>绕 X 轴倾斜（固定视角）</li>
-     *   <li>绕 Y 轴水平旋转（转盘效果）</li>
+     *   <li>根据 size 自动缩放</li>
+     *   <li>绕 X 轴倾斜</li>
+     *   <li>绕 Y 轴水平旋转</li>
      *   <li>使用 ItemDisplayContext.GUI 渲染</li>
      * </ol>
      * </p>
@@ -161,8 +151,8 @@ public record BlockContent(
      * @param stack    物品栈
      * @param x        中心 X 坐标
      * @param y        中心 Y 坐标
-     * @param size     目标渲染大小（像素）
-     * @param rotation 当前旋转角度（度）
+     * @param size     目标渲染大小
+     * @param rotation 当前旋转角度
      */
     private static void renderBlockAsItem(GuiGraphics graphics, ItemStack stack, int x, int y, int size, float rotation) {
         PoseStack poseStack = graphics.pose();
@@ -172,14 +162,14 @@ public record BlockContent(
         poseStack.translate(x, y, 100);
 
         // 根据 size 自动缩放
-        // Y 轴负值用于翻转（GUI 坐标系 Y 轴向下）
+        // Y 轴负值用于翻转
         poseStack.scale((float) size, -(float) size, (float) size);
 
         poseStack.mulPose(Axis.YP.rotationDegrees(45 + rotation));
         poseStack.mulPose(Axis.XP.rotationDegrees(-35));
 
 
-        // 设置光照
+        // 设置平面光照
         Lighting.setupForFlatItems();
 
         // 使用物品渲染器渲染

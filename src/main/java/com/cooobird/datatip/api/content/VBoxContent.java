@@ -8,18 +8,12 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 垂直布局容器。
- * 子元素从上到下垂直排列。
- *
- * @author cooobird
- * @since 1.2.0
+ * 垂直布局容器，子元素从上到下垂直排列。
  */
 public record VBoxContent(List<TipContent> children, int gap, int padding,
                           HorizontalAlign horizontalAlign) implements ContainerContent {
 
-    /**
-     * 创建垂直布局容器。
-     */
+    // 创建垂直布局容器
     public VBoxContent(List<TipContent> children, int gap, int padding, HorizontalAlign horizontalAlign) {
         this.children = new ArrayList<>(children);
         this.gap = gap;
@@ -27,54 +21,37 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
         this.horizontalAlign = horizontalAlign;
     }
 
-    /**
-     * 获取间距。
-     */
     @Override
     public int gap() {
         return gap;
     }
 
-    /**
-     * 获取内边距。
-     */
     @Override
     public int padding() {
         return padding;
     }
 
-    /**
-     * 获取水平对齐方式。
-     */
     @Override
     public HorizontalAlign horizontalAlign() {
         return horizontalAlign;
     }
 
-    /**
-     * 创建默认垂直布局（无间距，无内边距，左对齐）。
-     */
+    // 创建默认垂直布局
     public static VBoxContent create() {
         return new VBoxContent(List.of(), 0, 0, HorizontalAlign.LEFT);
     }
 
-    /**
-     * 创建带间距的垂直布局。
-     */
+    // 创建带间距的垂直布局
     public static VBoxContent withGap(int gap) {
         return new VBoxContent(List.of(), gap, 0, HorizontalAlign.LEFT);
     }
 
-    /**
-     * 创建带内边距的垂直布局。
-     */
+    // 创建带内边距的垂直布局
     public static VBoxContent withPadding(int padding) {
         return new VBoxContent(List.of(), 0, padding, HorizontalAlign.LEFT);
     }
 
-    /**
-     * 创建居中对齐的垂直布局。
-     */
+    // 创建居中对齐的垂直布局
     public static VBoxContent centered() {
         return new VBoxContent(List.of(), 0, 0, HorizontalAlign.CENTER);
     }
@@ -140,9 +117,7 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
         }
     }
 
-    /**
-     * 渲染静态内容（跳过动画）。
-     */
+    // 渲染静态内容
     public void renderStatic(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0 || children.isEmpty()) return;
 
@@ -185,59 +160,8 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
         children.forEach(TipContent::onHide);
     }
 
-    /**
-     * 水平对齐方式。
-     */
+    // 水平对齐方式
     public enum HorizontalAlign {
         LEFT, CENTER, RIGHT
-    }
-
-    /**
-     * Builder 模式创建 VBoxContent。
-     */
-    public static class Builder {
-        private final List<TipContent> children = new ArrayList<>();
-        private int gap = 0;
-        private int padding = 0;
-        private HorizontalAlign horizontalAlign = HorizontalAlign.LEFT;
-
-        public Builder gap(int gap) {
-            this.gap = gap;
-            return this;
-        }
-
-        public Builder padding(int padding) {
-            this.padding = padding;
-            return this;
-        }
-
-        public Builder align(HorizontalAlign horizontalAlign) {
-            this.horizontalAlign = horizontalAlign;
-            return this;
-        }
-
-        public Builder centered() {
-            this.horizontalAlign = HorizontalAlign.CENTER;
-            return this;
-        }
-
-        public Builder rightAligned() {
-            this.horizontalAlign = HorizontalAlign.RIGHT;
-            return this;
-        }
-
-        public Builder add(TipContent child) {
-            this.children.add(child);
-            return this;
-        }
-
-        public Builder addAll(List<TipContent> children) {
-            this.children.addAll(children);
-            return this;
-        }
-
-        public VBoxContent build() {
-            return new VBoxContent(children, gap, padding, horizontalAlign);
-        }
     }
 }

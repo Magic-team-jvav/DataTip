@@ -10,9 +10,5 @@
     "config.datatip.default_line_height": "Default Line Height",
     "config.datatip.default_line_height.tooltip": "Default line height in pixels.",
     "config.datatip.max_width": "Maximum Width",
-    "config.datatip.max_width.tooltip": "Maximum tooltip width in pixels.",
-    "config.datatip.enable_animations": "Enable Animations",
-    "config.datatip.enable_animations.tooltip": "Enable animations (carousel, typewriter, etc.).",
-    "config.datatip.debug_mode": "Debug Mode",
-    "config.datatip.debug_mode.tooltip": "Enable debug mode to show match info and render bounds."
+    "config.datatip.max_width.tooltip": "Maximum tooltip width in pixels."
 }
