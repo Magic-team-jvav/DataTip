@@ -35,6 +35,159 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 | `divider`    | 分割线   | `{"type": "divider", "color": "#555555"}`                     |
 | `spacer`     | 间距    | `{"type": "spacer", "height": 8}`                             |
 
+### 内容类型详情
+
+#### text
+文本内容，支持丰富的样式选项。
+```json
+{
+  "type": "text",
+  "text": "你好世界",
+  "color": "#55FFFF",
+  "bold": true,
+  "align": "center"
+}
+```
+
+#### item
+在 tooltip 中渲染物品图标。
+```json
+{
+  "type": "item",
+  "item": "minecraft:diamond",
+  "size": 32,
+  "offsetY": 4
+}
+```
+
+#### block
+渲染 3D 方块模型，支持自动旋转。
+```json
+{
+  "type": "block",
+  "block": "minecraft:chest",
+  "size": 48,
+  "autoRotate": true
+}
+```
+
+#### entity
+渲染 3D 实体模型，支持自动旋转。
+```json
+{
+  "type": "entity",
+  "entity": "minecraft:wolf",
+  "size": 48,
+  "autoRotate": true,
+  "offsetY": 8
+}
+```
+
+#### progress
+进度条，支持多种样式。
+```json
+{
+  "type": "progress",
+  "progress": 0.75,
+  "width": 100,
+  "height": 8,
+  "style": "gradient",
+  "showLabel": true,
+  "label": "75%",
+  "labelAlign": "right"
+}
+```
+
+#### carousel
+自动切换多帧显示。
+```json
+{
+  "type": "carousel",
+  "intervalSeconds": 3,
+  "frames": [
+    {"type": "text", "text": "第一帧"},
+    {"type": "text", "text": "第二帧"}
+  ]
+}
+```
+
+#### typewriter
+逐字显示动画效果。
+```json
+{
+  "type": "typewriter",
+  "lines": ["你好", "世界"],
+  "charsPerSecond": 10,
+  "pauseSeconds": 1,
+  "loop": false
+}
+```
+
+#### atlas
+从纹理图集渲染（物品/方块 ID 自动转换）。
+```json
+{
+  "type": "atlas",
+  "item": "minecraft:apple",
+  "size": 32
+}
+```
+
+#### image
+渲染自定义纹理图片。
+```json
+{
+  "type": "image",
+  "texture": "mymod:textures/gui/icon.png",
+  "width": 32,
+  "height": 32
+}
+```
+
+#### chart
+柱状图、饼图或折线图，支持变量。
+```json
+{
+  "type": "chart",
+  "chartType": "bar",
+  "width": 100,
+  "height": 60,
+  "entries": [
+    {"label": "X", "value": "{player_x}", "color": "#FF5555"},
+    {"label": "Y", "value": "{player_y}", "color": "#55FF55"}
+  ]
+}
+```
+
+#### vbox / hbox
+垂直/水平布局容器。
+```json
+{
+  "type": "vbox",
+  "gap": 4,
+  "children": [...]
+}
+```
+
+#### divider
+分割线，支持多种样式。
+```json
+{
+  "type": "divider",
+  "color": "#555555",
+  "style": "dashed"
+}
+```
+
+#### spacer
+内容之间的空白间距。
+```json
+{
+  "type": "spacer",
+  "height": 8
+}
+```
+
 ## 文本属性
 
 | 属性              | 类型            | 默认值     | 说明                         |
@@ -104,41 +257,79 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 ## 实体/物品/方块/纹理/图片通用属性
 
-| 属性        | 类型  | 默认值 | 说明                        |
-|-----------|-----|-----|---------------------------|
+| 属性        | 类型  | 默认值 | 说明               |
+|-----------|-----|-----|------------------|
 | `offsetX` | int | 0   | X 轴偏移（正值向右，负值向左） |
 | `offsetY` | int | 0   | Y 轴偏移（正值向下，负值向上） |
 
 ## 变量
 
-| 变量                     | 说明       |
-|------------------------|----------|
-| `{durability}`         | 当前耐久     |
-| `{max_durability}`     | 最大耐久     |
-| `{damage}`             | 已损坏值     |
-| `{durability_percent}` | 耐久百分比    |
-| `{durability_bar}`     | 耐久条（可视化） |
-| `{count}`              | 物品数量     |
-| `{item_name}`          | 物品称      |
-| `{item_id}`            | 物品 ID    |
-| `{enchantment_count}`  | 附魔数量     |
-| `{is_enchanted}`       | 是否附魔     |
-| `{rarity}`             | 稀有度      |
-| `{max_stack_size}`     | 最大堆叠数    |
-| `{is_stackable}`       | 是否可堆叠    |
-| `{is_damageable}`      | 是否可损坏    |
-| `{player_health}`      | 玩家生命值    |
-| `{player_max_health}`  | 玩家最大生命值  |
-| `{player_hunger}`      | 玩家饥饿值    |
-| `{player_experience}`  | 玩家经验等级   |
-| `{player_x}`           | 玩家 X 坐标  |
-| `{player_y}`           | 玩家 Y 坐标  |
-| `{player_z}`           | 玩家 Z 坐标  |
-| `{game_time}`          | 游戏时间     |
-| `{is_day}`             | 是否白天     |
-| `{is_raining}`         | 是否下雨     |
-| `{is_thundering}`      | 是否雷暴     |
-| `{health_bar}`         | 生命条（可视化） |
+| 变量                     | 说明                |
+|------------------------|-------------------|
+| `{durability}`         | 当前耐久              |
+| `{max_durability}`     | 最大耐久              |
+| `{damage}`             | 已损坏值              |
+| `{durability_percent}` | 耐久百分比             |
+| `{durability_bar}`     | 耐久条（可视化）          |
+| `{count}`              | 物品数量              |
+| `{item_name}`          | 物品称               |
+| `{item_id}`            | 物品 ID             |
+| `{enchantment_count}`  | 附魔数量              |
+| `{is_enchanted}`       | 是否附魔              |
+| `{rarity}`             | 稀有度               |
+| `{max_stack_size}`     | 最大堆叠数             |
+| `{is_stackable}`       | 是否可堆叠             |
+| `{is_damageable}`      | 是否可损坏             |
+| `{player_health}`      | 玩家生命值             |
+| `{player_max_health}`  | 玩家最大生命值           |
+| `{player_hunger}`      | 玩家饥饿值             |
+| `{player_experience}`  | 玩家经验等级            |
+| `{player_x}`           | 玩家 X 坐标           |
+| `{player_y}`           | 玩家 Y 坐标           |
+| `{player_z}`           | 玩家 Z 坐标           |
+| `{game_time}`          | 游戏时间              |
+| `{is_day}`             | 是否白天              |
+| `{is_raining}`         | 是否下雨              |
+| `{is_thundering}`      | 是否雷暴              |
+| `{health_bar}`         | 生命条（可视化）          |
+| `{nbt:path}`           | 组件值（见下方 NBT 变量说明） |
+
+### NBT 变量
+
+使用 `{nbt:path}` 语法读取物品组件/NBT 数据。
+
+**NeoForge 1.21.1（组件系统）：**
+```json
+{
+  "type": "text",
+  "text": "名称: {nbt:custom_name}",
+  "color": "white"
+}
+```
+
+**支持的路径：**
+- `custom_name` - 自定义物品名称
+- `item_name` - 物品名称
+- `lore` - 物品描述
+- `damage` - 损坏值
+- `max_damage` - 最大损坏值
+- `enchantments` - 附魔
+
+**Forge 1.20.1（NBT 系统）：**
+```json
+{
+  "type": "text",
+  "text": "名称: {nbt:display.Name}",
+  "color": "white"
+}
+```
+
+**支持的路径：**
+- `display.Name` - 自定义物品名称
+- `display.Lore` - 物品描述
+- `Damage` - 损坏值
+- `Enchantments` - 附魔
+| `{nbt:path}`           | 组件值（如 `{nbt:custom_name}`、`{nbt:lore}`） |
 
 ## 条件
 
@@ -160,6 +351,41 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 | `enchanted`  | 是否附魔 | `"enchanted": true`                    |
 | `damage`     | 损坏值  | `"damage": 100`                        |
 | `count`      | 物品数量 | `"count": 16`                          |
+| `nbt`        | 组件存在 | `"nbt": "custom_name"`                 |
+| `item_tag`   | 物品标签 | `"item_tag": "minecraft:swords"`       |
+
+### NBT 条件
+
+检查物品是否有指定的组件/NBT 数据。
+
+**NeoForge 1.21.1：**
+```json
+{
+  "conditions": {
+    "nbt": "custom_name"
+  }
+}
+```
+
+**Forge 1.20.1：**
+```json
+{
+  "conditions": {
+    "nbt": "display.Name"
+  }
+}
+```
+
+### 物品标签条件
+
+检查物品是否属于指定标签。
+```json
+{
+  "conditions": {
+    "item_tag": "minecraft:swords"
+  }
+}
+```
 
 ## 表达式
 

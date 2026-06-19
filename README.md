@@ -35,6 +35,159 @@ Put this in a resource pack at `assets/minecraft/datatip/datatip.json`, then hov
 | `divider`    | Divider line       | `{"type": "divider", "color": "#555555"}`                     |
 | `spacer`     | Spacing            | `{"type": "spacer", "height": 8}`                             |
 
+### Content Type Details
+
+#### text
+Text content with rich styling options.
+```json
+{
+  "type": "text",
+  "text": "Hello World",
+  "color": "#55FFFF",
+  "bold": true,
+  "align": "center"
+}
+```
+
+#### item
+Render item icon in tooltip.
+```json
+{
+  "type": "item",
+  "item": "minecraft:diamond",
+  "size": 32,
+  "offsetY": 4
+}
+```
+
+#### block
+Render 3D block model with auto-rotation.
+```json
+{
+  "type": "block",
+  "block": "minecraft:chest",
+  "size": 48,
+  "autoRotate": true
+}
+```
+
+#### entity
+Render 3D entity model with auto-rotation.
+```json
+{
+  "type": "entity",
+  "entity": "minecraft:wolf",
+  "size": 48,
+  "autoRotate": true,
+  "offsetY": 8
+}
+```
+
+#### progress
+Progress bar with multiple styles.
+```json
+{
+  "type": "progress",
+  "progress": 0.75,
+  "width": 100,
+  "height": 8,
+  "style": "gradient",
+  "showLabel": true,
+  "label": "75%",
+  "labelAlign": "right"
+}
+```
+
+#### carousel
+Auto-switching multi-frame display.
+```json
+{
+  "type": "carousel",
+  "intervalSeconds": 3,
+  "frames": [
+    {"type": "text", "text": "Frame 1"},
+    {"type": "text", "text": "Frame 2"}
+  ]
+}
+```
+
+#### typewriter
+Animated text reveal effect.
+```json
+{
+  "type": "typewriter",
+  "lines": ["Hello", "World"],
+  "charsPerSecond": 10,
+  "pauseSeconds": 1,
+  "loop": false
+}
+```
+
+#### atlas
+Render texture from atlas (item/block ID auto-converts).
+```json
+{
+  "type": "atlas",
+  "item": "minecraft:apple",
+  "size": 32
+}
+```
+
+#### image
+Render custom texture image.
+```json
+{
+  "type": "image",
+  "texture": "mymod:textures/gui/icon.png",
+  "width": 32,
+  "height": 32
+}
+```
+
+#### chart
+Bar, pie, or line chart with variable support.
+```json
+{
+  "type": "chart",
+  "chartType": "bar",
+  "width": 100,
+  "height": 60,
+  "entries": [
+    {"label": "X", "value": "{player_x}", "color": "#FF5555"},
+    {"label": "Y", "value": "{player_y}", "color": "#55FF55"}
+  ]
+}
+```
+
+#### vbox / hbox
+Vertical/horizontal layout containers.
+```json
+{
+  "type": "vbox",
+  "gap": 4,
+  "children": [...]
+}
+```
+
+#### divider
+Divider line with multiple styles.
+```json
+{
+  "type": "divider",
+  "color": "#555555",
+  "style": "dashed"
+}
+```
+
+#### spacer
+Empty spacing between content.
+```json
+{
+  "type": "spacer",
+  "height": 8
+}
+```
+
 ## Text Properties
 
 | Property        | Type          | Default | Description                                   |
@@ -111,34 +264,71 @@ Put this in a resource pack at `assets/minecraft/datatip/datatip.json`, then hov
 
 ## Variables
 
-| Variable               | Description             |
-|------------------------|-------------------------|
-| `{durability}`         | Current durability      |
-| `{max_durability}`     | Maximum durability      |
-| `{damage}`             | Damage value            |
-| `{durability_percent}` | Durability percentage   |
-| `{durability_bar}`     | Durability bar (visual) |
-| `{count}`              | Item count              |
-| `{item_name}`          | Item name               |
-| `{item_id}`            | Item ID                 |
-| `{enchantment_count}`  | Enchantment count       |
-| `{is_enchanted}`       | Is enchanted            |
-| `{rarity}`             | Rarity                  |
-| `{max_stack_size}`     | Max stack size          |
-| `{is_stackable}`       | Is stackable            |
-| `{is_damageable}`      | Is damageable           |
-| `{player_health}`      | Player health           |
-| `{player_max_health}`  | Player max health       |
-| `{player_hunger}`      | Player hunger           |
-| `{player_experience}`  | Player experience level |
-| `{player_x}`           | Player X coordinate     |
-| `{player_y}`           | Player Y coordinate     |
-| `{player_z}`           | Player Z coordinate     |
-| `{game_time}`          | Game time               |
-| `{is_day}`             | Is daytime              |
-| `{is_raining}`         | Is raining              |
-| `{is_thundering}`      | Is thundering           |
-| `{health_bar}`         | Health bar (visual)     |
+| Variable               | Description                                      |
+|------------------------|--------------------------------------------------|
+| `{durability}`         | Current durability                               |
+| `{max_durability}`     | Maximum durability                               |
+| `{damage}`             | Damage value                                     |
+| `{durability_percent}` | Durability percentage                            |
+| `{durability_bar}`     | Durability bar (visual)                          |
+| `{count}`              | Item count                                       |
+| `{item_name}`          | Item name                                        |
+| `{item_id}`            | Item ID                                          |
+| `{enchantment_count}`  | Enchantment count                                |
+| `{is_enchanted}`       | Is enchanted                                     |
+| `{rarity}`             | Rarity                                           |
+| `{max_stack_size}`     | Max stack size                                   |
+| `{is_stackable}`       | Is stackable                                     |
+| `{is_damageable}`      | Is damageable                                    |
+| `{player_health}`      | Player health                                    |
+| `{player_max_health}`  | Player max health                                |
+| `{player_hunger}`      | Player hunger                                    |
+| `{player_experience}`  | Player experience level                          |
+| `{player_x}`           | Player X coordinate                              |
+| `{player_y}`           | Player Y coordinate                              |
+| `{player_z}`           | Player Z coordinate                              |
+| `{game_time}`          | Game time                                        |
+| `{is_day}`             | Is daytime                                       |
+| `{is_raining}`         | Is raining                                       |
+| `{is_thundering}`      | Is thundering                                    |
+| `{health_bar}`         | Health bar (visual)                              |
+| `{nbt:path}`           | Component value (see NBT Variable section below) |
+
+### NBT Variable
+
+Read item component data using `{nbt:path}` syntax.
+
+**NeoForge 1.21.1 (Component System):**
+```json
+{
+  "type": "text",
+  "text": "Name: {nbt:custom_name}",
+  "color": "white"
+}
+```
+
+**Supported paths:**
+- `custom_name` - Custom item name
+- `item_name` - Item name
+- `lore` - Item lore
+- `damage` - Damage value
+- `max_damage` - Max damage
+- `enchantments` - Enchantments
+
+**Forge 1.20.1 (NBT System):**
+```json
+{
+  "type": "text",
+  "text": "Name: {nbt:display.Name}",
+  "color": "white"
+}
+```
+
+**Supported paths:**
+- `display.Name` - Custom item name
+- `display.Lore` - Item lore
+- `Damage` - Damage value
+- `Enchantments` - Enchantments
 
 ## Conditions
 
@@ -160,6 +350,41 @@ Put this in a resource pack at `assets/minecraft/datatip/datatip.json`, then hov
 | `enchanted`  | Is enchanted     | `"enchanted": true`                    |
 | `damage`     | Damage value     | `"damage": 100`                        |
 | `count`      | Item count       | `"count": 16`                          |
+| `nbt`        | Component exists | `"nbt": "custom_name"`                 |
+| `item_tag`   | Item tag         | `"item_tag": "minecraft:swords"`       |
+
+### NBT Condition
+
+Check if item has specific component/NBT data.
+
+**NeoForge 1.21.1:**
+```json
+{
+  "conditions": {
+    "nbt": "custom_name"
+  }
+}
+```
+
+**Forge 1.20.1:**
+```json
+{
+  "conditions": {
+    "nbt": "display.Name"
+  }
+}
+```
+
+### Item Tag Condition
+
+Check if item belongs to a specific tag.
+```json
+{
+  "conditions": {
+    "item_tag": "minecraft:swords"
+  }
+}
+```
 
 ## Expressions
 
@@ -575,6 +800,71 @@ Old format is automatically converted:
     ]
   }
 }
+```
+
+## For Mod Developers
+
+### Register Custom Variables
+```java
+VariableResolver.registerVariable("my_var", stack -> "custom_value");
+```
+
+### Register Custom Conditions
+```java
+ConditionChecker.registerCondition("my_condition", (value, stack, player, level) -> {
+    return player.getAbsorptionAmount() > 0;
+});
+```
+
+Then use in JSON:
+```json
+{
+  "conditions": {
+    "my_condition": true
+  }
+}
+```
+
+### Register Custom Themes
+```java
+TipThemeManager.registerTheme("dark", new TipThemeManager.TipTheme(
+    0xFF1E1E1E,  // background
+    0xFF333333,  // border
+    0xFFFFFFFF,  // text
+    12,          // lineHeight
+    200          // maxWidth
+));
+```
+
+### Register Custom Templates
+```java
+TipTemplateManager.registerTemplate("item_card", variables -> {
+    JsonObject json = new JsonObject();
+    json.addProperty("type", "vbox");
+    // ... build JSON from variables
+    return json;
+});
+```
+
+### Event Hooks
+```java
+// Pre-render event (modify or cancel)
+TipEventManager.onPreRender(event -> {
+    event.setItemStack(customStack);
+    // or event.cancel() to cancel rendering
+});
+
+// Post-render event (add extra info)
+TipEventManager.onPostRender(event -> {
+    event.addExtraLine("Extra info from other mod");
+});
+
+// Variable resolve event (inject custom variables)
+TipEventManager.onResolveVariable(event -> {
+    if (event.getVariableName().equals("custom_var")) {
+        event.setValue("custom_value");
+    }
+});
 ```
 
 ## Hot Reload

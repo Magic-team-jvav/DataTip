@@ -1,7 +1,6 @@
 package com.cooobird.datatip.event;
 
 import com.cooobird.datatip.api.TipContent;
-import com.cooobird.datatip.api.TipRenderer;
 import com.cooobird.datatip.api.component.TipContentTooltipComponent;
 import com.cooobird.datatip.api.loader.TipContentLoader;
 import com.cooobird.datatip.api.util.PerformanceOptimizer;
@@ -73,11 +72,6 @@ public class TipRenderEventHandler {
         InputConstants.KEY_LSHIFT,
         "key.categories.datatip"
     );
-
-    /**
-     * Tooltip 渲染器实例
-     */
-    private static final TipRenderer renderer = new TipRenderer();
 
     /**
      * 内容加载器（在资源重载时设置）
@@ -225,14 +219,5 @@ public class TipRenderEventHandler {
     private static boolean isShowTipDown() {
         var window = Minecraft.getInstance().getWindow().getWindow();
         return InputConstants.isKeyDown(window, SHOW_TIP.getKey().getValue());
-    }
-
-    /**
-     * 获取渲染器实例。
-     *
-     * @return TipRenderer 实例
-     */
-    public static TipRenderer getRenderer() {
-        return renderer;
     }
 }

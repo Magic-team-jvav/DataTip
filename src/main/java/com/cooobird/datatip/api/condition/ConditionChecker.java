@@ -3,8 +3,11 @@ package com.cooobird.datatip.api.condition;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -13,6 +16,7 @@ import net.minecraft.world.level.biome.Biome;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -70,6 +74,39 @@ public class ConditionChecker {
      * 缓存过期时间（毫秒）
      */
     private static final long CACHE_EXPIRY_MS = 1000; // 1 秒
+
+    /**
+     * 自定义条件注册表
+     */
+    private static final Map<String, CustomCondition> CUSTOM_CONDITIONS = new ConcurrentHashMap<>();
+
+    /**
+     * 自定义条件接口。
+     * 其他 mod 可以实现此接口来注册自定义条件。
+     */
+    @FunctionalInterface
+    public interface CustomCondition {
+        /**
+         * 检查条件是否满足。
+         *
+         * @param value  条件值
+         * @param stack  物品栈
+         * @param player 玩家
+         * @param level  世界
+         * @return true 如果条件满足
+         */
+        boolean check(Object value, ItemStack stack, Player player, Level level);
+    }
+
+    /**
+     * 注册自定义条件。
+     *
+     * @param type      条件类型名
+     * @param condition 条件检查实现
+     */
+    public static void registerCondition(String type, CustomCondition condition) {
+        CUSTOM_CONDITIONS.put(type, condition);
+    }
 
     /**
      * 缓存的检查结果。
@@ -136,6 +173,13 @@ public class ConditionChecker {
      * @return true 如果条件满足
      */
     private static boolean checkCondition(Condition condition, ItemStack stack, Player player, Level level) {
+        // 先检查自定义条件
+        CustomCondition custom = CUSTOM_CONDITIONS.get(condition.type());
+        if (custom != null) {
+            return custom.check(condition.value(), stack, player, level);
+        }
+
+        // 内置条件
         return switch (condition.type()) {
             case "dimension" -> checkDimension(condition.value(), level);
             case "biome" -> checkBiome(condition.value(), player, level);
@@ -153,6 +197,8 @@ public class ConditionChecker {
             case "enchanted" -> checkEnchanted(condition.value(), stack);
             case "damage" -> checkDamage(condition.value(), stack);
             case "count" -> checkCount(condition.value(), stack);
+            case "nbt" -> checkNbt(condition.value(), stack);
+            case "item_tag" -> checkItemTag(condition.value(), stack);
             default -> true;
         };
     }
@@ -424,6 +470,37 @@ public class ConditionChecker {
     private static boolean checkCount(Object value, ItemStack stack) {
         if (value instanceof Number num) return stack.getCount() >= num.intValue();
         return false;
+    }
+
+    /**
+     * 检查 NBT 条件。
+     * NeoForge 1.21.1 使用组件系统，检查指定组件是否存在。
+     */
+    private static boolean checkNbt(Object value, ItemStack stack) {
+        if (!(value instanceof String path)) return false;
+        // 检查常用组件
+        return switch (path) {
+            case "custom_name" -> stack.has(DataComponents.CUSTOM_NAME);
+            case "item_name" -> stack.has(DataComponents.ITEM_NAME);
+            case "lore" -> stack.has(DataComponents.LORE);
+            case "enchantments" -> stack.has(DataComponents.ENCHANTMENTS);
+            case "damage" -> stack.has(DataComponents.DAMAGE);
+            case "unbreakable" -> stack.has(DataComponents.UNBREAKABLE);
+            case "color" -> stack.has(DataComponents.DYED_COLOR);
+            case "trim" -> stack.has(DataComponents.TRIM);
+            default -> false;
+        };
+    }
+
+    /**
+     * 检查物品标签条件。
+     */
+    private static boolean checkItemTag(Object value, ItemStack stack) {
+        if (!(value instanceof String tagStr)) return false;
+
+        TagKey<Item> tagKey = TagKey.create(Registries.ITEM, Objects.requireNonNull(ResourceLocation.tryParse(tagStr)));
+
+        return stack.is(tagKey);
     }
 
     /**

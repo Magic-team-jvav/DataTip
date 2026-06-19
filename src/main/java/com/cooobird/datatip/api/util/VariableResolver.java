@@ -77,28 +77,46 @@ public class VariableResolver {
      * 变量解析缓存
      */
     private static final Map<String, CachedResult> CACHE = new ConcurrentHashMap<>();
+
     /**
-     * 缓存过期时间（毫秒）
+     * 缓存过期时间配置（毫秒）
+     * - 物品属性：200ms（不常变化）
+     * - 玩家状态：50ms（频繁变化）
+     * - 坐标/游戏状态：100ms（中等频率）
      */
-    private static final long CACHE_EXPIRY_MS = 100; // 100ms（变量变化较快）
+    private static final long CACHE_EXPIRY_ITEM = 200;      // 物品属性
+    private static final long CACHE_EXPIRY_PLAYER = 50;     // 玩家状态
+    private static final long CACHE_EXPIRY_POSITION = 100;  // 坐标/游戏状态
 
     /**
      * 缓存的解析结果。
      */
-    private record CachedResult(String result, long timestamp) {
+    private record CachedResult(String result, long timestamp, long expiryMs) {
         /**
          * 检查缓存是否已过期。
-         *
-         * @return true 如果缓存已过期
          */
         boolean isExpired() {
-            return System.currentTimeMillis() - timestamp > CACHE_EXPIRY_MS;
+            return System.currentTimeMillis() - timestamp > expiryMs;
         }
+    }
+
+    /**
+     * 获取变量的缓存过期时间。
+     */
+    private static long getCacheExpiry(String varName) {
+        if (varName.startsWith("player_") || varName.equals("health_bar")) {
+            return CACHE_EXPIRY_PLAYER;
+        }
+        if (varName.equals("player_x") || varName.equals("player_y") || varName.equals("player_z") ||
+            varName.equals("game_time") || varName.equals("is_day") || varName.equals("is_raining") || varName.equals("is_thundering")) {
+            return CACHE_EXPIRY_POSITION;
+        }
+        return CACHE_EXPIRY_ITEM;
     }
 
     // 注册内置变量
     static {
-        // ========== 耐久相关 ==========
+        // 耐久相关
         BUILT_IN_VARS.put("durability", stack ->
             String.valueOf(stack.getMaxDamage() - stack.getDamageValue()));
         BUILT_IN_VARS.put("max_durability", stack ->
@@ -106,17 +124,17 @@ public class VariableResolver {
         BUILT_IN_VARS.put("damage", stack ->
             String.valueOf(stack.getDamageValue()));
 
-        // ========== 数量 ==========
+        // 数量
         BUILT_IN_VARS.put("count", stack ->
             String.valueOf(stack.getCount()));
 
-        // ========== 物品信息 ==========
+        // 物品信息
         BUILT_IN_VARS.put("item_name", stack ->
             stack.getHoverName().getString());
         BUILT_IN_VARS.put("item_id", stack ->
             stack.getItem().toString());
 
-        // ========== 耐久百分比 ==========
+        // 耐久百分比
         BUILT_IN_VARS.put("durability_percent", stack -> {
             if (!stack.isDamageableItem()) return "100";
             int max = stack.getMaxDamage();
@@ -124,7 +142,7 @@ public class VariableResolver {
             return String.valueOf((int) ((current * 100.0) / max));
         });
 
-        // ========== 附魔相关 ==========
+        // 附魔相关
         BUILT_IN_VARS.put("enchantment_count", stack -> {
             ItemEnchantments enchants = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
             return String.valueOf(enchants.size());
@@ -132,7 +150,7 @@ public class VariableResolver {
         BUILT_IN_VARS.put("is_enchanted", stack ->
             String.valueOf(stack.isEnchanted()));
 
-        // ========== 物品属性 ==========
+        // 物品属性
         BUILT_IN_VARS.put("rarity", stack ->
             stack.getRarity().name().toLowerCase());
         BUILT_IN_VARS.put("max_stack_size", stack ->
@@ -142,7 +160,7 @@ public class VariableResolver {
         BUILT_IN_VARS.put("is_damageable", stack ->
             String.valueOf(stack.isDamageableItem()));
 
-        // ========== 玩家相关（需要上下文） ==========
+        // 玩家相关（需要上下文）
         BUILT_IN_VARS.put("player_health", stack -> {
             var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf((int) player.getHealth()) : "0";
@@ -160,7 +178,7 @@ public class VariableResolver {
             return player != null ? String.valueOf(player.experienceLevel) : "0";
         });
 
-        // ========== 游戏状态 ==========
+        // 游戏状态
         BUILT_IN_VARS.put("game_time", stack -> {
             var level = Minecraft.getInstance().level;
             return level != null ? String.valueOf(level.getDayTime()) : "0";
@@ -180,7 +198,7 @@ public class VariableResolver {
             return level != null ? String.valueOf(level.isThundering()) : "false";
         });
 
-        // ========== 玩家位置 ==========
+        // 玩家位置
         BUILT_IN_VARS.put("player_x", stack -> {
             var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf((int) player.getX()) : "0";
@@ -194,7 +212,7 @@ public class VariableResolver {
             return player != null ? String.valueOf((int) player.getZ()) : "0";
         });
 
-        // ========== 格式化显示 ==========
+        // 格式化显示
         BUILT_IN_VARS.put("durability_bar", stack -> {
             if (!stack.isDamageableItem()) return "████████████";
             int max = stack.getMaxDamage();
@@ -215,6 +233,7 @@ public class VariableResolver {
     /**
      * 解析文本中的变量（带缓存）。
      * 支持简单变量 {var} 和表达式 {var > 10 ? 'high' : 'low'}。
+     * 支持 NBT 变量 {nbt:path} 读取物品 NBT 数据。
      *
      * @param text  包含变量/表达式的文本
      * @param stack 物品栈
@@ -234,8 +253,10 @@ public class VariableResolver {
             return cached.result();
         }
 
-        // 先替换简单变量
-        String result = text;
+        // 先替换 NBT 变量 {nbt:path}
+        String result = resolveNbtVariables(text, stack);
+
+        // 再替换简单变量
         Map<String, String> variables = new HashMap<>();
         for (Map.Entry<String, Function<ItemStack, String>> entry : BUILT_IN_VARS.entrySet()) {
             String varName = entry.getKey();
@@ -249,18 +270,77 @@ public class VariableResolver {
             }
         }
 
-        // 检查是否有表达式（包含 ? : 或比较运算符）
+        // 检查是否有表达式
         if (result.contains("{") && result.contains("}") &&
             (result.contains("?") || result.contains(">") || result.contains("<") ||
                 result.contains("==") || result.contains("!="))) {
-            // 提取并求值表达式
             result = evaluateExpressions(result, variables, stack);
         }
 
         // 缓存结果
-        CACHE.put(cacheKey, new CachedResult(result, System.currentTimeMillis()));
+        long expiry = getCacheExpiry(cacheKey);
+        CACHE.put(cacheKey, new CachedResult(result, System.currentTimeMillis(), expiry));
 
         return result;
+    }
+
+    /**
+     * 解析组件变量 {component:path}。
+     * NeoForge 1.21.1 使用组件系统。
+     *
+     * @param text  包含变量的文本
+     * @param stack 物品栈
+     * @return 替换后的文本
+     */
+    private static String resolveNbtVariables(String text, ItemStack stack) {
+        StringBuilder result = new StringBuilder();
+        int i = 0;
+        while (i < text.length()) {
+            if (text.startsWith("{nbt:", i)) {
+                int end = text.indexOf('}', i);
+                if (end > i) {
+                    String path = text.substring(i + 5, end);
+                    String value = getComponentValue(stack, path);
+                    result.append(value);
+                    i = end + 1;
+                    continue;
+                }
+            }
+            result.append(text.charAt(i));
+            i++;
+        }
+        return result.toString();
+    }
+
+    /**
+     * 从物品组件中获取指定路径的值。
+     *
+     * @param stack 物品栈
+     * @param path  组件路径（如 "custom_name", "lore"）
+     * @return 组件值，未找到返回空字符串
+     */
+    private static String getComponentValue(ItemStack stack, String path) {
+        return switch (path) {
+            case "custom_name" -> {
+                var name = stack.get(DataComponents.CUSTOM_NAME);
+                yield name != null ? name.getString() : "";
+            }
+            case "item_name" -> {
+                var name = stack.get(DataComponents.ITEM_NAME);
+                yield name != null ? name.getString() : "";
+            }
+            case "lore" -> {
+                var lore = stack.get(DataComponents.LORE);
+                yield lore != null ? String.join(", ", lore.lines().stream().map(Object::toString).toList()) : "";
+            }
+            case "damage" -> String.valueOf(stack.getDamageValue());
+            case "max_damage" -> String.valueOf(stack.getMaxDamage());
+            case "enchantments" -> {
+                var enchants = stack.getEnchantments();
+                yield enchants.toString();
+            }
+            default -> "";
+        };
     }
 
     /**

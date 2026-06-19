@@ -17,44 +17,62 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * 方块渲染内容类。
- * <p>
- * 在 tooltip 中渲染 3D 方块模型。使用物品渲染管线，避免 blockColors 颜色问题。
- * </p>
- *
- * <h3>渲染原理</h3>
- * <p>
- * 使用 {@link ItemDisplayContext#GUI} 上下文渲染方块，内部根据 size 自动计算缩放。
- * 旋转顺序：先绕 X 轴倾斜，再绕 Y 轴水平旋转。
- * </p>
- *
- * <h3>JSON 示例</h3>
- * <pre>{@code
- * // 基础方块渲染
- * {"type": "block", "block": "minecraft:stone", "size": 32}
- *
- * // 带旋转动画
- * {"type": "block", "block": "minecraft:crafting_table", "size": 48, "rotationSpeed": 0.5, "autoRotate": true}
- *
- * // 带标签
- * {"type": "block", "block": "minecraft:diamond_block", "size": 32, "label": "钻石块"}
- * }</pre>
- *
- * @author cooobird
- * @see com.cooobird.datatip.api.parser.BlockContentParser JSON 解析器
- * @since 1.2.0
+ * 在 tooltip 中渲染 3D 方块模型。
  */
-public record BlockContent(
-    Block block,                // 方块实例
-    int size,                   // 渲染大小
-    float rotationSpeed,        // 旋转速度
-    boolean autoRotate,         // 是否自动旋转
-    @Nullable Component label,  // 可选的标签文本
-    int offsetX,                // X 轴偏移量
-    int offsetY                 // Y 轴偏移量
-) implements TipContent {
+public class BlockContent implements TipContent {
 
-    private static float rotationAngle = 0;  // 当前旋转角度
-    private static int lastTickCount = 0;    // 上次更新的 tick 计数
+    private final Block block;               // 方块实例
+    private final int size;                  // 渲染大小
+    private final float rotationSpeed;       // 旋转速度
+    private final boolean autoRotate;        // 是否自动旋转
+    @Nullable
+    private final Component label;           // 可选的标签文本
+    private final int offsetX;               // X 轴偏移量
+    private final int offsetY;               // Y 轴偏移量
+
+    private float currentRotation = 0;
+    private int lastTick = -1;
+
+    public BlockContent(Block block, int size, float rotationSpeed,
+                        boolean autoRotate, @Nullable Component label, int offsetX, int offsetY) {
+        this.block = block;
+        this.size = size;
+        this.rotationSpeed = rotationSpeed;
+        this.autoRotate = autoRotate;
+        this.label = label;
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
+    }
+
+    // Getter 方法
+    public Block block() {
+        return block;
+    }
+
+    public int size() {
+        return size;
+    }
+
+    public float rotationSpeed() {
+        return rotationSpeed;
+    }
+
+    public boolean autoRotate() {
+        return autoRotate;
+    }
+
+    @Nullable
+    public Component label() {
+        return label;
+    }
+
+    public int offsetX() {
+        return offsetX;
+    }
+
+    public int offsetY() {
+        return offsetY;
+    }
 
     // 创建方块内容
     public static BlockContent of(Block block) {
@@ -98,12 +116,11 @@ public record BlockContent(
 
     @Override
     public void tick(int tickCount) {
-        // 每 tick 更新旋转角度
-        if (autoRotate && tickCount != lastTickCount) {
-            lastTickCount = tickCount;
-            rotationAngle += rotationSpeed;
-            if (rotationAngle >= 360) {
-                rotationAngle -= 360;
+        if (autoRotate && tickCount != lastTick) {
+            lastTick = tickCount;
+            currentRotation += rotationSpeed;
+            if (currentRotation >= 360) {
+                currentRotation -= 360;
             }
         }
     }
@@ -117,7 +134,7 @@ public record BlockContent(
         int renderY = y + offsetY;
 
         // 使用 partialTick 进行插值，让旋转更平滑
-        float smoothRotation = rotationAngle;
+        float smoothRotation = currentRotation;
         if (autoRotate) {
             smoothRotation += rotationSpeed * context.partialTick();
         }
@@ -134,26 +151,7 @@ public record BlockContent(
         }
     }
 
-    /**
-     * 使用物品渲染方式渲染方块。
-     * <p>
-     * 渲染流程：
-     * <ol>
-     *   <li>移动到指定位置</li>
-     *   <li>根据 size 自动缩放</li>
-     *   <li>绕 X 轴倾斜</li>
-     *   <li>绕 Y 轴水平旋转</li>
-     *   <li>使用 ItemDisplayContext.GUI 渲染</li>
-     * </ol>
-     * </p>
-     *
-     * @param graphics GuiGraphics 实例
-     * @param stack    物品栈
-     * @param x        中心 X 坐标
-     * @param y        中心 Y 坐标
-     * @param size     目标渲染大小
-     * @param rotation 当前旋转角度
-     */
+    // 使用物品渲染方式渲染方块
     private static void renderBlockAsItem(GuiGraphics graphics, ItemStack stack, int x, int y, int size, float rotation) {
         PoseStack poseStack = graphics.pose();
         poseStack.pushPose();
@@ -162,12 +160,10 @@ public record BlockContent(
         poseStack.translate(x, y, 100);
 
         // 根据 size 自动缩放
-        // Y 轴负值用于翻转
         poseStack.scale((float) size, -(float) size, (float) size);
 
         poseStack.mulPose(Axis.YP.rotationDegrees(45 + rotation));
         poseStack.mulPose(Axis.XP.rotationDegrees(-35));
-
 
         // 设置平面光照
         Lighting.setupForFlatItems();
@@ -176,7 +172,7 @@ public record BlockContent(
         Minecraft mc = Minecraft.getInstance();
         mc.getItemRenderer().renderStatic(stack,
             ItemDisplayContext.GUI,
-            15728880,  // 全亮光照
+            15728880,
             OverlayTexture.NO_OVERLAY,
             poseStack,
             graphics.bufferSource(),
