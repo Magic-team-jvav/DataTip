@@ -86,6 +86,7 @@ public class ItemContentParser implements ContentParser {
         boolean showCount = context.getBoolean(json, "showCount", true);
         boolean showDurability = context.getBoolean(json, "showDurability", true);
         boolean showLabel = context.getBoolean(json, "showLabel", false);
+        int offsetY = context.getInt(json, "offsetY", 0);
 
         // 获取标签
         Component label = null;
@@ -101,6 +102,6 @@ public class ItemContentParser implements ContentParser {
             labelColor = context.getColor(json, "labelColor", 0xFFFFFF);
         }
 
-        return new ItemContent(stack, size, showCount, showDurability, showLabel, label, labelColor);
+        return new ItemContent(stack, size, showCount, showDurability, showLabel, label, labelColor, offsetY);
     }
 }

@@ -21,9 +21,7 @@ public class HBoxContent implements ContainerContent {
     private final int padding;
     private final VerticalAlign verticalAlign;
 
-    /**
-     * 创建水平布局容器。
-     */
+    // 创建水平布局容器
     public HBoxContent(List<TipContent> children, int gap, int padding, VerticalAlign verticalAlign) {
         this.children = new ArrayList<>(children);
         this.gap = gap;
@@ -31,30 +29,22 @@ public class HBoxContent implements ContainerContent {
         this.verticalAlign = verticalAlign;
     }
 
-    /**
-     * 创建默认水平布局（无间距，无内边距，顶部对齐）。
-     */
+    // 创建默认水平布局
     public static HBoxContent create() {
         return new HBoxContent(List.of(), 0, 0, VerticalAlign.TOP);
     }
 
-    /**
-     * 创建带间距的水平布局。
-     */
+    // 创建带间距的水平布局
     public static HBoxContent withGap(int gap) {
         return new HBoxContent(List.of(), gap, 0, VerticalAlign.TOP);
     }
 
-    /**
-     * 创建带内边距的水平布局。
-     */
+    // 创建带内边距的水平布局
     public static HBoxContent withPadding(int padding) {
         return new HBoxContent(List.of(), 0, padding, VerticalAlign.TOP);
     }
 
-    /**
-     * 创建垂直居中对齐的水平布局。
-     */
+    // 创建垂直居中对齐的水平布局
     public static HBoxContent centered() {
         return new HBoxContent(List.of(), 0, 0, VerticalAlign.CENTER);
     }
@@ -141,59 +131,8 @@ public class HBoxContent implements ContainerContent {
         children.forEach(TipContent::onHide);
     }
 
-    /**
-     * 垂直对齐方式。
-     */
+    // 垂直对齐方式
     public enum VerticalAlign {
         TOP, CENTER, BOTTOM
-    }
-
-    /**
-     * Builder 模式创建 HBoxContent。
-     */
-    public static class Builder {
-        private final List<TipContent> children = new ArrayList<>();
-        private int gap = 0;
-        private int padding = 0;
-        private VerticalAlign verticalAlign = VerticalAlign.TOP;
-
-        public Builder gap(int gap) {
-            this.gap = gap;
-            return this;
-        }
-
-        public Builder padding(int padding) {
-            this.padding = padding;
-            return this;
-        }
-
-        public Builder align(VerticalAlign verticalAlign) {
-            this.verticalAlign = verticalAlign;
-            return this;
-        }
-
-        public Builder centered() {
-            this.verticalAlign = VerticalAlign.CENTER;
-            return this;
-        }
-
-        public Builder bottomAligned() {
-            this.verticalAlign = VerticalAlign.BOTTOM;
-            return this;
-        }
-
-        public Builder add(TipContent child) {
-            this.children.add(child);
-            return this;
-        }
-
-        public Builder addAll(List<TipContent> children) {
-            this.children.addAll(children);
-            return this;
-        }
-
-        public HBoxContent build() {
-            return new HBoxContent(children, gap, padding, verticalAlign);
-        }
     }
 }

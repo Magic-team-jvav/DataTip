@@ -10,9 +10,5 @@
     "config.datatip.default_line_height": "默认行高",
     "config.datatip.default_line_height.tooltip": "默认行高（像素）。",
     "config.datatip.max_width": "最大宽度",
-    "config.datatip.max_width.tooltip": "tooltip 最大宽度（像素）。",
-    "config.datatip.enable_animations": "启用动画",
-    "config.datatip.enable_animations.tooltip": "启用动画效果（轮播、打字机等）。",
-    "config.datatip.debug_mode": "调试模式",
-    "config.datatip.debug_mode.tooltip": "启用调试模式，显示匹配信息和渲染边界。"
+    "config.datatip.max_width.tooltip": "tooltip 最大宽度（像素）。"
 }

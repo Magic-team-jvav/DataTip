@@ -77,13 +77,6 @@ public class TipRenderer {
      * 渲染内容列表（垂直布局）。
      */
     public void renderContents(GuiGraphics graphics, Font font, List<TipContent> contents, int x, int y, int tickCount, float partialTick) {
-        renderContents(graphics, font, contents, x, y, tickCount, partialTick, true);
-    }
-
-    /**
-     * 渲染内容列表（垂直布局，可控制动画）。
-     */
-    public void renderContents(GuiGraphics graphics, Font font, List<TipContent> contents, int x, int y, int tickCount, float partialTick, boolean animationsEnabled) {
         TipRenderContext context = new TipRenderContext(graphics, font, tickCount, partialTick);
 
         VBoxContent vbox = VBoxContent.create();
@@ -101,13 +94,8 @@ public class TipRenderer {
 
         renderBackground(context, x, y, totalWidth, totalHeight, DEFAULT_BACKGROUND_COLOR, DEFAULT_BORDER_COLOR);
 
-        // 根据配置决定是否启用动画
-        if (animationsEnabled) {
-            vbox.render(context, x + padding, y + padding, contentWidth, 1.0f);
-        } else {
-            // 渲染静态内容
-            vbox.renderStatic(context, x + padding, y + padding, contentWidth, 1.0f);
-        }
+        // 渲染内容
+        vbox.render(context, x + padding, y + padding, contentWidth, 1.0f);
     }
 
     /**

@@ -74,6 +74,7 @@ public class EntityContentParser implements ContentParser {
         int size = context.getInt(json, "size", 48);
         float rotationSpeed = context.getFloat(json, "rotationSpeed", 1.0f);
         boolean autoRotate = context.getBoolean(json, "autoRotate", true);
+        int offsetY = context.getInt(json, "offsetY", 0);
 
         // 获取标签（可选）
         Component label = null;
@@ -82,6 +83,6 @@ public class EntityContentParser implements ContentParser {
             label = Component.literal(labelText);
         }
 
-        return new EntityContent(entityType, size, rotationSpeed, autoRotate, label);
+        return new EntityContent(entityType, size, rotationSpeed, autoRotate, offsetY, label);
     }
 }

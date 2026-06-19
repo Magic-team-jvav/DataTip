@@ -1,6 +1,7 @@
 package com.cooobird.datatip.api.util;
 
 import com.cooobird.datatip.api.expression.ExpressionParser;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
@@ -50,6 +51,9 @@ import java.util.function.Function;
  *   <tr><td>player_max_health</td><td>玩家最大生命值</td><td>20</td></tr>
  *   <tr><td>player_hunger</td><td>玩家饥饿值</td><td>20</td></tr>
  *   <tr><td>player_experience</td><td>玩家经验等级</td><td>30</td></tr>
+ *   <tr><td>player_x</td><td>玩家 X 坐标</td><td>100</td></tr>
+ *   <tr><td>player_y</td><td>玩家 Y 坐标</td><td>64</td></tr>
+ *   <tr><td>player_z</td><td>玩家 Z 坐标</td><td>-200</td></tr>
  *   <tr><td>game_time</td><td>游戏时间</td><td>6000</td></tr>
  *   <tr><td>is_day</td><td>是否白天</td><td>true</td></tr>
  *   <tr><td>is_raining</td><td>是否下雨</td><td>false</td></tr>
@@ -140,40 +144,54 @@ public class VariableResolver {
 
         // ========== 玩家相关（需要上下文） ==========
         BUILT_IN_VARS.put("player_health", stack -> {
-            var player = net.minecraft.client.Minecraft.getInstance().player;
+            var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf((int) player.getHealth()) : "0";
         });
         BUILT_IN_VARS.put("player_max_health", stack -> {
-            var player = net.minecraft.client.Minecraft.getInstance().player;
+            var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf((int) player.getMaxHealth()) : "0";
         });
         BUILT_IN_VARS.put("player_hunger", stack -> {
-            var player = net.minecraft.client.Minecraft.getInstance().player;
+            var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf(player.getFoodData().getFoodLevel()) : "0";
         });
         BUILT_IN_VARS.put("player_experience", stack -> {
-            var player = net.minecraft.client.Minecraft.getInstance().player;
+            var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf(player.experienceLevel) : "0";
         });
 
         // ========== 游戏状态 ==========
         BUILT_IN_VARS.put("game_time", stack -> {
-            var level = net.minecraft.client.Minecraft.getInstance().level;
+            var level = Minecraft.getInstance().level;
             return level != null ? String.valueOf(level.getDayTime()) : "0";
         });
         BUILT_IN_VARS.put("is_day", stack -> {
-            var level = net.minecraft.client.Minecraft.getInstance().level;
+            var level = Minecraft.getInstance().level;
             if (level == null) return "false";
             long time = level.getDayTime() % 24000;
             return String.valueOf(time >= 0 && time < 12000);
         });
         BUILT_IN_VARS.put("is_raining", stack -> {
-            var level = net.minecraft.client.Minecraft.getInstance().level;
+            var level = Minecraft.getInstance().level;
             return level != null ? String.valueOf(level.isRaining()) : "false";
         });
         BUILT_IN_VARS.put("is_thundering", stack -> {
-            var level = net.minecraft.client.Minecraft.getInstance().level;
+            var level = Minecraft.getInstance().level;
             return level != null ? String.valueOf(level.isThundering()) : "false";
+        });
+
+        // ========== 玩家位置 ==========
+        BUILT_IN_VARS.put("player_x", stack -> {
+            var player = Minecraft.getInstance().player;
+            return player != null ? String.valueOf((int) player.getX()) : "0";
+        });
+        BUILT_IN_VARS.put("player_y", stack -> {
+            var player = Minecraft.getInstance().player;
+            return player != null ? String.valueOf((int) player.getY()) : "0";
+        });
+        BUILT_IN_VARS.put("player_z", stack -> {
+            var player = Minecraft.getInstance().player;
+            return player != null ? String.valueOf((int) player.getZ()) : "0";
         });
 
         // ========== 格式化显示 ==========
@@ -185,7 +203,7 @@ public class VariableResolver {
             return "█".repeat(bars) + "░".repeat(12 - bars);
         });
         BUILT_IN_VARS.put("health_bar", stack -> {
-            var player = net.minecraft.client.Minecraft.getInstance().player;
+            var player = Minecraft.getInstance().player;
             if (player == null) return "░░░░░░░░░░░░";
             float health = player.getHealth();
             float maxHealth = player.getMaxHealth();

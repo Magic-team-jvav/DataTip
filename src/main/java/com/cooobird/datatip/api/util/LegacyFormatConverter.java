@@ -8,8 +8,6 @@ import com.cooobird.datatip.api.content.VBoxContent;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
@@ -57,10 +55,10 @@ public class LegacyFormatConverter {
         for (Map.Entry<String, JsonElement> entry : json.entrySet()) {
             String key = entry.getKey();
             JsonElement value = entry.getValue();
-            
+
             // 跳过注释字段
             if (key.startsWith("_")) continue;
-            
+
             if (value.isJsonObject()) {
                 JsonObject obj = value.getAsJsonObject();
                 // 如果没有 "type" 字段，说明是老版本格式
@@ -90,7 +88,7 @@ public class LegacyFormatConverter {
             if (content != null) {
                 // 将 TipContent 转换为 JSON
                 JsonObject contentJson = convertToJson(content);
-                
+
                 // 保留旧格式的顶层属性
                 if (value.isJsonObject()) {
                     JsonObject originalObj = value.getAsJsonObject();
@@ -104,7 +102,7 @@ public class LegacyFormatConverter {
                         contentJson.add("conditions", originalObj.get("conditions"));
                     }
                 }
-                
+
                 result.add(key, contentJson);
             }
         }
@@ -224,7 +222,7 @@ public class LegacyFormatConverter {
         boolean strikethrough = line.has("strikethrough") ? line.get("strikethrough").getAsBoolean() : topStrikethrough;
 
         // 创建 TextContent（使用文本字符串，而非 Component）
-        return new TextContent(text, null, null, null, null, color, null, true, 
+        return new TextContent(text, null, null, null, null, color, null, true,
             TextContent.TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
     }
 

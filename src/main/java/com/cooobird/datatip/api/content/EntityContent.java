@@ -6,6 +6,7 @@ import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
@@ -43,20 +44,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * }</pre>
  *
  * @author cooobird
- * @see EntityContentParser JSON 解析器
+ * @see com.cooobird.datatip.api.parser.EntityContentParser JSON 解析器
  * @since 1.2.0
  */
 public record EntityContent(
-    /** 实体类型 */
-    EntityType<?> entityType,
-    /** 渲染大小（像素） */
-    int size,
-    /** 旋转速度（度/tick），默认 1.0 */
-    float rotationSpeed,
-    /** 是否自动旋转 */
-    boolean autoRotate,
-    /** 可选的标签文本，显示在实体旁边 */
-    @Nullable Component label
+    EntityType<?> entityType,  // 实体类型
+    int size,                  // 渲染大小
+    float rotationSpeed,       // 旋转速度
+    boolean autoRotate,        // 是否自动旋转
+    int offsetY,               // Y 轴偏移量
+    @Nullable Component label  // 可选的标签文本
 ) implements TipContent {
 
     /**
@@ -65,62 +62,35 @@ public record EntityContent(
      */
     private static final Map<EntityType<?>, RotationState> ROTATION_STATES = new ConcurrentHashMap<>();
 
-    /**
-     * 旋转状态内部类。
-     * 存储单个实体类型的旋转角度和上次更新的 tick 计数。
-     */
+    // 旋转状态内部类
     private static class RotationState {
-        /**
-         * 当前旋转角度（度）
-         */
-        float rotation = 0;
-        /**
-         * 上次更新的 tick 计数
-         */
-        int lastTick = -1;
+        float rotation = 0;  // 当前旋转角度
+        int lastTick = -1;   // 上次更新的 tick 计数
     }
 
-    /**
-     * 获取或创建指定实体类型的旋转状态。
-     *
-     * @param type 实体类型
-     * @return 旋转状态实例
-     */
+    // 获取或创建指定实体类型的旋转状态
     private static RotationState getRotationState(EntityType<?> type) {
         return ROTATION_STATES.computeIfAbsent(type, k -> new RotationState());
     }
 
-    /**
-     * 创建实体内容（默认参数）。
-     * 默认大小 48px，旋转速度 1.0 度/tick，自动旋转。
-     *
-     * @param entityType 实体类型
-     * @return 新的 EntityContent 实例
-     */
+    // 创建实体内容
     public static EntityContent of(EntityType<?> entityType) {
-        return new EntityContent(entityType, 48, 1.0f, true, null);
+        return new EntityContent(entityType, 48, 1.0f, true, 0, null);
     }
 
-    /**
-     * 创建带标签的实体内容。
-     *
-     * @param entityType 实体类型
-     * @param label      标签文本
-     * @return 新的 EntityContent 实例
-     */
+    // 创建带标签的实体内容
     public static EntityContent withLabel(EntityType<?> entityType, Component label) {
-        return new EntityContent(entityType, 48, 1.0f, true, label);
+        return new EntityContent(entityType, 48, 1.0f, true, 0, label);
     }
 
-    /**
-     * 创建指定尺寸的实体内容。
-     *
-     * @param entityType 实体类型
-     * @param size       渲染大小（像素）
-     * @return 新的 EntityContent 实例
-     */
+    // 创建指定尺寸的实体内容
     public static EntityContent of(EntityType<?> entityType, int size) {
-        return new EntityContent(entityType, size, 1.0f, true, null);
+        return new EntityContent(entityType, size, 1.0f, true, 0, null);
+    }
+
+    // 创建带偏移的实体内容
+    public static EntityContent withOffset(EntityType<?> entityType, int size, int offsetY) {
+        return new EntityContent(entityType, size, 1.0f, true, offsetY, null);
     }
 
     @Override
@@ -132,9 +102,10 @@ public record EntityContent(
     public int getWidth(int maxWidth) {
         int width = size;
         if (label != null) {
-            width += 4 + label.getString().length() * 6;
+            Font font = Minecraft.getInstance().font;
+            width += 4 + font.width(label.getString());
         }
-        return width;
+        return Math.min(width, maxWidth);
     }
 
     @Override
@@ -144,7 +115,7 @@ public record EntityContent(
 
     @Override
     public void tick(int tickCount) {
-        // 更新旋转状态（按实体类型独立存储）
+        // 更新旋转状态
         if (autoRotate) {
             RotationState state = getRotationState(entityType);
             if (tickCount != state.lastTick) {
@@ -173,9 +144,9 @@ public record EntityContent(
         float rotation = autoRotate ? state.rotation : 0;
 
         // 渲染实体
-        renderEntity(context.graphics(), entity, x + size / 2, y + size, size, rotation);
+        renderEntity(context.graphics(), entity, x + size / 2, y + size + offsetY, size, rotation);
 
-        // 渲染标签（如果存在）
+        // 渲染标签
         if (label != null) {
             int labelX = x + size + 4;
             int labelY = y + (size - 8) / 2;
@@ -183,26 +154,7 @@ public record EntityContent(
         }
     }
 
-    /**
-     * 渲染实体到 GUI。
-     * <p>
-     * 渲染流程：
-     * <ol>
-     *   <li>移动到指定位置</li>
-     *   <li>应用缩放</li>
-     *   <li>绕 Y 轴旋转</li>
-     *   <li>设置光照和阴影</li>
-     *   <li>使用 EntityRenderDispatcher 渲染</li>
-     * </ol>
-     * </p>
-     *
-     * @param graphics GuiGraphics 实例
-     * @param entity   要渲染的实体实例
-     * @param x        中心 X 坐标
-     * @param y        中心 Y 坐标
-     * @param size     渲染大小（像素）
-     * @param rotation 旋转角度（度）
-     */
+    // 渲染实体到 GUI
     private static void renderEntity(GuiGraphics graphics, Entity entity, int x, int y, int size, float rotation) {
         PoseStack poseStack = graphics.pose();
         poseStack.pushPose();

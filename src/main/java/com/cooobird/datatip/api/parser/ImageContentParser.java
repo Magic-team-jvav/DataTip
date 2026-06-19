@@ -86,6 +86,9 @@ public class ImageContentParser implements ContentParser {
         // 获取缩放
         float scale = context.getFloat(json, "scale", 1.0f);
 
-        return new ImageContent(texture, width, height, u, v, textureWidth, textureHeight, scale);
+        // 获取 Y 轴偏移
+        int offsetY = context.getInt(json, "offsetY", 0);
+
+        return new ImageContent(texture, width, height, u, v, textureWidth, textureHeight, scale, offsetY);
     }
 }

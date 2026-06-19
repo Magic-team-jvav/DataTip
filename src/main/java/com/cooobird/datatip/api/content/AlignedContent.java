@@ -6,7 +6,7 @@ import com.cooobird.datatip.api.TipRenderContext;
 /**
  * 对齐包装器。
  * <p>
- * 为任何 {@link TipContent} 添加对齐支持（左对齐、居中、右对齐）。
+ * 为任何 {@link TipContent} 添加对齐支持。
  * 当 JSON 中指定 "align" 属性时，解析器会自动将内容包装为此类。
  * </p>
  *
@@ -23,10 +23,8 @@ import com.cooobird.datatip.api.TipRenderContext;
  * @since 1.2.0
  */
 public record AlignedContent(
-    /** 被包装的内容 */
-    TipContent inner,
-    /** 水平对齐方式 */
-    VBoxContent.HorizontalAlign align
+    TipContent inner,                    // 被包装的内容
+    VBoxContent.HorizontalAlign align    // 水平对齐方式
 ) implements TipContent {
 
     @Override

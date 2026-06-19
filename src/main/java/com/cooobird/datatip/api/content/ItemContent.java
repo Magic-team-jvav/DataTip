@@ -2,6 +2,8 @@ package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipRenderContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -15,61 +17,53 @@ import org.jetbrains.annotations.Nullable;
  */
 public record ItemContent(
     ItemStack stack,
-    int size,                    // 渲染尺寸（16 = 原始大小）
+    int size,                    // 渲染尺寸
     boolean showCount,           // 显示数量
     boolean showDurability,      // 显示耐久条
     boolean showLabel,           // 显示物品名称
-    @Nullable Component label,   // 自定义标签（覆盖物品名称）
-    @Nullable Integer labelColor // 标签颜色
+    @Nullable Component label,   // 自定义标签
+    @Nullable Integer labelColor, // 标签颜色
+    int offsetY                  // Y 轴偏移量
 ) implements TipContent {
 
-    /**
-     * 创建物品内容（16x16，显示装饰）。
-     */
+    // 创建物品内容
     public static ItemContent of(ItemStack stack) {
-        return new ItemContent(stack, 16, true, true, false, null, null);
+        return new ItemContent(stack, 16, true, true, false, null, null, 0);
     }
 
-    /**
-     * 创建物品内容（指定尺寸）。
-     */
+    // 创建物品内容
     public static ItemContent of(ItemStack stack, int size) {
-        return new ItemContent(stack, size, true, true, false, null, null);
+        return new ItemContent(stack, size, true, true, false, null, null, 0);
     }
 
-    /**
-     * 创建带标签的物品内容。
-     */
+    // 创建带标签的物品内容
     public static ItemContent withLabel(ItemStack stack, Component label) {
-        return new ItemContent(stack, 16, true, true, true, label, 0xFFFFFF);
+        return new ItemContent(stack, 16, true, true, true, label, 0xFFFFFF, 0);
     }
 
-    /**
-     * 创建带标签的物品内容（指定颜色）。
-     */
+    // 创建带标签的物品内容
     public static ItemContent withLabel(ItemStack stack, Component label, int labelColor) {
-        return new ItemContent(stack, 16, true, true, true, label, labelColor);
+        return new ItemContent(stack, 16, true, true, true, label, labelColor, 0);
     }
 
-    /**
-     * 创建大尺寸物品图标。
-     */
+    // 创建大尺寸物品图标
     public static ItemContent large(ItemStack stack) {
-        return new ItemContent(stack, 32, true, true, false, null, null);
+        return new ItemContent(stack, 32, true, true, false, null, null, 0);
     }
 
-    /**
-     * 创建只显示图标的物品内容（无装饰）。
-     */
+    // 创建只显示图标的物品内容
     public static ItemContent iconOnly(ItemStack stack) {
-        return new ItemContent(stack, 16, false, false, false, null, null);
+        return new ItemContent(stack, 16, false, false, false, null, null, 0);
     }
 
-    /**
-     * 创建只显示图标的物品内容（指定尺寸）。
-     */
+    // 创建只显示图标的物品内容
     public static ItemContent iconOnly(ItemStack stack, int size) {
-        return new ItemContent(stack, size, false, false, false, null, null);
+        return new ItemContent(stack, size, false, false, false, null, null, 0);
+    }
+
+    // 创建带偏移的物品内容
+    public static ItemContent withOffset(ItemStack stack, int size, int offsetY) {
+        return new ItemContent(stack, size, true, true, false, null, null, offsetY);
     }
 
     @Override
@@ -85,27 +79,29 @@ public record ItemContent(
     public int getWidth(int maxWidth) {
         int width = size;
         if (showLabel && label != null) {
-            // 图标 + 间距 + 标签宽度
-            width += 4 + label.getString().length() * 6;
+            Font font = Minecraft.getInstance().font;
+            width += 4 + font.width(label.getString());
         }
-        return width;
+        return Math.min(width, maxWidth);
     }
 
     @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0 || stack.isEmpty()) return;
 
+        int renderY = y + offsetY;
+
         // 渲染物品图标
         if (size == 16) {
-            context.renderItem(stack, x, y);
+            context.renderItem(stack, x, renderY);
         } else {
-            context.renderItemScaled(stack, x, y, size);
+            context.renderItemScaled(stack, x, renderY, size);
         }
 
-        // 渲染装饰（数量、耐久条）
+        // 渲染装饰
         if (showCount || showDurability) {
             if (size == 16) {
-                context.renderItemDecorations(stack, x, y);
+                context.renderItemDecorations(stack, x, renderY);
             }
             // 注意：非 16x16 尺寸的装饰渲染需要特殊处理
         }
@@ -115,7 +111,7 @@ public record ItemContent(
             Component labelText = label != null ? label : stack.getHoverName();
             int color = labelColor != null ? labelColor : 0xFFFFFF;
             int labelX = x + size + 4;
-            int labelY = y + (size - 8) / 2;  // 垂直居中
+            int labelY = renderY + (size - 8) / 2;  // 垂直居中
             context.drawString(labelText, labelX, labelY, color);
         }
     }
@@ -125,58 +121,5 @@ public record ItemContent(
      */
     public ItemStack getStack() {
         return stack;
-    }
-
-    /**
-     * Builder 模式创建 ItemContent。
-     */
-    public static class Builder {
-        private ItemStack stack = ItemStack.EMPTY;
-        private int size = 16;
-        private boolean showCount = true;
-        private boolean showDurability = true;
-        private boolean showLabel = false;
-        private Component label;
-        private Integer labelColor;
-
-        public Builder stack(ItemStack stack) {
-            this.stack = stack;
-            return this;
-        }
-
-        public Builder size(int size) {
-            this.size = size;
-            return this;
-        }
-
-        public Builder showCount(boolean showCount) {
-            this.showCount = showCount;
-            return this;
-        }
-
-        public Builder showDurability(boolean showDurability) {
-            this.showDurability = showDurability;
-            return this;
-        }
-
-        public Builder showLabel(boolean showLabel) {
-            this.showLabel = showLabel;
-            return this;
-        }
-
-        public Builder label(Component label) {
-            this.label = label;
-            this.showLabel = true;
-            return this;
-        }
-
-        public Builder labelColor(int labelColor) {
-            this.labelColor = labelColor;
-            return this;
-        }
-
-        public ItemContent build() {
-            return new ItemContent(stack, size, showCount, showDurability, showLabel, label, labelColor);
-        }
     }
 }

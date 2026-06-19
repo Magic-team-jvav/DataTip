@@ -2,6 +2,8 @@ package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipRenderContext;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,15 +29,7 @@ public class TypewriterContent implements TipContent {
     private int pauseCounter;
     private boolean completed;
 
-    /**
-     * 创建打字机内容。
-     *
-     * @param lines          文本行
-     * @param charsPerSecond 每秒显示字符数
-     * @param pauseSeconds   换行后暂停秒数
-     * @param loop           是否循环
-     * @param color          文本颜色
-     */
+    // 创建打字机内容
     public TypewriterContent(List<String> lines, int charsPerSecond, int pauseSeconds, boolean loop, int color) {
         this.lines = new ArrayList<>(lines);
         this.charsPerSecond = Math.max(1, charsPerSecond);
@@ -49,40 +43,40 @@ public class TypewriterContent implements TipContent {
         this.completed = false;
     }
 
-    /**
-     * 创建默认打字机内容（每秒2字符，暂停1秒）。
-     */
+    // 创建默认打字机内容
     public static TypewriterContent create() {
         return new TypewriterContent(List.of(), 2, 1, false, 0xFFFFFF);
     }
 
-    /**
-     * 创建带文本的打字机内容。
-     */
+    // 创建带文本的打字机内容
     public static TypewriterContent of(String... lines) {
         return new TypewriterContent(List.of(lines), 2, 1, false, 0xFFFFFF);
     }
 
-    /**
-     * 创建带颜色的打字机内容。
-     */
+    // 创建带颜色的打字机内容
     public static TypewriterContent of(int color, String... lines) {
         return new TypewriterContent(List.of(lines), 2, 20, false, color);
     }
 
-    /**
-     * 添加行。
-     */
+    // 添加行
     public TypewriterContent addLine(String line) {
         lines.add(line);
         return this;
     }
 
-    /**
-     * 获取行列表。
-     */
+    // 获取行列表
     public List<String> getLines() {
         return lines;
+    }
+
+    // 获取每秒字符数
+    public int getCharsPerSecond() {
+        return charsPerSecond;
+    }
+
+    // 是否循环
+    public boolean isLoop() {
+        return loop;
     }
 
     @Override
@@ -92,9 +86,10 @@ public class TypewriterContent implements TipContent {
 
     @Override
     public int getWidth(int maxWidth) {
+        Font font = Minecraft.getInstance().font;
         int maxLineWidth = 0;
         for (String line : lines) {
-            maxLineWidth = Math.max(maxLineWidth, line.length() * 6);
+            maxLineWidth = Math.max(maxLineWidth, font.width(line));
         }
         return Math.min(maxLineWidth, maxWidth);
     }
@@ -148,9 +143,7 @@ public class TypewriterContent implements TipContent {
         reset();
     }
 
-    /**
-     * 重置动画。
-     */
+    // 重置动画
     public void reset() {
         currentLine = 0;
         currentChar = 0;
@@ -173,7 +166,7 @@ public class TypewriterContent implements TipContent {
                 // 已完成的行
                 displayText = line;
             } else if (i == currentLine) {
-                // 当前行（部分显示）
+                // 当前行
                 displayText = line.substring(0, Math.min(currentChar, line.length()));
 
                 // 添加闪烁光标
@@ -190,9 +183,7 @@ public class TypewriterContent implements TipContent {
         }
     }
 
-    /**
-     * 是否已完成。
-     */
+    // 是否已完成
     public boolean isCompleted() {
         return completed;
     }

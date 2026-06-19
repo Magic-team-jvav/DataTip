@@ -45,9 +45,7 @@ public class CarouselContent implements TipContent {
         return Collections.unmodifiableList(frames);
     }
 
-    /**
-     * 获取轮播间隔（秒）。
-     */
+    // 获取轮播间隔
     public int getIntervalSeconds() {
         return intervalTicks / 20;
     }
@@ -70,7 +68,7 @@ public class CarouselContent implements TipContent {
         for (TipContent frame : frames) {
             maxChildWidth = Math.max(maxChildWidth, frame.getWidth(maxWidth));
         }
-        return maxChildWidth;
+        return Math.min(maxChildWidth, maxWidth);
     }
 
     @Override
@@ -87,7 +85,7 @@ public class CarouselContent implements TipContent {
         // 计算当前帧
         int currentIndex = (tickCount / intervalTicks) % frames.size();
 
-        // 直接渲染当前帧（无过渡）
+        // 直接渲染当前帧
         frames.get(currentIndex).render(context, x, y, maxWidth, alpha);
 
         // 渲染页码

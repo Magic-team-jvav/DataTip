@@ -6,26 +6,22 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 进度条内容。
- * 支持多种样式：平面、渐变、分段、动画。
- *
- * @author cooobird
- * @since 1.2.0
+ * 进度条内容，支持多种样式：平面、渐变、分段、动画。
  */
 public record ProgressContent(
-    float progress,
-    int width,
-    int height,
-    int colorFg,
-    int colorBg,
-    @Nullable Integer colorFgLight,
-    @Nullable Integer colorBgDark,
-    ProgressStyle style,
-    boolean showLabel,
-    @Nullable Component customLabel,
-    LabelAlign labelAlign,
-    boolean animated,
-    int animSpeed
+    float progress,                // 进度值
+    int width,                     // 宽度
+    int height,                    // 高度
+    int colorFg,                   // 前景色
+    int colorBg,                   // 背景色
+    @Nullable Integer colorFgLight, // 前景色
+    @Nullable Integer colorBgDark,  // 背景色
+    ProgressStyle style,           // 样式
+    boolean showLabel,             // 显示标签
+    @Nullable Component customLabel, // 自定义标签
+    LabelAlign labelAlign,         // 标签对齐
+    boolean animated,              // 是否动画
+    int animSpeed                  // 动画速度
 ) implements TipContent {
 
     public enum ProgressStyle {
@@ -81,7 +77,7 @@ public record ProgressContent(
 
     @Override
     public int getWidth(int maxWidth) {
-        return width;
+        return Math.min(width, maxWidth);
     }
 
     @Override
@@ -100,19 +96,21 @@ public record ProgressContent(
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0) return;
 
+        // 限制宽度不超过 maxWidth
+        int renderWidth = Math.min(width, maxWidth);
         float clampedProgress = Math.max(0, Math.min(1, progress));
-        int filledWidth = (int) (width * clampedProgress);
+        int filledWidth = (int) (renderWidth * clampedProgress);
 
         switch (style) {
             case FLAT -> {
-                context.fill(x, y, x + width, y + height, colorBg);
+                context.fill(x, y, x + renderWidth, y + height, colorBg);
                 if (filledWidth > 0) {
                     context.fill(x, y, x + filledWidth, y + height, colorFg);
                 }
             }
             case GRADIENT -> {
                 int bgDark = colorBgDark != null ? colorBgDark : colorBg;
-                context.fillGradientV(x, y, x + width, y + height, colorBg, bgDark);
+                context.fillGradientV(x, y, x + renderWidth, y + height, colorBg, bgDark);
                 if (filledWidth > 0) {
                     int fgLight = colorFgLight != null ? colorFgLight : colorFg;
                     context.fillGradientV(x, y, x + filledWidth, y + height, fgLight, colorFg);
@@ -121,7 +119,7 @@ public record ProgressContent(
             case SEGMENTED -> {
                 int segmentWidth = 8;
                 int gap = 2;
-                int segments = width / (segmentWidth + gap);
+                int segments = renderWidth / (segmentWidth + gap);
                 int filledSegments = (int) (segments * clampedProgress);
                 for (int i = 0; i < segments; i++) {
                     int segX = x + i * (segmentWidth + gap);
@@ -130,10 +128,10 @@ public record ProgressContent(
                 }
             }
             case ANIMATED -> {
-                context.fill(x, y, x + width, y + height, colorBg);
+                context.fill(x, y, x + renderWidth, y + height, colorBg);
                 if (filledWidth > 0) {
                     for (int i = 0; i < filledWidth; i++) {
-                        int posX = (i + animOffset) % width;
+                        int posX = (i + animOffset) % renderWidth;
                         if (posX < filledWidth) {
                             context.fill(x + posX, y, x + posX + 1, y + height, colorFg);
                         }
@@ -147,8 +145,8 @@ public record ProgressContent(
             int labelY = y + height + 2;
             int labelX = switch (labelAlign) {
                 case LEFT -> x;
-                case CENTER -> x + width / 2;
-                case RIGHT -> x + width;
+                case CENTER -> x + renderWidth / 2;
+                case RIGHT -> x + renderWidth;
             };
             if (labelAlign == LabelAlign.CENTER) {
                 context.drawCenteredString(labelText, labelX, labelY, 0xFFFFFF);

@@ -82,12 +82,14 @@ public class ChartContentParser implements ContentParser {
         int width = context.getInt(json, "width", 100);
         int height = context.getInt(json, "height", 60);
 
+        // 获取颜色参数
+        int titleColor = context.getColor(json, "titleColor", 0xFFFFFF);
+        int labelColor = context.getColor(json, "labelColor", 0xAAAAAA);
+        int valueColor = context.getColor(json, "valueColor", 0xFFFFFF);
+        int zeroLineColor = context.getColor(json, "zeroLineColor", 0x888888);
+
         // 创建图表
-        ChartContent chart = switch (chartType) {
-            case BAR -> ChartContent.bar(width, height);
-            case PIE -> ChartContent.pie(width);
-            case LINE -> ChartContent.line(width, height);
-        };
+        ChartContent chart = ChartContent.withColors(chartType, width, height, titleColor, labelColor, valueColor, zeroLineColor);
 
         // 设置标题
         if (context.has(json, "title")) {
@@ -103,9 +105,10 @@ public class ChartContentParser implements ContentParser {
                     if (element.isJsonObject()) {
                         JsonObject entryObj = element.getAsJsonObject();
                         String label = context.getString(entryObj, "label", "");
-                        double value = context.getFloat(entryObj, "value", 0);
+                        // 支持字符串格式的 value（可能是数字或变量表达式）
+                        String valueStr = context.getString(entryObj, "value", "0");
                         int color = context.getColor(entryObj, "color", 0xFFFFFF);
-                        chart = chart.addEntry(label, value, color);
+                        chart = chart.addEntry(label, valueStr, color);
                     }
                 }
             }

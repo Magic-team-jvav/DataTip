@@ -342,6 +342,26 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
     }
 
     /**
+     * 启用裁剪区域（Scissor）。
+     * 超出区域的内容将被裁剪，不会渲染。
+     *
+     * @param x      X 坐标
+     * @param y      Y 坐标
+     * @param width  宽度
+     * @param height 高度
+     */
+    public void enableScissor(int x, int y, int width, int height) {
+        graphics.enableScissor(x, y, x + width, y + height);
+    }
+
+    /**
+     * 禁用裁剪区域。
+     */
+    public void disableScissor() {
+        graphics.disableScissor();
+    }
+
+    /**
      * 线性插值颜色
      */
     public static int lerpColor(int color1, int color2, float t) {

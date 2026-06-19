@@ -84,12 +84,15 @@ public class AtlasContentParser implements ContentParser {
         // 获取标签
         String label = context.getStringOrNull(json, "label");
 
+        // 获取 Y 轴偏移
+        int offsetY = context.getInt(json, "offsetY", 0);
+
         // 优先级：texture > block > item
         // 1. 直接指定纹理路径
         if (context.has(json, "texture")) {
             String textureStr = context.getString(json, "texture", "");
             ResourceLocation texturePath = ResourceLocation.parse(textureStr);
-            return new AtlasContent(texturePath, width, height, label);
+            return new AtlasContent(texturePath, width, height, label, offsetY);
         }
 
         // 2. 从方块 ID 自动转换
