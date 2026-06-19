@@ -46,9 +46,10 @@ import org.jetbrains.annotations.Nullable;
 public record BlockContent(
     Block block,                // 方块实例
     int size,                   // 渲染大小
-    float rotationSpeed,        // 旋转速度，默认 0.5
+    float rotationSpeed,        // 旋转速度
     boolean autoRotate,         // 是否自动旋转
     @Nullable Component label,  // 可选的标签文本
+    int offsetX,                // X 轴偏移量
     int offsetY                 // Y 轴偏移量
 ) implements TipContent {
 
@@ -57,22 +58,22 @@ public record BlockContent(
 
     // 创建方块内容
     public static BlockContent of(Block block) {
-        return new BlockContent(block, 32, 0.5f, true, null, 0);
+        return new BlockContent(block, 32, 0.5f, true, null, 0, 0);
     }
 
     // 创建带标签的方块内容
     public static BlockContent withLabel(Block block, Component label) {
-        return new BlockContent(block, 32, 0.5f, true, label, 0);
+        return new BlockContent(block, 32, 0.5f, true, label, 0, 0);
     }
 
     // 创建指定尺寸的方块内容
     public static BlockContent of(Block block, int size) {
-        return new BlockContent(block, size, 0.5f, true, null, 0);
+        return new BlockContent(block, size, 0.5f, true, null, 0, 0);
     }
 
     // 创建带偏移的方块内容
-    public static BlockContent withOffset(Block block, int size, int offsetY) {
-        return new BlockContent(block, size, 0.5f, true, null, offsetY);
+    public static BlockContent withOffset(Block block, int size, int offsetX, int offsetY) {
+        return new BlockContent(block, size, 0.5f, true, null, offsetX, offsetY);
     }
 
     @Override
@@ -111,12 +112,19 @@ public record BlockContent(
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0) return;
 
-        // 应用 Y 轴偏移
+        // 应用偏移
+        int renderX = x + offsetX;
         int renderY = y + offsetY;
+
+        // 使用 partialTick 进行插值，让旋转更平滑
+        float smoothRotation = rotationAngle;
+        if (autoRotate) {
+            smoothRotation += rotationSpeed * context.partialTick();
+        }
 
         // 创建物品栈用于渲染
         ItemStack stack = new ItemStack(block);
-        renderBlockAsItem(context.graphics(), stack, x + size / 2, renderY + size / 2, size, rotationAngle);
+        renderBlockAsItem(context.graphics(), stack, renderX + size / 2, renderY + size / 2, size, smoothRotation);
 
         // 渲染标签
         if (label != null) {

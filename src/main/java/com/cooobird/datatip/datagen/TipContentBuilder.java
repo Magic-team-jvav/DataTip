@@ -192,11 +192,27 @@ public class TipContentBuilder {
     }
 
     /**
+     * 创建实体内容（带偏移）
+     */
+    public static EntityContent entity(String entityId, int size, int offsetX, int offsetY) {
+        EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(entityId));
+        return EntityContent.withOffset(entityType, size, offsetX, offsetY);
+    }
+
+    /**
      * 创建方块内容
      */
     public static BlockContent block(String blockId, int size) {
         Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(blockId));
         return BlockContent.of(block, size);
+    }
+
+    /**
+     * 创建方块内容（带偏移）
+     */
+    public static BlockContent block(String blockId, int size, int offsetX, int offsetY) {
+        Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(blockId));
+        return BlockContent.withOffset(block, size, offsetX, offsetY);
     }
 
     /**
@@ -207,10 +223,24 @@ public class TipContentBuilder {
     }
 
     /**
+     * 创建纹理内容（带偏移）
+     */
+    public static AtlasContent atlas(String itemId, int size, int offsetX, int offsetY) {
+        return AtlasContent.withOffset(ResourceLocation.parse(itemId), size, offsetX, offsetY);
+    }
+
+    /**
      * 创建图片内容
      */
     public static ImageContent image(String texture, int width, int height) {
         return ImageContent.of(ResourceLocation.parse(texture), width, height);
+    }
+
+    /**
+     * 创建图片内容（带偏移）
+     */
+    public static ImageContent image(String texture, int width, int height, int offsetX, int offsetY) {
+        return ImageContent.withOffset(ResourceLocation.parse(texture), width, height, offsetX, offsetY);
     }
 
     /**
@@ -284,6 +314,9 @@ public class TipContentBuilder {
             json.addProperty("entity", BuiltInRegistries.ENTITY_TYPE.getKey(entity.entityType()).toString());
             json.addProperty("size", entity.size());
             json.addProperty("autoRotate", entity.autoRotate());
+            if (entity.offsetX() != 0) {
+                json.addProperty("offsetX", entity.offsetX());
+            }
             if (entity.offsetY() != 0) {
                 json.addProperty("offsetY", entity.offsetY());
             }
@@ -292,15 +325,33 @@ public class TipContentBuilder {
             json.addProperty("block", BuiltInRegistries.BLOCK.getKey(block.block()).toString());
             json.addProperty("size", block.size());
             json.addProperty("autoRotate", block.autoRotate());
+            if (block.offsetX() != 0) {
+                json.addProperty("offsetX", block.offsetX());
+            }
+            if (block.offsetY() != 0) {
+                json.addProperty("offsetY", block.offsetY());
+            }
         } else if (content instanceof AtlasContent atlas) {
             json.addProperty("type", "atlas");
             json.addProperty("texture", atlas.texturePath().toString());
             json.addProperty("size", atlas.width());
+            if (atlas.offsetX() != 0) {
+                json.addProperty("offsetX", atlas.offsetX());
+            }
+            if (atlas.offsetY() != 0) {
+                json.addProperty("offsetY", atlas.offsetY());
+            }
         } else if (content instanceof ImageContent image) {
             json.addProperty("type", "image");
             json.addProperty("texture", image.texture().toString());
             json.addProperty("width", image.width());
             json.addProperty("height", image.height());
+            if (image.offsetX() != 0) {
+                json.addProperty("offsetX", image.offsetX());
+            }
+            if (image.offsetY() != 0) {
+                json.addProperty("offsetY", image.offsetY());
+            }
         } else if (content instanceof ChartContent chart) {
             json.addProperty("type", "chart");
             json.addProperty("chartType", chart.type().toString().toLowerCase());

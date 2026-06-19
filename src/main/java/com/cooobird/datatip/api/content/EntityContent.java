@@ -52,6 +52,7 @@ public record EntityContent(
     int size,                  // 渲染大小
     float rotationSpeed,       // 旋转速度
     boolean autoRotate,        // 是否自动旋转
+    int offsetX,               // X 轴偏移量
     int offsetY,               // Y 轴偏移量
     @Nullable Component label  // 可选的标签文本
 ) implements TipContent {
@@ -75,22 +76,22 @@ public record EntityContent(
 
     // 创建实体内容
     public static EntityContent of(EntityType<?> entityType) {
-        return new EntityContent(entityType, 48, 1.0f, true, 0, null);
+        return new EntityContent(entityType, 48, 1.0f, true, 0, 0, null);
     }
 
     // 创建带标签的实体内容
     public static EntityContent withLabel(EntityType<?> entityType, Component label) {
-        return new EntityContent(entityType, 48, 1.0f, true, 0, label);
+        return new EntityContent(entityType, 48, 1.0f, true, 0, 0, label);
     }
 
     // 创建指定尺寸的实体内容
     public static EntityContent of(EntityType<?> entityType, int size) {
-        return new EntityContent(entityType, size, 1.0f, true, 0, null);
+        return new EntityContent(entityType, size, 1.0f, true, 0, 0, null);
     }
 
     // 创建带偏移的实体内容
-    public static EntityContent withOffset(EntityType<?> entityType, int size, int offsetY) {
-        return new EntityContent(entityType, size, 1.0f, true, offsetY, null);
+    public static EntityContent withOffset(EntityType<?> entityType, int size, int offsetX, int offsetY) {
+        return new EntityContent(entityType, size, 1.0f, true, offsetX, offsetY, null);
     }
 
     @Override
@@ -139,12 +140,12 @@ public record EntityContent(
         Entity entity = entityType.create(mc.level);
         if (entity == null) return;
 
-        // 获取旋转角度
+        // 获取旋转角度，使用 partialTick 进行插值让旋转更平滑
         RotationState state = getRotationState(entityType);
-        float rotation = autoRotate ? state.rotation : 0;
+        float rotation = autoRotate ? state.rotation + rotationSpeed * context.partialTick() : 0;
 
         // 渲染实体
-        renderEntity(context.graphics(), entity, x + size / 2, y + size + offsetY, size, rotation);
+        renderEntity(context.graphics(), entity, x + size / 2 + offsetX, y + size + offsetY, size, rotation);
 
         // 渲染标签
         if (label != null) {
@@ -166,12 +167,12 @@ public record EntityContent(
         // 绕 Y 轴旋转
         poseStack.mulPose(Axis.YP.rotationDegrees(rotation));
 
-        // 设置光照
-        Lighting.setupForEntityInInventory();
-
         // 渲染实体
         EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
         dispatcher.setRenderShadow(false);  // 禁用阴影
+
+        // 设置全局光照
+        Lighting.setupForFlatItems();
 
         MultiBufferSource.BufferSource bufferSource = graphics.bufferSource();
         dispatcher.render(entity, 0, 0, 0, 0, 1.0f, poseStack, bufferSource, 15728880);

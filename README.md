@@ -104,9 +104,10 @@ Put this in a resource pack at `assets/minecraft/datatip/datatip.json`, then hov
 
 ## Entity/Item/Block/Atlas/Image Common Properties
 
-| Property  | Type | Default | Description                                                |
-|-----------|------|---------|------------------------------------------------------------|
-| `offsetY` | int  | 0       | Y-axis offset (positive=down, negative=up) for fine-tuning |
+| Property  | Type | Default | Description                                     |
+|-----------|------|---------|-------------------------------------------------|
+| `offsetX` | int  | 0       | X-axis offset (positive=right, negative=left)   |
+| `offsetY` | int  | 0       | Y-axis offset (positive=down, negative=up)      |
 
 ## Variables
 

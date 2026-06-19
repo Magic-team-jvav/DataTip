@@ -42,39 +42,40 @@ public record AtlasContent(
     int width,                     // 渲染宽度
     int height,                    // 渲染高度
     @Nullable String label,        // 可选的标签文本
+    int offsetX,                   // X 轴偏移量
     int offsetY                    // Y 轴偏移量
 ) implements TipContent {
 
     // 创建纹理内容
     public static AtlasContent of(ResourceLocation texturePath, int width, int height) {
-        return new AtlasContent(texturePath, width, height, null, 0);
+        return new AtlasContent(texturePath, width, height, null, 0, 0);
     }
 
     // 创建正方形纹理内容
     public static AtlasContent of(ResourceLocation texturePath, int size) {
-        return new AtlasContent(texturePath, size, size, null, 0);
+        return new AtlasContent(texturePath, size, size, null, 0, 0);
     }
 
     // 创建带标签的纹理内容
     public static AtlasContent withLabel(ResourceLocation texturePath, int width, int height, String label) {
-        return new AtlasContent(texturePath, width, height, label, 0);
+        return new AtlasContent(texturePath, width, height, label, 0, 0);
     }
 
     // 从方块 ID 创建，自动转换路径
     public static AtlasContent fromBlock(ResourceLocation blockId, int size) {
         String path = blockId.getNamespace() + ":textures/block/" + blockId.getPath() + ".png";
-        return new AtlasContent(ResourceLocation.parse(path), size, size, null, 0);
+        return new AtlasContent(ResourceLocation.parse(path), size, size, null, 0, 0);
     }
 
     // 从物品 ID 创建，自动转换路径
     public static AtlasContent fromItem(ResourceLocation itemId, int size) {
         String path = itemId.getNamespace() + ":textures/item/" + itemId.getPath() + ".png";
-        return new AtlasContent(ResourceLocation.parse(path), size, size, null, 0);
+        return new AtlasContent(ResourceLocation.parse(path), size, size, null, 0, 0);
     }
 
     // 创建带偏移的纹理内容
-    public static AtlasContent withOffset(ResourceLocation texturePath, int size, int offsetY) {
-        return new AtlasContent(texturePath, size, size, null, offsetY);
+    public static AtlasContent withOffset(ResourceLocation texturePath, int size, int offsetX, int offsetY) {
+        return new AtlasContent(texturePath, size, size, null, offsetX, offsetY);
     }
 
     @Override
@@ -96,14 +97,15 @@ public record AtlasContent(
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0) return;
 
+        int renderX = x + offsetX;
         int renderY = y + offsetY;
 
         // 使用 blit 渲染纹理
-        context.blit(texturePath, x, renderY, 0, 0, width, height, width, height);
+        context.blit(texturePath, renderX, renderY, 0, 0, width, height, width, height);
 
         // 渲染标签
         if (label != null) {
-            int labelX = x + width + 4;
+            int labelX = renderX + width + 4;
             int labelY = renderY + (height - 8) / 2;
             context.drawString(label, labelX, labelY, 0xFFFFFF);
         }

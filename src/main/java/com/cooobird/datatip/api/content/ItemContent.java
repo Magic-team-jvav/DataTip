@@ -23,47 +23,48 @@ public record ItemContent(
     boolean showLabel,           // 显示物品名称
     @Nullable Component label,   // 自定义标签
     @Nullable Integer labelColor, // 标签颜色
+    int offsetX,                 // X 轴偏移量
     int offsetY                  // Y 轴偏移量
 ) implements TipContent {
 
     // 创建物品内容
     public static ItemContent of(ItemStack stack) {
-        return new ItemContent(stack, 16, true, true, false, null, null, 0);
+        return new ItemContent(stack, 16, true, true, false, null, null, 0, 0);
     }
 
     // 创建物品内容
     public static ItemContent of(ItemStack stack, int size) {
-        return new ItemContent(stack, size, true, true, false, null, null, 0);
+        return new ItemContent(stack, size, true, true, false, null, null, 0, 0);
     }
 
     // 创建带标签的物品内容
     public static ItemContent withLabel(ItemStack stack, Component label) {
-        return new ItemContent(stack, 16, true, true, true, label, 0xFFFFFF, 0);
+        return new ItemContent(stack, 16, true, true, true, label, 0xFFFFFF, 0, 0);
     }
 
     // 创建带标签的物品内容
     public static ItemContent withLabel(ItemStack stack, Component label, int labelColor) {
-        return new ItemContent(stack, 16, true, true, true, label, labelColor, 0);
+        return new ItemContent(stack, 16, true, true, true, label, labelColor, 0, 0);
     }
 
     // 创建大尺寸物品图标
     public static ItemContent large(ItemStack stack) {
-        return new ItemContent(stack, 32, true, true, false, null, null, 0);
+        return new ItemContent(stack, 32, true, true, false, null, null, 0, 0);
     }
 
     // 创建只显示图标的物品内容
     public static ItemContent iconOnly(ItemStack stack) {
-        return new ItemContent(stack, 16, false, false, false, null, null, 0);
+        return new ItemContent(stack, 16, false, false, false, null, null, 0, 0);
     }
 
     // 创建只显示图标的物品内容
     public static ItemContent iconOnly(ItemStack stack, int size) {
-        return new ItemContent(stack, size, false, false, false, null, null, 0);
+        return new ItemContent(stack, size, false, false, false, null, null, 0, 0);
     }
 
     // 创建带偏移的物品内容
-    public static ItemContent withOffset(ItemStack stack, int size, int offsetY) {
-        return new ItemContent(stack, size, true, true, false, null, null, offsetY);
+    public static ItemContent withOffset(ItemStack stack, int size, int offsetX, int offsetY) {
+        return new ItemContent(stack, size, true, true, false, null, null, offsetX, offsetY);
     }
 
     @Override
@@ -89,19 +90,20 @@ public record ItemContent(
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0 || stack.isEmpty()) return;
 
+        int renderX = x + offsetX;
         int renderY = y + offsetY;
 
         // 渲染物品图标
         if (size == 16) {
-            context.renderItem(stack, x, renderY);
+            context.renderItem(stack, renderX, renderY);
         } else {
-            context.renderItemScaled(stack, x, renderY, size);
+            context.renderItemScaled(stack, renderX, renderY, size);
         }
 
         // 渲染装饰
         if (showCount || showDurability) {
             if (size == 16) {
-                context.renderItemDecorations(stack, x, renderY);
+                context.renderItemDecorations(stack, renderX, renderY);
             }
             // 注意：非 16x16 尺寸的装饰渲染需要特殊处理
         }
