@@ -10,6 +10,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -179,19 +180,44 @@ public class LegacyFormatConverter {
                     }
                 }
             } else if (textElement.isJsonObject()) {
-                // 多语言格式
+                // 多语言格式 {"zh_cn": ["削铁如泥"], "en_us": ["Cuts through iron"]}
                 JsonObject textObj = textElement.getAsJsonObject();
-                // 使用第一个语言
-                for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
-                    JsonArray lines = langEntry.getValue().getAsJsonArray();
-                    for (JsonElement line : lines) {
-                        if (line.isJsonPrimitive()) {
-                            vbox.addChild(TextContent.of(line.getAsString(), color));
-                        } else if (line.isJsonObject()) {
-                            vbox.addChild(convertStyledLine(line.getAsJsonObject(), color, topStrikethrough, topBold, topItalic, topUnderlined));
+
+                // 检查是否是多语言格式
+                boolean isMultiLang = false;
+                for (String key : textObj.keySet()) {
+                    if (key.contains("_")) { // zh_cn, en_us 等
+                        isMultiLang = true;
+                        break;
+                    }
+                }
+
+                if (isMultiLang) {
+                    // 多语言格式：使用 TextContent.ofLang()
+                    Map<String, String> langMap = new HashMap<>();
+                    for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
+                        JsonArray lines = langEntry.getValue().getAsJsonArray();
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < lines.size(); i++) {
+                            if (i > 0) sb.append("\n");
+                            sb.append(lines.get(i).getAsString());
+                        }
+                        langMap.put(langEntry.getKey(), sb.toString());
+                    }
+                    TextContent langText = TextContent.ofLang(langMap, color, topBold, topItalic, topUnderlined, topStrikethrough);
+                    vbox.addChild(langText);
+                } else {
+                    // 普通对象格式（带样式的行）
+                    for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
+                        JsonArray lines = langEntry.getValue().getAsJsonArray();
+                        for (JsonElement line : lines) {
+                            if (line.isJsonPrimitive()) {
+                                vbox.addChild(TextContent.of(line.getAsString(), color));
+                            } else if (line.isJsonObject()) {
+                                vbox.addChild(convertStyledLine(line.getAsJsonObject(), color, topStrikethrough, topBold, topItalic, topUnderlined));
+                            }
                         }
                     }
-                    break; // 只使用第一个语言
                 }
             } else if (textElement.isJsonPrimitive()) {
                 // 单个字符串
@@ -234,7 +260,6 @@ public class LegacyFormatConverter {
         switch (content) {
             case TextContent textContent -> {
                 json.addProperty("type", "text");
-                // 获取文本内容
                 if (textContent.text() != null) {
                     json.addProperty("text", textContent.text());
                 }
