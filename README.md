@@ -466,7 +466,9 @@ File: `config/datatip-common.toml`
 
 ## Legacy Format Support
 
-Old format is automatically converted:
+Old format is automatically converted to new format. The converted JSON is saved to `.minecraft/datatip_converted/` directory.
+
+**Supported old format:**
 
 ```json
 {
@@ -477,6 +479,14 @@ Old format is automatically converted:
     "shift": true
   }
 }
+```
+
+**Converted output:**
+```
+.minecraft/datatip_converted/
+  └── confluence/
+      └── datatip/
+          └── datatip.json
 ```
 
 ## Complete Example
