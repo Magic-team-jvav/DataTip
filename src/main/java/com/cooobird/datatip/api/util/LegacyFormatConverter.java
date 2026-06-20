@@ -5,11 +5,16 @@ import com.cooobird.datatip.api.content.DividerContent;
 import com.cooobird.datatip.api.content.SpacerContent;
 import com.cooobird.datatip.api.content.TextContent;
 import com.cooobird.datatip.api.content.VBoxContent;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,6 +52,7 @@ import java.util.Map;
  * @since 1.2.0
  */
 public class LegacyFormatConverter {
+    private static final Logger LOGGER = LoggerFactory.getLogger("datatip");
 
     /**
      * 检测是否为老版本格式。
@@ -77,8 +83,9 @@ public class LegacyFormatConverter {
     /**
      * 将老版本格式转换为新版本格式。
      * 保留 shift、prepend、conditions 等顶层属性。
+     * 同时将转换结果写入输出目录。
      */
-    public static JsonObject convert(JsonObject legacyJson) {
+    public static JsonObject convert(JsonObject legacyJson, ResourceLocation location) {
         JsonObject result = new JsonObject();
 
         for (Map.Entry<String, JsonElement> entry : legacyJson.entrySet()) {
@@ -108,7 +115,44 @@ public class LegacyFormatConverter {
             }
         }
 
+        // 写入转换后的 JSON 到输出目录
+        writeConvertedJson(location, result);
+
         return result;
+    }
+
+    /**
+     * 将转换后的 JSON 写入输出目录。
+     */
+    private static void writeConvertedJson(ResourceLocation location, JsonObject json) {
+        try {
+            // 创建输出目录
+            File outputDir = new File(
+                Minecraft.getInstance().gameDirectory,
+                "datatip_converted"
+            );
+            if (!outputDir.exists() && !outputDir.mkdirs()) {
+                LOGGER.error("Failed to create output directory: {}", outputDir.getAbsolutePath());
+                return;
+            }
+
+            // 创建命名空间子目录
+            File namespaceDir = new File(outputDir, location.getNamespace());
+            if (!namespaceDir.exists() && !namespaceDir.mkdirs()) {
+                LOGGER.error("Failed to create namespace directory: {}", namespaceDir.getAbsolutePath());
+                return;
+            }
+
+            // 写入 JSON 文件
+            File outputFile = new File(namespaceDir, location.getPath() + ".json");
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            String jsonStr = gson.toJson(json);
+            Files.writeString(outputFile.toPath(), jsonStr);
+
+            LOGGER.info("Converted legacy format saved to: {}", outputFile.getAbsolutePath());
+        } catch (Exception e) {
+            LOGGER.error("Failed to write converted JSON for {}", location, e);
+        }
     }
 
     /**
@@ -183,28 +227,39 @@ public class LegacyFormatConverter {
                 // 多语言格式 {"zh_cn": ["削铁如泥"], "en_us": ["Cuts through iron"]}
                 JsonObject textObj = textElement.getAsJsonObject();
 
+                // 检查是否是多语言格式
                 boolean isMultiLang = false;
                 for (String key : textObj.keySet()) {
-                    if (key.contains("_")) {
+                    if (key.contains("_")) { // zh_cn, en_us 等
                         isMultiLang = true;
                         break;
                     }
                 }
-                
+
                 if (isMultiLang) {
                     // 多语言格式：使用 TextContent.ofLang()
                     Map<String, String> langMap = new HashMap<>();
                     for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
-                        JsonArray lines = langEntry.getValue().getAsJsonArray();
-                        StringBuilder sb = new StringBuilder();
-                        for (int i = 0; i < lines.size(); i++) {
-                            if (i > 0) sb.append("\n");
-                            sb.append(lines.get(i).getAsString());
+                        JsonElement langValue = langEntry.getValue();
+                        String text;
+                        if (langValue.isJsonArray()) {
+                            // 数组格式：["line1", "line2"] 或 [{"text": "line1", "color": "red"}]
+                            StringBuilder sb = getStringBuilder(langValue);
+                            text = sb.toString();
+                        } else if (langValue.isJsonPrimitive()) {
+                            // 字符串格式："text"
+                            text = langValue.getAsString();
+                        } else {
+                            continue;
                         }
-                        langMap.put(langEntry.getKey(), sb.toString());
+                        if (!text.isEmpty()) {
+                            langMap.put(langEntry.getKey(), text);
+                        }
                     }
-                    TextContent langText = TextContent.ofLang(langMap, color, topBold, topItalic, topUnderlined, topStrikethrough);
-                    vbox.addChild(langText);
+                    if (!langMap.isEmpty()) {
+                        TextContent langText = TextContent.ofLang(langMap, color, topBold, topItalic, topUnderlined, topStrikethrough);
+                        vbox.addChild(langText);
+                    }
                 } else {
                     // 普通对象格式（带样式的行）
                     for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
@@ -224,7 +279,32 @@ public class LegacyFormatConverter {
             }
         }
 
+        // 如果只有一个子元素且是文本，直接返回文本内容
+        if (vbox.children().size() == 1) {
+            TipContent singleChild = vbox.children().get(0);
+            if (singleChild instanceof TextContent) {
+                return singleChild;
+            }
+        }
+
         return vbox;
+    }
+
+    private static StringBuilder getStringBuilder(JsonElement langValue) {
+        JsonArray lines = langValue.getAsJsonArray();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < lines.size(); i++) {
+            if (i > 0) sb.append("\n");
+            JsonElement line = lines.get(i);
+            if (line.isJsonPrimitive()) {
+                sb.append(line.getAsString());
+            } else if (line.isJsonObject()) {
+                // 带样式的行，只取文本
+                JsonObject lineObj = line.getAsJsonObject();
+                sb.append(lineObj.has("text") ? lineObj.get("text").getAsString() : "");
+            }
+        }
+        return sb;
     }
 
     /**
@@ -259,7 +339,14 @@ public class LegacyFormatConverter {
         
         if (content instanceof TextContent textContent) {
             json.addProperty("type", "text");
-            if (textContent.text() != null) {
+            // 优先使用多语言文本
+            if (textContent.langText() != null && !textContent.langText().isEmpty()) {
+                JsonObject langObj = new JsonObject();
+                for (Map.Entry<String, String> entry : textContent.langText().entrySet()) {
+                    langObj.addProperty(entry.getKey(), entry.getValue());
+                }
+                json.add("text", langObj);
+            } else if (textContent.text() != null) {
                 json.addProperty("text", textContent.text());
             }
             if (textContent.color() != 0xFFFFFF) {

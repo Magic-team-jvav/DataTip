@@ -114,7 +114,7 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener {
             // 检测并转换老版本格式
             if (LegacyFormatConverter.isLegacyFormat(json)) {
                 LOGGER.info("Converting legacy format at {}", location);
-                json = LegacyFormatConverter.convert(json);
+                json = LegacyFormatConverter.convert(json, location);
                 legacyConverted++;
             }
 

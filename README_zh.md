@@ -467,7 +467,9 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 ## 旧格式支持
 
-旧格式会自动转换：
+旧格式会自动转换为新格式。转换后的 JSON 保存到 `.minecraft/datatip_converted/` 目录。
+
+**支持的旧格式：**
 
 ```json
 {
@@ -478,6 +480,14 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
     "shift": true
   }
 }
+```
+
+**转换输出：**
+```
+.minecraft/datatip_converted/
+  └── confluence/
+      └── datatip/
+          └── datatip.json
 ```
 
 ## 完整示例
