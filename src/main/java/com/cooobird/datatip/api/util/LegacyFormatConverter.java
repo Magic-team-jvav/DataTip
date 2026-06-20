@@ -238,12 +238,38 @@ public class LegacyFormatConverter {
                 if (isMultiLang) {
                     // 多语言格式：使用 TextContent.ofLang()
                     Map<String, String> langMap = new HashMap<>();
+                    int lineColor = color; // 默认使用顶层颜色
+                    boolean lineBold = topBold;
+                    boolean lineItalic = topItalic;
+                    boolean lineUnderlined = topUnderlined;
+                    boolean lineStrikethrough = topStrikethrough;
+                    
                     for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
                         JsonElement langValue = langEntry.getValue();
                         String text;
                         if (langValue.isJsonArray()) {
                             // 数组格式：["line1", "line2"] 或 [{"text": "line1", "color": "red"}]
-                            StringBuilder sb = getStringBuilder(langValue);
+                            JsonArray lines = langValue.getAsJsonArray();
+                            StringBuilder sb = new StringBuilder();
+                            for (int i = 0; i < lines.size(); i++) {
+                                if (i > 0) sb.append("\n");
+                                JsonElement line = lines.get(i);
+                                if (line.isJsonPrimitive()) {
+                                    sb.append(line.getAsString());
+                                } else if (line.isJsonObject()) {
+                                    // 带样式的行，提取文本和样式
+                                    JsonObject lineObj = line.getAsJsonObject();
+                                    sb.append(lineObj.has("text") ? lineObj.get("text").getAsString() : "");
+                                    // 提取第一个行的样式作为整体样式
+                                    if (i == 0) {
+                                        if (lineObj.has("color")) lineColor = parseColor(lineObj.get("color").getAsString());
+                                        if (lineObj.has("bold")) lineBold = lineObj.get("bold").getAsBoolean();
+                                        if (lineObj.has("italic")) lineItalic = lineObj.get("italic").getAsBoolean();
+                                        if (lineObj.has("underlined")) lineUnderlined = lineObj.get("underlined").getAsBoolean();
+                                        if (lineObj.has("strikethrough")) lineStrikethrough = lineObj.get("strikethrough").getAsBoolean();
+                                    }
+                                }
+                            }
                             text = sb.toString();
                         } else if (langValue.isJsonPrimitive()) {
                             // 字符串格式："text"
@@ -256,7 +282,7 @@ public class LegacyFormatConverter {
                         }
                     }
                     if (!langMap.isEmpty()) {
-                        TextContent langText = TextContent.ofLang(langMap, color, topBold, topItalic, topUnderlined, topStrikethrough);
+                        TextContent langText = TextContent.ofLang(langMap, lineColor, lineBold, lineItalic, lineUnderlined, lineStrikethrough);
                         vbox.addChild(langText);
                     }
                 } else {
@@ -375,7 +401,7 @@ public class LegacyFormatConverter {
                 json.addProperty("type", "divider");
                 json.addProperty("color", String.format("#%06X", divider.color() & 0xFFFFFF));
             }
-            case null, default -> {
+            default -> {
             }
         }
 
