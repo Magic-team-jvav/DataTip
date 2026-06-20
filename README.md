@@ -190,17 +190,18 @@ Empty spacing between content.
 
 ## Text Properties
 
-| Property        | Type          | Default | Description                                   |
-|-----------------|---------------|---------|-----------------------------------------------|
-| `text`          | String/Object | -       | Text content (supports multi-language object) |
-| `color`         | String        | "white" | Color (named or hex, supports expressions)    |
-| `align`         | String        | "left"  | Alignment: `left`, `center`, `right`          |
-| `bold`          | boolean       | false   | Bold text                                     |
-| `italic`        | boolean       | false   | Italic text                                   |
-| `underlined`    | boolean       | false   | Underlined text                               |
-| `strikethrough` | boolean       | false   | Strikethrough text                            |
-| `shift`         | boolean       | false   | Only show when holding Shift                  |
-| `maxWidth`      | int           | 0       | Maximum width (0=no wrap)                     |
+| Property        | Type          | Default | Description                                             |
+|-----------------|---------------|---------|---------------------------------------------------------|
+| `text`          | String/Object | -       | Text content (supports multi-language object)           |
+| `color`         | String        | "white" | Color (named or hex, supports expressions)              |
+| `font`          | String        | -       | Custom font (e.g. `minecraft:alt`, `minecraft:uniform`) |
+| `align`         | String        | "left"  | Alignment: `left`, `center`, `right`                    |
+| `bold`          | boolean       | false   | Bold text                                               |
+| `italic`        | boolean       | false   | Italic text                                             |
+| `underlined`    | boolean       | false   | Underlined text                                         |
+| `strikethrough` | boolean       | false   | Strikethrough text                                      |
+| `shift`         | boolean       | false   | Only show when holding Shift                            |
+| `maxWidth`      | int           | 0       | Maximum width (0=no wrap)                               |
 
 ## Progress Bar Properties
 
@@ -240,6 +241,8 @@ Empty spacing between content.
 | `charsPerSecond` | int     | 2       | Characters per second         |
 | `pauseSeconds`   | int     | 1       | Pause between lines (seconds) |
 | `loop`           | boolean | false   | Loop animation                |
+| `color`          | String  | "white" | Text color                    |
+| `font`           | String  | -       | Custom font                   |
 
 ## Chart Properties
 

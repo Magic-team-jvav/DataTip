@@ -190,17 +190,18 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 ## 文本属性
 
-| 属性              | 类型            | 默认值     | 说明                         |
-|-----------------|---------------|---------|----------------------------|
-| `text`          | String/Object | -       | 文本内容（支持多语言对象）              |
-| `color`         | String        | "white" | 颜色（命名色或十六进制，支持表达式）         |
-| `align`         | String        | "left"  | 对齐：`left`、`center`、`right` |
-| `bold`          | boolean       | false   | 粗体                         |
-| `italic`        | boolean       | false   | 斜体                         |
-| `underlined`    | boolean       | false   | 下划线                        |
-| `strikethrough` | boolean       | false   | 删除线                        |
-| `shift`         | boolean       | false   | 需要按住 Shift 才显示             |
-| `maxWidth`      | int           | 0       | 最大宽度（0=不换行）                |
+| 属性              | 类型            | 默认值     | 说明                                           |
+|-----------------|---------------|---------|----------------------------------------------|
+| `text`          | String/Object | -       | 文本内容（支持多语言对象）                                |
+| `color`         | String        | "white" | 颜色（命名色或十六进制，支持表达式）                           |
+| `font`          | String        | -       | 自定义字体（如 `minecraft:alt`、`minecraft:uniform`） |
+| `align`         | String        | "left"  | 对齐：`left`、`center`、`right`                   |
+| `bold`          | boolean       | false   | 粗体                                           |
+| `italic`        | boolean       | false   | 斜体                                           |
+| `underlined`    | boolean       | false   | 下划线                                          |
+| `strikethrough` | boolean       | false   | 删除线                                          |
+| `shift`         | boolean       | false   | 需要按住 Shift 才显示                               |
+| `maxWidth`      | int           | 0       | 最大宽度（0=不换行）                                  |
 
 ## 进度条属性
 
@@ -234,12 +235,14 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 ## 打字机属性
 
-| 属性               | 类型      | 默认值   | 说明      |
-|------------------|---------|-------|---------|
-| `lines`          | Array   | -     | 文本行数组   |
-| `charsPerSecond` | int     | 2     | 每秒字符数   |
-| `pauseSeconds`   | int     | 1     | 行间暂停（秒） |
-| `loop`           | boolean | false | 循环播放    |
+| 属性               | 类型      | 默认值     | 说明      |
+|------------------|---------|---------|---------|
+| `lines`          | Array   | -       | 文本行数组   |
+| `charsPerSecond` | int     | 2       | 每秒字符数   |
+| `pauseSeconds`   | int     | 1       | 行间暂停（秒） |
+| `loop`           | boolean | false   | 循环播放    |
+| `color`          | String  | "white" | 文本颜色    |
+| `font`           | String  | -       | 自定义字体   |
 
 ## 图表属性
 
