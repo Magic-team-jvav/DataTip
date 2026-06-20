@@ -329,10 +329,7 @@ public record TextContent(
         if (langStyledText != null && !langStyledText.isEmpty()) {
             String lang = Minecraft.getInstance().getLanguageManager().getSelected();
             LangStyle langStyle = langStyledText.get(lang);
-            // 如果没有当前语言的翻译，使用第一个可用的翻译
-            if (langStyle == null) {
-                langStyle = langStyledText.values().iterator().next();
-            }
+            // 没有当前语言的翻译，直接跳过
             if (langStyle != null) {
                 Style style = Style.EMPTY.withColor(langStyle.color());
                 if (font != null) style = style.withFont(font);
@@ -349,10 +346,7 @@ public record TextContent(
         if (langText != null && !langText.isEmpty()) {
             String lang = Minecraft.getInstance().getLanguageManager().getSelected();
             String langContent = langText.get(lang);
-            // 如果没有当前语言的翻译，使用第一个可用的翻译
-            if (langContent == null) {
-                langContent = langText.values().iterator().next();
-            }
+            // 没有当前语言的翻译，直接跳过
             if (langContent != null) {
                 return Component.literal(langContent).withStyle(style);
             }

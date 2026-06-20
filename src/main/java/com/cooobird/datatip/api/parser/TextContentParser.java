@@ -123,52 +123,62 @@ public class TextContentParser implements ContentParser {
                 // 简单字符串
                 text = textElement.getAsString();
             } else if (textElement.isJsonObject()) {
-                // 多语言对象
+                // 检查是否是多语言对象（key 包含 "_"，如 "zh_cn", "en_us"）
                 JsonObject langObj = textElement.getAsJsonObject();
-
-                // 检查是否有带样式的语言（值为对象而非字符串）
-                boolean hasStyledLangs = false;
-                for (Map.Entry<String, JsonElement> entry : langObj.entrySet()) {
-                    if (entry.getValue().isJsonObject()) {
-                        hasStyledLangs = true;
+                boolean isMultiLang = false;
+                for (String key : langObj.keySet()) {
+                    if (key.contains("_")) {
+                        isMultiLang = true;
                         break;
                     }
                 }
 
-                if (hasStyledLangs) {
-                    // 每语言独立样式：{"zh_cn": {"text": "...", "color": "red"}, "en_us": {"text": "...", "italic": true}}
-                    langStyledText = new HashMap<>();
+                if (isMultiLang) {
+                    // 检查是否有带样式的语言（值为对象而非字符串）
+                    boolean hasStyledLangs = false;
                     for (Map.Entry<String, JsonElement> entry : langObj.entrySet()) {
                         if (entry.getValue().isJsonObject()) {
-                            JsonObject styleObj = entry.getValue().getAsJsonObject();
-                            String langTextStr = styleObj.has("text") ? styleObj.get("text").getAsString() : "";
-                            int langColor = styleObj.has("color") ? parseColor(styleObj.get("color").getAsString(), DatatipConfig.DEFAULT_COLOR.get()) : DatatipConfig.DEFAULT_COLOR.get();
-                            boolean langBold = styleObj.has("bold") && styleObj.get("bold").getAsBoolean();
-                            boolean langItalic = styleObj.has("italic") && styleObj.get("italic").getAsBoolean();
-                            boolean langUnderlined = styleObj.has("underlined") && styleObj.get("underlined").getAsBoolean();
-                            boolean langStrikethrough = styleObj.has("strikethrough") && styleObj.get("strikethrough").getAsBoolean();
-                            TextContent.TextAlign langAlign = TextContent.TextAlign.LEFT;
-                            if (styleObj.has("align")) {
-                                String a = styleObj.get("align").getAsString();
-                                if ("center".equals(a)) langAlign = TextContent.TextAlign.CENTER;
-                                else if ("right".equals(a)) langAlign = TextContent.TextAlign.RIGHT;
-                            }
-                            boolean langShift = styleObj.has("shift") && styleObj.get("shift").getAsBoolean();
-                            langStyledText.put(entry.getKey(), new TextContent.LangStyle(
-                                langTextStr, langColor, langBold, langItalic, langUnderlined, langStrikethrough, langAlign, langShift));
-                        } else if (entry.getValue().isJsonPrimitive()) {
-                            // 混合格式：有些语言是字符串，有些是对象
-                            langStyledText.put(entry.getKey(), new TextContent.LangStyle(
-                                entry.getValue().getAsString(), DatatipConfig.DEFAULT_COLOR.get(), false, false, false, false));
+                            hasStyledLangs = true;
+                            break;
                         }
                     }
-                } else {
-                    // 简单多语言：{"zh_cn": "...", "en_us": "..."}
-                    langText = new HashMap<>();
-                    for (Map.Entry<String, JsonElement> entry : langObj.entrySet()) {
-                        langText.put(entry.getKey(), entry.getValue().getAsString());
+
+                    if (hasStyledLangs) {
+                        // 每语言独立样式：{"zh_cn": {"text": "...", "color": "red"}, "en_us": {"text": "...", "italic": true}}
+                        langStyledText = new HashMap<>();
+                        for (Map.Entry<String, JsonElement> entry : langObj.entrySet()) {
+                            if (entry.getValue().isJsonObject()) {
+                                JsonObject styleObj = entry.getValue().getAsJsonObject();
+                                String langTextStr = styleObj.has("text") ? styleObj.get("text").getAsString() : "";
+                                int langColor = styleObj.has("color") ? parseColor(styleObj.get("color").getAsString(), DatatipConfig.DEFAULT_COLOR.get()) : DatatipConfig.DEFAULT_COLOR.get();
+                                boolean langBold = styleObj.has("bold") && styleObj.get("bold").getAsBoolean();
+                                boolean langItalic = styleObj.has("italic") && styleObj.get("italic").getAsBoolean();
+                                boolean langUnderlined = styleObj.has("underlined") && styleObj.get("underlined").getAsBoolean();
+                                boolean langStrikethrough = styleObj.has("strikethrough") && styleObj.get("strikethrough").getAsBoolean();
+                                TextContent.TextAlign langAlign = TextContent.TextAlign.LEFT;
+                                if (styleObj.has("align")) {
+                                    String a = styleObj.get("align").getAsString();
+                                    if ("center".equals(a)) langAlign = TextContent.TextAlign.CENTER;
+                                    else if ("right".equals(a)) langAlign = TextContent.TextAlign.RIGHT;
+                                }
+                                boolean langShift = styleObj.has("shift") && styleObj.get("shift").getAsBoolean();
+                                langStyledText.put(entry.getKey(), new TextContent.LangStyle(
+                                    langTextStr, langColor, langBold, langItalic, langUnderlined, langStrikethrough, langAlign, langShift));
+                            } else if (entry.getValue().isJsonPrimitive()) {
+                                // 混合格式：有些语言是字符串，有些是对象
+                                langStyledText.put(entry.getKey(), new TextContent.LangStyle(
+                                    entry.getValue().getAsString(), DatatipConfig.DEFAULT_COLOR.get(), false, false, false, false));
+                            }
+                        }
+                    } else {
+                        // 简单多语言：{"zh_cn": "...", "en_us": "..."}
+                        langText = new HashMap<>();
+                        for (Map.Entry<String, JsonElement> entry : langObj.entrySet()) {
+                            langText.put(entry.getKey(), entry.getValue().getAsString());
+                        }
                     }
                 }
+                // 如果 key 不包含 "_"，不是多语言对象，忽略
             }
         }
 
