@@ -7,6 +7,7 @@ import com.cooobird.datatip.config.DatatipConfig;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -209,6 +210,15 @@ public class TextContentParser implements ContentParser {
         boolean strikethrough = context.getBoolean(json, "strikethrough", false);
         boolean shift = context.getBoolean(json, "shift", false);
 
+        // 获取自定义字体
+        ResourceLocation font = null;
+        if (context.has(json, "font")) {
+            String fontStr = context.getString(json, "font", "");
+            if (!fontStr.isEmpty()) {
+                font = ResourceLocation.tryParse(fontStr);
+            }
+        }
+
         // 获取对齐方式
         TextContent.TextAlign align = TextContent.TextAlign.LEFT;
         String alignStr = context.getString(json, "align", "left");
@@ -220,15 +230,15 @@ public class TextContentParser implements ContentParser {
 
         // 构建 TextContent（按优先级：component > langStyledText > langText > text）
         if (component != null) {
-            return new TextContent(null, component, null, null, null, null, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
+            return new TextContent(null, component, null, null, null, font, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
         } else if (langStyledText != null && !langStyledText.isEmpty()) {
             // 带样式的多语言文本
-            return new TextContent(null, null, null, null, langStyledText, null, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
+            return new TextContent(null, null, null, null, langStyledText, font, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
         } else if (langText != null && !langText.isEmpty()) {
             // 简单多语言文本
-            return new TextContent(null, null, null, langText, null, null, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
+            return new TextContent(null, null, null, langText, null, font, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
         } else if (text != null) {
-            return new TextContent(text, null, null, null, null, null, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
+            return new TextContent(text, null, null, null, null, font, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
         }
 
         // 默认返回空文本

@@ -5,10 +5,11 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Tooltip 渲染上下文。
@@ -81,6 +82,14 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
         graphics.drawString(font, text, x, y, color, shadow);
     }
 
+    public void drawString(String text, int x, int y, int color, @Nullable ResourceLocation customFont) {
+        if (customFont != null) {
+            graphics.drawString(font, Component.literal(text).withStyle(Style.EMPTY.withFont(customFont)), x, y, color, true);
+        } else {
+            graphics.drawString(font, text, x, y, color, true);
+        }
+    }
+
     /**
      * 绘制居中文字（带阴影）
      *
@@ -143,13 +152,6 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
     }
 
     /**
-     * 绘制自动换行文字
-     */
-    public void drawWordWrap(FormattedText text, int x, int y, int maxWidth, int color) {
-        graphics.drawWordWrap(font, text, x, y, maxWidth, color);
-    }
-
-    /**
      * 获取文字宽度
      *
      * @param text 文字内容
@@ -181,44 +183,10 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
     }
 
     /**
-     * 填充渐变矩形（水平）
-     */
-    public void fillGradientH(int x1, int y1, int x2, int y2, int colorLeft, int colorRight) {
-        // GuiGraphics 没有水平渐变，需要手动实现
-        int steps = x2 - x1;
-        for (int i = 0; i < steps; i++) {
-            float ratio = (float) i / steps;
-            int color = lerpColor(colorLeft, colorRight, ratio);
-            graphics.fill(x1 + i, y1, x1 + i + 1, y2, color);
-        }
-    }
-
-    /**
      * 绘制水平线
      */
     public void hLine(int x1, int x2, int y, int color) {
         graphics.fill(x1, y, x2, y + 1, color);
-    }
-
-    /**
-     * 绘制垂直线
-     */
-    public void vLine(int x, int y1, int y2, int color) {
-        graphics.fill(x, y1, x + 1, y2, color);
-    }
-
-    /**
-     * 绘制矩形边框
-     */
-    public void drawBorder(int x, int y, int width, int height, int color) {
-        // 上边
-        graphics.fill(x, y, x + width, y + 1, color);
-        // 下边
-        graphics.fill(x, y + height - 1, x + width, y + height, color);
-        // 左边
-        graphics.fill(x, y, x + 1, y + height, color);
-        // 右边
-        graphics.fill(x + width - 1, y, x + width, y + height, color);
     }
 
     /**
@@ -332,62 +300,5 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
             return text;
         }
         return VariableResolver.resolve(text, itemStack);
-    }
-
-    /**
-     * 检查文本是否包含变量
-     */
-    public boolean hasVariables(String text) {
-        return VariableResolver.hasVariables(text);
-    }
-
-    /**
-     * 启用裁剪区域（Scissor）。
-     * 超出区域的内容将被裁剪，不会渲染。
-     *
-     * @param x      X 坐标
-     * @param y      Y 坐标
-     * @param width  宽度
-     * @param height 高度
-     */
-    public void enableScissor(int x, int y, int width, int height) {
-        graphics.enableScissor(x, y, x + width, y + height);
-    }
-
-    /**
-     * 禁用裁剪区域。
-     */
-    public void disableScissor() {
-        graphics.disableScissor();
-    }
-
-    /**
-     * 线性插值颜色
-     */
-    public static int lerpColor(int color1, int color2, float t) {
-        int a1 = (color1 >> 24) & 0xFF;
-        int r1 = (color1 >> 16) & 0xFF;
-        int g1 = (color1 >> 8) & 0xFF;
-        int b1 = color1 & 0xFF;
-
-        int a2 = (color2 >> 24) & 0xFF;
-        int r2 = (color2 >> 16) & 0xFF;
-        int g2 = (color2 >> 8) & 0xFF;
-        int b2 = color2 & 0xFF;
-
-        int a = (int) (a1 + (a2 - a1) * t);
-        int r = (int) (r1 + (r2 - r1) * t);
-        int g = (int) (g1 + (g2 - g1) * t);
-        int b = (int) (b1 + (b2 - b1) * t);
-
-        return (a << 24) | (r << 16) | (g << 8) | b;
-    }
-
-    /**
-     * 设置透明度
-     */
-    public void setAlpha(float alpha) {
-        // 通过颜色混合实现
-        // 实际实现需要在渲染时处理
     }
 }

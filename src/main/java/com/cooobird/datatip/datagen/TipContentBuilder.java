@@ -11,6 +11,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -37,6 +38,25 @@ public class TipContentBuilder {
     }
 
     /**
+     * 创建带样式的文本内容
+     */
+    public static TextContent text(String text, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
+        return new TextContent(text, null, null, null, null, null,
+            parseColor(color), null, true, TextContent.TextAlign.LEFT, 12, 0,
+            bold, italic, underlined, strikethrough, false);
+    }
+
+    /**
+     * 创建带自定义字体的文本内容
+     */
+    public static TextContent text(String text, String color, String font) {
+        return new TextContent(text, null, null, null, null,
+            ResourceLocation.tryParse(font),
+            parseColor(color), null, true, TextContent.TextAlign.LEFT, 12, 0,
+            false, false, false, false, false);
+    }
+
+    /**
      * 创建多语言文本内容
      */
     public static TextContent langText(Map<String, String> langText) {
@@ -51,6 +71,23 @@ public class TipContentBuilder {
     }
 
     /**
+     * 创建多语言文本内容（带样式）
+     */
+    public static TextContent langText(Map<String, String> langText, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
+        return TextContent.ofLang(langText, parseColor(color), bold, italic, underlined, strikethrough);
+    }
+
+    /**
+     * 创建多语言文本内容（带字体）
+     */
+    public static TextContent langText(Map<String, String> langText, String color, String font) {
+        return new TextContent(null, null, null, langText, null,
+            ResourceLocation.tryParse(font),
+            parseColor(color), null, true, TextContent.TextAlign.LEFT, 12, 0,
+            false, false, false, false, false);
+    }
+
+    /**
      * 创建居中文本
      */
     public static TextContent centered(String text) {
@@ -62,6 +99,29 @@ public class TipContentBuilder {
      */
     public static TextContent centered(String text, String color) {
         return TextContent.centered(text, parseColor(color));
+    }
+
+    /**
+     * 创建居中文本（带样式）
+     */
+    public static TextContent centered(String text, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
+        return new TextContent(text, null, null, null, null, null,
+            parseColor(color), null, true, TextContent.TextAlign.CENTER, 12, 0,
+            bold, italic, underlined, strikethrough, false);
+    }
+
+    /**
+     * 创建右对齐文本
+     */
+    public static TextContent rightAligned(String text) {
+        return TextContent.rightAligned(text);
+    }
+
+    /**
+     * 创建右对齐文本（带颜色）
+     */
+    public static TextContent rightAligned(String text, String color) {
+        return TextContent.rightAligned(text, parseColor(color));
     }
 
     /**
@@ -83,6 +143,17 @@ public class TipContentBuilder {
      */
     public static DividerContent divider(String color) {
         return DividerContent.of(parseColor(color));
+    }
+
+    /**
+     * 创建分割线（带颜色和样式）
+     */
+    public static DividerContent divider(String color, String style) {
+        return DividerContent.of(parseColor(color), switch (style.toLowerCase()) {
+            case "dashed" -> DividerContent.DividerStyle.DASHED;
+            case "dotted" -> DividerContent.DividerStyle.DOTTED;
+            default -> DividerContent.DividerStyle.SOLID;
+        });
     }
 
     /**
@@ -184,6 +255,27 @@ public class TipContentBuilder {
     }
 
     /**
+     * 创建打字机效果（带颜色）
+     */
+    public static TypewriterContent typewriter(int color, String... lines) {
+        return TypewriterContent.of(color, lines);
+    }
+
+    /**
+     * 创建打字机效果（带颜色和字体）
+     */
+    public static TypewriterContent typewriter(int color, String font, String... lines) {
+        return new TypewriterContent(List.of(lines), 2, 1, false, color, ResourceLocation.tryParse(font));
+    }
+
+    /**
+     * 创建打字机效果（全参数）
+     */
+    public static TypewriterContent typewriter(int color, int charsPerSecond, int pauseSeconds, boolean loop, String... lines) {
+        return new TypewriterContent(List.of(lines), charsPerSecond, pauseSeconds, loop, color);
+    }
+
+    /**
      * 创建实体内容
      */
     public static EntityContent entity(String entityId, int size) {
@@ -255,6 +347,57 @@ public class TipContentBuilder {
     }
 
     /**
+     * 创建图表内容（带标题和数据）
+     */
+    public static ChartContent chart(String chartType, int width, int height, String title, ChartContent.ChartEntry... entries) {
+        ChartContent chart = switch (chartType.toLowerCase()) {
+            case "pie" -> ChartContent.pie(width);
+            case "line" -> ChartContent.line(width, height);
+            default -> ChartContent.bar(width, height);
+        };
+        chart = chart.title(Component.literal(title));
+        for (ChartContent.ChartEntry entry : entries) {
+            chart = chart.addEntry(entry.label(), entry.valueExpr(), entry.color());
+        }
+        return chart;
+    }
+
+    /**
+     * 创建图表数据条目
+     */
+    public static ChartContent.ChartEntry chartEntry(String label, double value, String color) {
+        return new ChartContent.ChartEntry(label, String.valueOf(value), parseColor(color));
+    }
+
+    /**
+     * 创建图表数据条目（带变量表达式）
+     */
+    public static ChartContent.ChartEntry chartEntry(String label, String valueExpr, String color) {
+        return new ChartContent.ChartEntry(label, valueExpr, parseColor(color));
+    }
+
+    /**
+     * 创建对齐包装
+     */
+    public static AlignedContent aligned(TipContent content, VBoxContent.HorizontalAlign align) {
+        return new AlignedContent(content, align);
+    }
+
+    /**
+     * 创建居中对齐包装
+     */
+    public static AlignedContent centeredAligned(TipContent content) {
+        return new AlignedContent(content, VBoxContent.HorizontalAlign.CENTER);
+    }
+
+    /**
+     * 创建右对齐包装
+     */
+    public static AlignedContent rightAlignedContent(TipContent content) {
+        return new AlignedContent(content, VBoxContent.HorizontalAlign.RIGHT);
+    }
+
+    /**
      * 将 TipContent 转换为 JSON
      */
     public static JsonObject toJson(TipContent content) {
@@ -268,11 +411,18 @@ public class TipContentBuilder {
             if (textContent.color() != 0xFFFFFF) {
                 json.addProperty("color", String.format("#%06X", textContent.color() & 0xFFFFFF));
             }
+            if (textContent.font() != null) {
+                json.addProperty("font", textContent.font().toString());
+            }
             if (textContent.align() == TextContent.TextAlign.CENTER) {
                 json.addProperty("align", "center");
             } else if (textContent.align() == TextContent.TextAlign.RIGHT) {
                 json.addProperty("align", "right");
             }
+            if (textContent.bold()) json.addProperty("bold", true);
+            if (textContent.italic()) json.addProperty("italic", true);
+            if (textContent.underlined()) json.addProperty("underlined", true);
+            if (textContent.strikethrough()) json.addProperty("strikethrough", true);
         } else if (content instanceof SpacerContent(int height)) {
             json.addProperty("type", "spacer");
             json.addProperty("height", height);
@@ -375,6 +525,12 @@ public class TipContentBuilder {
             json.add("lines", lines);
             json.addProperty("charsPerSecond", typewriter.getCharsPerSecond());
             json.addProperty("loop", typewriter.isLoop());
+            if (typewriter.color() != 0xFFFFFF) {
+                json.addProperty("color", String.format("#%06X", typewriter.color() & 0xFFFFFF));
+            }
+            if (typewriter.font() != null) {
+                json.addProperty("font", typewriter.font().toString());
+            }
         }
 
         return json;

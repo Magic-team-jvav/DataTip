@@ -442,11 +442,6 @@ public record TextContent(
 
         Font font = context.font();
 
-        // 如果有自定义字体，获取对应的 Font 对象
-        if (this.font != null) {
-            font = Minecraft.getInstance().font;
-        }
-
         // 解析颜色
         int resolvedColor = resolveColor(context);
 

@@ -6,6 +6,7 @@ import com.cooobird.datatip.api.content.TypewriterContent;
 import com.cooobird.datatip.config.DatatipConfig;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +64,15 @@ public class TypewriterContentParser implements ContentParser {
         boolean loop = context.getBoolean(json, "loop", false);
         int color = context.getColor(json, "color", DatatipConfig.DEFAULT_COLOR.get());
 
+        // 获取自定义字体
+        ResourceLocation font = null;
+        if (context.has(json, "font")) {
+            String fontStr = context.getString(json, "font", "");
+            if (!fontStr.isEmpty()) {
+                font = ResourceLocation.tryParse(fontStr);
+            }
+        }
+
         // 解析文本行
         List<String> lines = new ArrayList<>();
         if (context.has(json, "lines")) {
@@ -76,6 +86,6 @@ public class TypewriterContentParser implements ContentParser {
             }
         }
 
-        return new TypewriterContent(lines, charsPerSecond, pauseSeconds, loop, color);
+        return new TypewriterContent(lines, charsPerSecond, pauseSeconds, loop, color, font);
     }
 }

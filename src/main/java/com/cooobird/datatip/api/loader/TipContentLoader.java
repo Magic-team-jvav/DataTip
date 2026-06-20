@@ -9,6 +9,7 @@ import com.cooobird.datatip.api.content.VBoxContent;
 import com.cooobird.datatip.api.util.ErrorHandler;
 import com.cooobird.datatip.api.util.LegacyFormatConverter;
 import com.cooobird.datatip.api.util.ReloadOptimizer;
+import com.cooobird.datatip.config.DatatipConfig;
 import com.google.gson.*;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
@@ -233,7 +234,7 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener {
         VBoxContent vbox = VBoxContent.create();
 
         // 获取颜色
-        int color = 0xFFFFFF;
+        int color = DatatipConfig.DEFAULT_COLOR.get();
         if (json.has("color")) {
             String colorStr = json.get("color").getAsString();
             color = parseColor(colorStr);
