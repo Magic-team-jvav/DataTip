@@ -42,7 +42,7 @@ public class TipContentBuilder {
      */
     public static TextContent text(String text, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
         return new TextContent(text, null, null, null, null, null,
-            parseColor(color), null, true, TextContent.TextAlign.LEFT, 12, 0,
+            parseColor(color), null, true, BaseTextContent.TextAlign.LEFT, 12, 0,
             bold, italic, underlined, strikethrough, false);
     }
 
@@ -52,7 +52,7 @@ public class TipContentBuilder {
     public static TextContent text(String text, String color, String font) {
         return new TextContent(text, null, null, null, null,
             ResourceLocation.tryParse(font),
-            parseColor(color), null, true, TextContent.TextAlign.LEFT, 12, 0,
+            parseColor(color), null, true, BaseTextContent.TextAlign.LEFT, 12, 0,
             false, false, false, false, false);
     }
 
@@ -83,7 +83,7 @@ public class TipContentBuilder {
     public static TextContent langText(Map<String, String> langText, String color, String font) {
         return new TextContent(null, null, null, langText, null,
             ResourceLocation.tryParse(font),
-            parseColor(color), null, true, TextContent.TextAlign.LEFT, 12, 0,
+            parseColor(color), null, true, BaseTextContent.TextAlign.LEFT, 12, 0,
             false, false, false, false, false);
     }
 
@@ -106,7 +106,7 @@ public class TipContentBuilder {
      */
     public static TextContent centered(String text, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
         return new TextContent(text, null, null, null, null, null,
-            parseColor(color), null, true, TextContent.TextAlign.CENTER, 12, 0,
+            parseColor(color), null, true, BaseTextContent.TextAlign.CENTER, 12, 0,
             bold, italic, underlined, strikethrough, false);
     }
 
@@ -414,9 +414,9 @@ public class TipContentBuilder {
             if (textContent.font() != null) {
                 json.addProperty("font", textContent.font().toString());
             }
-            if (textContent.align() == TextContent.TextAlign.CENTER) {
+            if (textContent.align() == BaseTextContent.TextAlign.CENTER) {
                 json.addProperty("align", "center");
-            } else if (textContent.align() == TextContent.TextAlign.RIGHT) {
+            } else if (textContent.align() == BaseTextContent.TextAlign.RIGHT) {
                 json.addProperty("align", "right");
             }
             if (textContent.bold()) json.addProperty("bold", true);

@@ -2,6 +2,7 @@ package com.cooobird.datatip.api.parser;
 
 import com.cooobird.datatip.api.ContentParser;
 import com.cooobird.datatip.api.ParseContext;
+import com.cooobird.datatip.api.content.BaseTextContent;
 import com.cooobird.datatip.api.content.TextContent;
 import com.cooobird.datatip.config.DatatipConfig;
 import com.google.gson.JsonElement;
@@ -107,7 +108,7 @@ public class TextContentParser implements ContentParser {
         // 获取文本内容 - 支持字符串或对象（多语言）
         String text = null;
         Map<String, String> langText = null;
-        Map<String, TextContent.LangStyle> langStyledText = null;
+        Map<String, BaseTextContent.LangStyle> langStyledText = null;
 
         JsonElement textElement = json.get("text");
         if (textElement != null) {
@@ -147,18 +148,18 @@ public class TextContentParser implements ContentParser {
                                 boolean langItalic = styleObj.has("italic") && styleObj.get("italic").getAsBoolean();
                                 boolean langUnderlined = styleObj.has("underlined") && styleObj.get("underlined").getAsBoolean();
                                 boolean langStrikethrough = styleObj.has("strikethrough") && styleObj.get("strikethrough").getAsBoolean();
-                                TextContent.TextAlign langAlign = TextContent.TextAlign.LEFT;
+                                BaseTextContent.TextAlign langAlign = BaseTextContent.TextAlign.LEFT;
                                 if (styleObj.has("align")) {
                                     String a = styleObj.get("align").getAsString();
-                                    if ("center".equals(a)) langAlign = TextContent.TextAlign.CENTER;
-                                    else if ("right".equals(a)) langAlign = TextContent.TextAlign.RIGHT;
+                                    if ("center".equals(a)) langAlign = BaseTextContent.TextAlign.CENTER;
+                                    else if ("right".equals(a)) langAlign = BaseTextContent.TextAlign.RIGHT;
                                 }
                                 boolean langShift = styleObj.has("shift") && styleObj.get("shift").getAsBoolean();
-                                langStyledText.put(entry.getKey(), new TextContent.LangStyle(
+                                langStyledText.put(entry.getKey(), new BaseTextContent.LangStyle(
                                     langTextStr, langColor, langBold, langItalic, langUnderlined, langStrikethrough, langAlign, langShift));
                             } else if (entry.getValue().isJsonPrimitive()) {
                                 // 混合格式：有些语言是字符串，有些是对象
-                                langStyledText.put(entry.getKey(), new TextContent.LangStyle(
+                                langStyledText.put(entry.getKey(), new BaseTextContent.LangStyle(
                                     entry.getValue().getAsString(), DatatipConfig.DEFAULT_COLOR.get(), false, false, false, false));
                             }
                         }
@@ -220,12 +221,12 @@ public class TextContentParser implements ContentParser {
         }
 
         // 获取对齐方式
-        TextContent.TextAlign align = TextContent.TextAlign.LEFT;
+        BaseTextContent.TextAlign align = BaseTextContent.TextAlign.LEFT;
         String alignStr = context.getString(json, "align", "left");
         if ("center".equals(alignStr)) {
-            align = TextContent.TextAlign.CENTER;
+            align = BaseTextContent.TextAlign.CENTER;
         } else if ("right".equals(alignStr)) {
-            align = TextContent.TextAlign.RIGHT;
+            align = BaseTextContent.TextAlign.RIGHT;
         }
 
         // 构建 TextContent（按优先级：component > langStyledText > langText > text）

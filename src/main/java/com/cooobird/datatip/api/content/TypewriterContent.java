@@ -1,32 +1,37 @@
 package com.cooobird.datatip.api.content;
 
-import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.config.DatatipConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 打字机效果内容。
- * 逐字显示文本。
+ * 逐字显示文本，支持与 TextContent 相同的样式和多语言。
  *
  * @author cooobird
+ * @see BaseTextContent 基类
  * @since 1.2.0
  */
-public class TypewriterContent implements TipContent {
+public class TypewriterContent extends BaseTextContent {
 
     private final List<String> lines;
-    private final int charsPerSecond;     // 每秒显示字符数
-    private final int pauseSeconds;       // 换行后暂停秒数
-    private final boolean loop;
-    private final int color;
     @Nullable
-    private final ResourceLocation font;  // 自定义字体
+    private final Map<String, List<String>> langLines;
+    @Nullable
+    private final Map<String, List<LangStyle>> langStyledLines;
+    private final int charsPerSecond;
+    private final int pauseSeconds;
+    private final boolean loop;
 
     private int currentLine;
     private int currentChar;
@@ -34,19 +39,27 @@ public class TypewriterContent implements TipContent {
     private int pauseCounter;
     private boolean completed;
 
-    // 创建打字机内容
     public TypewriterContent(List<String> lines, int charsPerSecond, int pauseSeconds, boolean loop, int color) {
-        this(lines, charsPerSecond, pauseSeconds, loop, color, null);
+        this(lines, null, null, charsPerSecond, pauseSeconds, loop, color, null, null, false, false, false, false, TextAlign.LEFT, true, 12, false);
     }
 
-    // 创建打字机内容（带字体）
     public TypewriterContent(List<String> lines, int charsPerSecond, int pauseSeconds, boolean loop, int color, @Nullable ResourceLocation font) {
+        this(lines, null, null, charsPerSecond, pauseSeconds, loop, color, null, font, false, false, false, false, TextAlign.LEFT, true, 12, false);
+    }
+
+    public TypewriterContent(List<String> lines, @Nullable Map<String, List<String>> langLines,
+                             @Nullable Map<String, List<LangStyle>> langStyledLines,
+                             int charsPerSecond, int pauseSeconds, boolean loop, int color,
+                             @Nullable String colorExpression, @Nullable ResourceLocation font,
+                             boolean bold, boolean italic, boolean underlined, boolean strikethrough,
+                             TextAlign align, boolean shadow, int lineHeight, boolean shift) {
+        super(font, color, colorExpression, shadow, align, lineHeight, bold, italic, underlined, strikethrough, shift);
         this.lines = new ArrayList<>(lines);
+        this.langLines = langLines != null ? new HashMap<>(langLines) : null;
+        this.langStyledLines = langStyledLines != null ? new HashMap<>(langStyledLines) : null;
         this.charsPerSecond = Math.max(1, charsPerSecond);
         this.pauseSeconds = Math.max(0, pauseSeconds);
         this.loop = loop;
-        this.color = color;
-        this.font = font;
         this.currentLine = 0;
         this.currentChar = 0;
         this.tickCount = 0;
@@ -54,63 +67,74 @@ public class TypewriterContent implements TipContent {
         this.completed = false;
     }
 
-    // 创建默认打字机内容
     public static TypewriterContent create() {
         return new TypewriterContent(List.of(), 2, 1, false, DatatipConfig.DEFAULT_COLOR.get());
     }
 
-    // 创建带文本的打字机内容
     public static TypewriterContent of(String... lines) {
         return new TypewriterContent(List.of(lines), 2, 1, false, DatatipConfig.DEFAULT_COLOR.get());
     }
 
-    // 创建带颜色的打字机内容
     public static TypewriterContent of(int color, String... lines) {
         return new TypewriterContent(List.of(lines), 2, 20, false, color);
     }
 
-    // 添加行
-    public TypewriterContent addLine(String line) {
-        lines.add(line);
-        return this;
+    private List<String> getCurrentLines() {
+        if (langStyledLines != null && !langStyledLines.isEmpty()) {
+            String lang = Minecraft.getInstance().getLanguageManager().getSelected();
+            List<LangStyle> styledLines = langStyledLines.get(lang);
+            if (styledLines != null) {
+                List<String> result = new ArrayList<>();
+                for (LangStyle ls : styledLines) result.add(ls.text());
+                return result;
+            }
+            return List.of();
+        }
+        if (langLines != null && !langLines.isEmpty()) {
+            String lang = Minecraft.getInstance().getLanguageManager().getSelected();
+            List<String> langLinesList = langLines.get(lang);
+            if (langLinesList != null) return langLinesList;
+            return List.of();
+        }
+        return lines;
     }
 
-    // 获取行列表
+    @Nullable
+    private LangStyle getCurrentLineStyle(int lineIndex) {
+        if (langStyledLines != null && !langStyledLines.isEmpty()) {
+            String lang = Minecraft.getInstance().getLanguageManager().getSelected();
+            List<LangStyle> styledLines = langStyledLines.get(lang);
+            if (styledLines != null && lineIndex < styledLines.size()) {
+                return styledLines.get(lineIndex);
+            }
+        }
+        return null;
+    }
+
     public List<String> getLines() {
         return lines;
     }
 
-    // 获取每秒字符数
     public int getCharsPerSecond() {
         return charsPerSecond;
     }
 
-    // 是否循环
     public boolean isLoop() {
         return loop;
     }
 
-    // 获取颜色
-    public int color() {
-        return color;
-    }
-
-    // 获取自定义字体
-    @Nullable
-    public ResourceLocation font() {
-        return font;
-    }
-
     @Override
     public int getHeight(int maxWidth) {
-        return lines.size() * 12;
+        return getCurrentLines().size() * lineHeight;
     }
 
     @Override
     public int getWidth(int maxWidth) {
+        List<String> currentLines = getCurrentLines();
+        if (currentLines.isEmpty()) return 0;
         Font font = Minecraft.getInstance().font;
         int maxLineWidth = 0;
-        for (String line : lines) {
+        for (String line : currentLines) {
             maxLineWidth = Math.max(maxLineWidth, font.width(line));
         }
         return Math.min(maxLineWidth, maxWidth);
@@ -123,6 +147,8 @@ public class TypewriterContent implements TipContent {
 
     @Override
     public void tick(int tickCount) {
+        List<String> currentLines = getCurrentLines();
+        if (currentLines.isEmpty()) return;
         if (completed && !loop) return;
 
         this.tickCount++;
@@ -132,20 +158,16 @@ public class TypewriterContent implements TipContent {
             return;
         }
 
-        // 每秒显示 charsPerSecond 个字符
         int ticksPerChar = Math.max(1, 20 / charsPerSecond);
         if (this.tickCount % ticksPerChar == 0) {
-            if (currentLine < lines.size()) {
-                String currentLineText = lines.get(currentLine);
-
+            if (currentLine < currentLines.size()) {
+                String currentLineText = currentLines.get(currentLine);
                 if (currentChar < currentLineText.length()) {
                     currentChar++;
                 } else {
-                    // 换行
                     currentLine++;
                     currentChar = 0;
-
-                    if (currentLine >= lines.size()) {
+                    if (currentLine >= currentLines.size()) {
                         if (loop) {
                             currentLine = 0;
                             pauseCounter = pauseSeconds * 20;
@@ -165,7 +187,6 @@ public class TypewriterContent implements TipContent {
         reset();
     }
 
-    // 重置动画
     public void reset() {
         currentLine = 0;
         currentChar = 0;
@@ -176,13 +197,35 @@ public class TypewriterContent implements TipContent {
 
     @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
-        if (alpha <= 0 || lines.isEmpty()) return;
+        List<String> currentLines = getCurrentLines();
+        if (alpha <= 0 || currentLines.isEmpty()) return;
 
+        if (shift && !isShowTipDown()) {
+            renderShiftHint(context, x, y);
+            return;
+        }
+
+        int resolvedColor = resolveColor(context);
+        Font mcFont = context.font();
         int renderY = y;
 
-        for (int i = 0; i <= currentLine && i < lines.size(); i++) {
-            String line = lines.get(i);
+        for (int i = 0; i <= currentLine && i < currentLines.size(); i++) {
+            String line = currentLines.get(i);
             String displayText;
+            int lineColor = resolvedColor;
+            boolean lineBold = bold;
+            boolean lineItalic = italic;
+            boolean lineUnderlined = underlined;
+            boolean lineStrikethrough = strikethrough;
+
+            LangStyle lineStyle = getCurrentLineStyle(i);
+            if (lineStyle != null) {
+                lineColor = lineStyle.color();
+                lineBold = lineStyle.bold();
+                lineItalic = lineStyle.italic();
+                lineUnderlined = lineStyle.underlined();
+                lineStrikethrough = lineStyle.strikethrough();
+            }
 
             if (i < currentLine) {
                 displayText = line;
@@ -195,8 +238,17 @@ public class TypewriterContent implements TipContent {
                 break;
             }
 
-            context.drawString(displayText, x, renderY, color, this.font);
-            renderY += 12;
+            Style style = buildStyle(lineColor);
+            if (lineBold != bold) style = lineBold ? style.withBold(true) : style.withBold(false);
+            if (lineItalic != italic) style = lineItalic ? style.withItalic(true) : style.withItalic(false);
+            if (lineUnderlined != underlined)
+                style = lineUnderlined ? style.withUnderlined(true) : style.withUnderlined(false);
+            if (lineStrikethrough != strikethrough)
+                style = lineStrikethrough ? style.withStrikethrough(true) : style.withStrikethrough(false);
+
+            int lineX = calcLineX(mcFont, displayText, x, maxWidth);
+            context.graphics().drawString(mcFont, Component.literal(displayText).withStyle(style), lineX, renderY, lineColor, shadow);
+            renderY += lineHeight;
         }
     }
 }

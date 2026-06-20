@@ -35,7 +35,6 @@ public class ExampleTooltipProvider implements DataProvider {
 
         JsonObject root = new JsonObject();
 
-        // ==================== text ====================
         // 基础文本
         root.add("minecraft:diamond", toJson(vbox(2,
             text("A shiny diamond"),
@@ -79,7 +78,6 @@ public class ExampleTooltipProvider implements DataProvider {
             text("Found in Nether", "dark_red")
         )));
 
-        // ==================== langText ====================
         // 多语言
         Map<String, String> netheriteLang = new LinkedHashMap<>();
         netheriteLang.put("zh_cn", "下界合金锭");
@@ -98,7 +96,6 @@ public class ExampleTooltipProvider implements DataProvider {
             text("最强近战武器", "gold")
         )));
 
-        // ==================== item ====================
         // 基础物品
         root.add("minecraft:diamond_sword", toJson(hbox(8,
             item("minecraft:diamond_sword"),
@@ -117,7 +114,6 @@ public class ExampleTooltipProvider implements DataProvider {
             )
         )));
 
-        // ==================== progress ====================
         // 基础进度条
         root.add("minecraft:diamond_pickaxe", toJson(vbox(4,
             text("Diamond Pickaxe", "aqua"),
@@ -130,14 +126,12 @@ public class ExampleTooltipProvider implements DataProvider {
             progress(0.5f, 100)
         )));
 
-        // ==================== spacer ====================
         root.add("minecraft:stone", toJson(vbox(4,
             text("Stone", "gray"),
             spacer(8),
             text("8px spacer above", "white")
         )));
 
-        // ==================== divider ====================
         // 基础分割线
         root.add("minecraft:cobblestone", toJson(vbox(4,
             text("Cobblestone", "gray"),
@@ -159,7 +153,6 @@ public class ExampleTooltipProvider implements DataProvider {
             text("装饰方块", "white")
         )));
 
-        // ==================== entity ====================
         // 基础实体
         root.add("minecraft:wolf_spawn_egg", toJson(vbox(4,
             text("Wolf Spawn Egg", "white"),
@@ -174,7 +167,6 @@ public class ExampleTooltipProvider implements DataProvider {
             text("Can be tamed", "gray")
         )));
 
-        // ==================== block ====================
         // 基础方块
         root.add("minecraft:crafting_table", toJson(vbox(4,
             text("Crafting Table", "white"),
@@ -189,7 +181,6 @@ public class ExampleTooltipProvider implements DataProvider {
             text("Smelts items", "gray")
         )));
 
-        // ==================== atlas ====================
         // 基础纹理
         root.add("minecraft:apple", toJson(vbox(4,
             text("Apple", "red"),
@@ -204,7 +195,6 @@ public class ExampleTooltipProvider implements DataProvider {
             text("Restores health", "red")
         )));
 
-        // ==================== image ====================
         // 基础图片
         root.add("minecraft:painting", toJson(vbox(4,
             text("Painting", "white"),
@@ -219,14 +209,13 @@ public class ExampleTooltipProvider implements DataProvider {
             text("Shows explored area", "gray")
         )));
 
-        // ==================== carousel ====================
+        // 基础轮播图
         root.add("minecraft:enchanted_golden_apple", toJson(carousel(3,
             vbox(2, text("Golden Apple", "gold"), text("恢复生命", "red")),
             vbox(2, text("金苹果", "gold"), text("稀有食物", "light_purple")),
             vbox(2, text("Enchanted Apple", "gold"), text("Absorption", "yellow"))
         )));
 
-        // ==================== typewriter ====================
         // 基础打字机
         root.add("minecraft:nether_star", toJson(vbox(4,
             text("Nether Star", "light_purple"),
@@ -245,7 +234,18 @@ public class ExampleTooltipProvider implements DataProvider {
             typewriter(0xFF55FFFF, 5, 2, true, "提供增益效果", "需要金字塔基座")
         )));
 
-        // ==================== chart ====================
+        // 打字机多语言
+        root.add("minecraft:end_stone", toJson(vbox(4,
+            text("End Stone", "yellow"),
+            typewriter("生成于末地", "可被引爆")
+        )));
+
+        // 打字机带样式
+        root.add("minecraft:purpur_block", toJson(vbox(4,
+            text("Purpur Block", "light_purple"),
+            typewriter("生成于末地", "可被引爆")
+        )));
+
         // 柱状图
         root.add("minecraft:compass", toJson(vbox(4,
             text("Compass", "red"),
@@ -274,7 +274,6 @@ public class ExampleTooltipProvider implements DataProvider {
             )
         )));
 
-        // ==================== aligned ====================
         // 居中对齐
         root.add("minecraft:emerald_block", toJson(vbox(4,
             centeredAligned(text("Centered Item", "green")),
@@ -287,7 +286,6 @@ public class ExampleTooltipProvider implements DataProvider {
             text("Diamond Block", "aqua")
         )));
 
-        // ==================== vbox / hbox ====================
         // 垂直布局
         root.add("minecraft:chest", toJson(vbox(4,
             text("Chest", "white"),
@@ -302,7 +300,6 @@ public class ExampleTooltipProvider implements DataProvider {
             text("27 slots", "yellow")
         )));
 
-        // ==================== 综合示例 ====================
         // 复杂布局
         root.add("minecraft:enchanted_book", toJson(vbox(4,
             text("Enchanted Book", "light_purple", true, false, false, false),

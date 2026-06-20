@@ -1,10 +1,7 @@
 package com.cooobird.datatip.api.util;
 
 import com.cooobird.datatip.api.TipContent;
-import com.cooobird.datatip.api.content.DividerContent;
-import com.cooobird.datatip.api.content.SpacerContent;
-import com.cooobird.datatip.api.content.TextContent;
-import com.cooobird.datatip.api.content.VBoxContent;
+import com.cooobird.datatip.api.content.*;
 import com.cooobird.datatip.config.DatatipConfig;
 import com.google.gson.*;
 import net.minecraft.client.Minecraft;
@@ -269,7 +266,7 @@ public class LegacyFormatConverter {
                         if (longestArray != null) {
                             for (int i = 0; i < longestArray.size(); i++) {
                                 // 收集每行每语言的文本和样式
-                                Map<String, TextContent.LangStyle> lineLangStyles = new HashMap<>();
+                                Map<String, BaseTextContent.LangStyle> lineLangStyles = new HashMap<>();
 
                                 for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
                                     String lang = langEntry.getKey();
@@ -280,7 +277,7 @@ public class LegacyFormatConverter {
                                             JsonElement line = lines.get(i);
                                             if (line.isJsonPrimitive()) {
                                                 // 纯文本行，使用顶层样式
-                                                lineLangStyles.put(lang, new TextContent.LangStyle(
+                                                lineLangStyles.put(lang, new BaseTextContent.LangStyle(
                                                     line.getAsString(), color, topBold, topItalic, topUnderlined, topStrikethrough));
                                             } else if (line.isJsonObject()) {
                                                 // 带样式的行，提取该语言的样式
@@ -291,12 +288,12 @@ public class LegacyFormatConverter {
                                                 boolean lineItalic = lineObj.has("italic") ? lineObj.get("italic").getAsBoolean() : topItalic;
                                                 boolean lineUnderlined = lineObj.has("underlined") ? lineObj.get("underlined").getAsBoolean() : topUnderlined;
                                                 boolean lineStrikethrough = lineObj.has("strikethrough") ? lineObj.get("strikethrough").getAsBoolean() : topStrikethrough;
-                                                lineLangStyles.put(lang, new TextContent.LangStyle(
+                                                lineLangStyles.put(lang, new BaseTextContent.LangStyle(
                                                     lineText, lineColor, lineBold, lineItalic, lineUnderlined, lineStrikethrough));
                                             }
                                         }
                                     } else if (langValue.isJsonPrimitive() && i == 0) {
-                                        lineLangStyles.put(lang, new TextContent.LangStyle(
+                                        lineLangStyles.put(lang, new BaseTextContent.LangStyle(
                                             langValue.getAsString(), color, topBold, topItalic, topUnderlined, topStrikethrough));
                                     }
                                 }
@@ -352,7 +349,7 @@ public class LegacyFormatConverter {
             } else if (textElement.isJsonPrimitive()) {
                 // 单个字符串（应用顶层样式）
                 TextContent singleText = new TextContent(textElement.getAsString(), null, null, null, null, null,
-                    color, null, true, TextContent.TextAlign.LEFT, 12, 0,
+                    color, null, true, BaseTextContent.TextAlign.LEFT, 12, 0,
                     topBold, topItalic, topUnderlined, topStrikethrough, false);
                 vbox.addChild(singleText);
             }
@@ -407,7 +404,7 @@ public class LegacyFormatConverter {
 
         // 创建 TextContent（使用文本字符串，而非 Component）
         return new TextContent(text, null, null, null, null, null, color, null, true,
-            TextContent.TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
+            BaseTextContent.TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
     }
 
     /**
@@ -422,8 +419,8 @@ public class LegacyFormatConverter {
                 // 优先使用带样式的多语言文本
                 if (textContent.langStyledText() != null && !textContent.langStyledText().isEmpty()) {
                     JsonObject langObj = new JsonObject();
-                    for (Map.Entry<String, TextContent.LangStyle> entry : textContent.langStyledText().entrySet()) {
-                        TextContent.LangStyle style = entry.getValue();
+                    for (Map.Entry<String, BaseTextContent.LangStyle> entry : textContent.langStyledText().entrySet()) {
+                        BaseTextContent.LangStyle style = entry.getValue();
                         JsonObject styleObj = new JsonObject();
                         styleObj.addProperty("text", style.text());
                         if (style.color() != DatatipConfig.DEFAULT_COLOR.get()) {
@@ -449,9 +446,9 @@ public class LegacyFormatConverter {
                 if (textContent.color() != DatatipConfig.DEFAULT_COLOR.get()) {
                     json.addProperty("color", String.format("#%06X", textContent.color() & 0xFFFFFF));
                 }
-                if (textContent.align() == TextContent.TextAlign.CENTER) {
+                if (textContent.align() == BaseTextContent.TextAlign.CENTER) {
                     json.addProperty("align", "center");
-                } else if (textContent.align() == TextContent.TextAlign.RIGHT) {
+                } else if (textContent.align() == BaseTextContent.TextAlign.RIGHT) {
                     json.addProperty("align", "right");
                 }
                 if (textContent.bold()) json.addProperty("bold", true);
@@ -476,7 +473,7 @@ public class LegacyFormatConverter {
                 json.addProperty("type", "divider");
                 json.addProperty("color", String.format("#%06X", divider.color() & 0xFFFFFF));
             }
-            default -> {
+            case null, default -> {
             }
         }
 

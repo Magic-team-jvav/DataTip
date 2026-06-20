@@ -235,14 +235,22 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 ## 打字机属性
 
-| 属性               | 类型      | 默认值     | 说明      |
-|------------------|---------|---------|---------|
-| `lines`          | Array   | -       | 文本行数组   |
-| `charsPerSecond` | int     | 2       | 每秒字符数   |
-| `pauseSeconds`   | int     | 1       | 行间暂停（秒） |
-| `loop`           | boolean | false   | 循环播放    |
-| `color`          | String  | "white" | 文本颜色    |
-| `font`           | String  | -       | 自定义字体   |
+| 属性               | 类型           | 默认值     | 说明                         |
+|------------------|--------------|---------|----------------------------|
+| `lines`          | Array/Object | -       | 文本行数组（支持多语言对象）             |
+| `charsPerSecond` | int          | 2       | 每秒字符数                      |
+| `pauseSeconds`   | int          | 1       | 行间暂停（秒）                    |
+| `loop`           | boolean      | false   | 循环播放                       |
+| `color`          | String       | "white" | 文本颜色                       |
+| `font`           | String       | -       | 自定义字体                      |
+| `bold`           | boolean      | false   | 粗体                         |
+| `italic`         | boolean      | false   | 斜体                         |
+| `underlined`     | boolean      | false   | 下划线                        |
+| `strikethrough`  | boolean      | false   | 删除线                        |
+| `align`          | String       | "left"  | 对齐：`left`、`center`、`right` |
+| `shadow`         | boolean      | true    | 文字阴影                       |
+| `lineHeight`     | int          | 12      | 行高（像素）                     |
+| `shift`          | boolean      | false   | 需要按住 Shift 才显示             |
 
 ## 图表属性
 
