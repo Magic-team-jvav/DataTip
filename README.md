@@ -123,6 +123,19 @@ Animated text reveal effect.
 }
 ```
 
+Multi-language typewriter:
+```json
+{
+  "type": "typewriter",
+  "lines": {
+    "zh_cn": ["你好", "世界"],
+    "en_us": ["Hello", "World"]
+  },
+  "bold": true,
+  "color": "gold"
+}
+```
+
 #### atlas
 Render texture from atlas (item/block ID auto-converts).
 ```json
@@ -235,14 +248,22 @@ Empty spacing between content.
 
 ## Typewriter Properties
 
-| Property         | Type    | Default | Description                   |
-|------------------|---------|---------|-------------------------------|
-| `lines`          | Array   | -       | Text lines array              |
-| `charsPerSecond` | int     | 2       | Characters per second         |
-| `pauseSeconds`   | int     | 1       | Pause between lines (seconds) |
-| `loop`           | boolean | false   | Loop animation                |
-| `color`          | String  | "white" | Text color                    |
-| `font`           | String  | -       | Custom font                   |
+| Property         | Type         | Default | Description                                       |
+|------------------|--------------|---------|---------------------------------------------------|
+| `lines`          | Array/Object | -       | Text lines array (supports multi-language object) |
+| `charsPerSecond` | int          | 2       | Characters per second                             |
+| `pauseSeconds`   | int          | 1       | Pause between lines (seconds)                     |
+| `loop`           | boolean      | false   | Loop animation                                    |
+| `color`          | String       | "white" | Text color                                        |
+| `font`           | String       | -       | Custom font                                       |
+| `bold`           | boolean      | false   | Bold text                                         |
+| `italic`         | boolean      | false   | Italic text                                       |
+| `underlined`     | boolean      | false   | Underlined text                                   |
+| `strikethrough`  | boolean      | false   | Strikethrough text                                |
+| `align`          | String       | "left"  | Alignment: `left`, `center`, `right`              |
+| `shadow`         | boolean      | true    | Text shadow                                       |
+| `lineHeight`     | int          | 12      | Line height in pixels                             |
+| `shift`          | boolean      | false   | Only show when holding Shift                      |
 
 ## Chart Properties
 

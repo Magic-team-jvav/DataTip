@@ -23,80 +23,131 @@ import java.util.Map;
  */
 public class TipContentBuilder {
 
+    /**
+     * 创建文本内容
+     */
     public static TextContent text(String text) {
         return TextContent.of(text);
     }
 
+    /**
+     * 创建带颜色的文本内容
+     */
     public static TextContent text(String text, String color) {
         return TextContent.of(text, parseColor(color));
     }
 
+    /**
+     * 创建带样式的文本内容
+     */
     public static TextContent text(String text, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
         return new TextContent(text, null, null, null, null, null,
-            parseColor(color), null, true, TextContent.TextAlign.LEFT, 12, 0,
+            parseColor(color), null, true, BaseTextContent.TextAlign.LEFT, 12, 0,
             bold, italic, underlined, strikethrough, false);
     }
 
+    /**
+     * 创建带自定义字体的文本内容
+     */
     public static TextContent text(String text, String color, String font) {
         return new TextContent(text, null, null, null, null,
             ResourceLocation.tryParse(font),
-            parseColor(color), null, true, TextContent.TextAlign.LEFT, 12, 0,
+            parseColor(color), null, true, BaseTextContent.TextAlign.LEFT, 12, 0,
             false, false, false, false, false);
     }
 
+    /**
+     * 创建多语言文本内容
+     */
     public static TextContent langText(Map<String, String> langText) {
         return TextContent.ofLang(langText);
     }
 
+    /**
+     * 创建多语言文本内容（带颜色）
+     */
     public static TextContent langText(Map<String, String> langText, String color) {
         return TextContent.ofLang(langText, parseColor(color));
     }
 
+    /**
+     * 创建多语言文本内容（带样式）
+     */
     public static TextContent langText(Map<String, String> langText, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
         return TextContent.ofLang(langText, parseColor(color), bold, italic, underlined, strikethrough);
     }
 
+    /**
+     * 创建多语言文本内容（带字体）
+     */
     public static TextContent langText(Map<String, String> langText, String color, String font) {
         return new TextContent(null, null, null, langText, null,
             ResourceLocation.tryParse(font),
-            parseColor(color), null, true, TextContent.TextAlign.LEFT, 12, 0,
+            parseColor(color), null, true, BaseTextContent.TextAlign.LEFT, 12, 0,
             false, false, false, false, false);
     }
 
+    /**
+     * 创建居中文本
+     */
     public static TextContent centered(String text) {
         return TextContent.centered(text);
     }
 
+    /**
+     * 创建居中文本（带颜色）
+     */
     public static TextContent centered(String text, String color) {
         return TextContent.centered(text, parseColor(color));
     }
 
+    /**
+     * 创建居中文本（带样式）
+     */
     public static TextContent centered(String text, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
         return new TextContent(text, null, null, null, null, null,
-            parseColor(color), null, true, TextContent.TextAlign.CENTER, 12, 0,
+            parseColor(color), null, true, BaseTextContent.TextAlign.CENTER, 12, 0,
             bold, italic, underlined, strikethrough, false);
     }
 
+    /**
+     * 创建右对齐文本
+     */
     public static TextContent rightAligned(String text) {
         return TextContent.rightAligned(text);
     }
 
+    /**
+     * 创建右对齐文本（带颜色）
+     */
     public static TextContent rightAligned(String text, String color) {
         return TextContent.rightAligned(text, parseColor(color));
     }
 
+    /**
+     * 创建间距
+     */
     public static SpacerContent spacer(int height) {
         return SpacerContent.of(height);
     }
 
+    /**
+     * 创建分割线
+     */
     public static DividerContent divider() {
         return DividerContent.create();
     }
 
+    /**
+     * 创建分割线（带颜色）
+     */
     public static DividerContent divider(String color) {
         return DividerContent.of(parseColor(color));
     }
 
+    /**
+     * 创建分割线（带颜色和样式）
+     */
     public static DividerContent divider(String color, String style) {
         return DividerContent.of(parseColor(color), switch (style.toLowerCase()) {
             case "dashed" -> DividerContent.DividerStyle.DASHED;
@@ -105,12 +156,18 @@ public class TipContentBuilder {
         });
     }
 
+    /**
+     * 创建物品内容
+     */
     public static ItemContent item(String itemId) {
         return ItemContent.of(new ItemStack(
             BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId))
         ));
     }
 
+    /**
+     * 创建物品内容（带标签）
+     */
     public static ItemContent item(String itemId, String label) {
         return ItemContent.withLabel(
             new ItemStack(
@@ -120,15 +177,24 @@ public class TipContentBuilder {
         );
     }
 
+    /**
+     * 创建进度条
+     */
     public static ProgressContent progress(float progress, int width) {
         return ProgressContent.of(progress, width);
     }
 
+    /**
+     * 创建进度条（带标签）
+     */
     public static ProgressContent progress(float progress, int width, String label) {
         return ProgressContent.withCustomLabel(progress, width,
             net.minecraft.network.chat.Component.literal(label));
     }
 
+    /**
+     * 创建垂直布局
+     */
     public static VBoxContent vbox(TipContent... children) {
         VBoxContent vbox = VBoxContent.create();
         for (TipContent child : children) {
@@ -137,6 +203,9 @@ public class TipContentBuilder {
         return vbox;
     }
 
+    /**
+     * 创建垂直布局（带间距）
+     */
     public static VBoxContent vbox(int gap, TipContent... children) {
         VBoxContent vbox = VBoxContent.withGap(gap);
         for (TipContent child : children) {
@@ -145,6 +214,9 @@ public class TipContentBuilder {
         return vbox;
     }
 
+    /**
+     * 创建水平布局
+     */
     public static HBoxContent hbox(TipContent... children) {
         HBoxContent hbox = HBoxContent.create();
         for (TipContent child : children) {
@@ -153,6 +225,9 @@ public class TipContentBuilder {
         return hbox;
     }
 
+    /**
+     * 创建水平布局（带间距）
+     */
     public static HBoxContent hbox(int gap, TipContent... children) {
         HBoxContent hbox = HBoxContent.withGap(gap);
         for (TipContent child : children) {
@@ -161,6 +236,9 @@ public class TipContentBuilder {
         return hbox;
     }
 
+    /**
+     * 创建轮播容器
+     */
     public static CarouselContent carousel(int intervalSeconds, TipContent... frames) {
         CarouselContent carousel = CarouselContent.withInterval(intervalSeconds);
         for (TipContent frame : frames) {
@@ -169,58 +247,97 @@ public class TipContentBuilder {
         return carousel;
     }
 
+    /**
+     * 创建打字机效果
+     */
     public static TypewriterContent typewriter(String... lines) {
         return TypewriterContent.of(lines);
     }
 
+    /**
+     * 创建打字机效果（带颜色）
+     */
     public static TypewriterContent typewriter(int color, String... lines) {
         return TypewriterContent.of(color, lines);
     }
 
+    /**
+     * 创建打字机效果（带颜色和字体）
+     */
     public static TypewriterContent typewriter(int color, String font, String... lines) {
         return new TypewriterContent(List.of(lines), 2, 1, false, color, ResourceLocation.tryParse(font));
     }
 
+    /**
+     * 创建打字机效果（全参数）
+     */
     public static TypewriterContent typewriter(int color, int charsPerSecond, int pauseSeconds, boolean loop, String... lines) {
         return new TypewriterContent(List.of(lines), charsPerSecond, pauseSeconds, loop, color);
     }
 
+    /**
+     * 创建实体内容
+     */
     public static EntityContent entity(String entityId, int size) {
         EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(entityId));
         return EntityContent.of(entityType, size);
     }
 
+    /**
+     * 创建实体内容（带偏移）
+     */
     public static EntityContent entity(String entityId, int size, int offsetX, int offsetY) {
         EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(entityId));
         return EntityContent.withOffset(entityType, size, offsetX, offsetY);
     }
 
+    /**
+     * 创建方块内容
+     */
     public static BlockContent block(String blockId, int size) {
         Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(blockId));
         return BlockContent.of(block, size);
     }
 
+    /**
+     * 创建方块内容（带偏移）
+     */
     public static BlockContent block(String blockId, int size, int offsetX, int offsetY) {
         Block block = BuiltInRegistries.BLOCK.get(ResourceLocation.parse(blockId));
         return BlockContent.withOffset(block, size, offsetX, offsetY);
     }
 
+    /**
+     * 创建纹理内容（从物品 ID）
+     */
     public static AtlasContent atlas(String itemId, int size) {
         return AtlasContent.fromItem(ResourceLocation.parse(itemId), size);
     }
 
+    /**
+     * 创建纹理内容（带偏移）
+     */
     public static AtlasContent atlas(String itemId, int size, int offsetX, int offsetY) {
         return AtlasContent.withOffset(ResourceLocation.parse(itemId), size, offsetX, offsetY);
     }
 
+    /**
+     * 创建图片内容
+     */
     public static ImageContent image(String texture, int width, int height) {
         return ImageContent.of(ResourceLocation.parse(texture), width, height);
     }
 
+    /**
+     * 创建图片内容（带偏移）
+     */
     public static ImageContent image(String texture, int width, int height, int offsetX, int offsetY) {
         return ImageContent.withOffset(ResourceLocation.parse(texture), width, height, offsetX, offsetY);
     }
 
+    /**
+     * 创建图表内容
+     */
     public static ChartContent chart(String chartType, int width, int height) {
         return switch (chartType.toLowerCase()) {
             case "pie" -> ChartContent.pie(width);
@@ -229,6 +346,9 @@ public class TipContentBuilder {
         };
     }
 
+    /**
+     * 创建图表内容（带标题和数据）
+     */
     public static ChartContent chart(String chartType, int width, int height, String title, ChartContent.ChartEntry... entries) {
         ChartContent chart = switch (chartType.toLowerCase()) {
             case "pie" -> ChartContent.pie(width);
@@ -242,26 +362,44 @@ public class TipContentBuilder {
         return chart;
     }
 
+    /**
+     * 创建图表数据条目
+     */
     public static ChartContent.ChartEntry chartEntry(String label, double value, String color) {
         return new ChartContent.ChartEntry(label, String.valueOf(value), parseColor(color));
     }
 
+    /**
+     * 创建图表数据条目（带变量表达式）
+     */
     public static ChartContent.ChartEntry chartEntry(String label, String valueExpr, String color) {
         return new ChartContent.ChartEntry(label, valueExpr, parseColor(color));
     }
 
+    /**
+     * 创建对齐包装
+     */
     public static AlignedContent aligned(TipContent content, VBoxContent.HorizontalAlign align) {
         return new AlignedContent(content, align);
     }
 
+    /**
+     * 创建居中对齐包装
+     */
     public static AlignedContent centeredAligned(TipContent content) {
         return new AlignedContent(content, VBoxContent.HorizontalAlign.CENTER);
     }
 
+    /**
+     * 创建右对齐包装
+     */
     public static AlignedContent rightAlignedContent(TipContent content) {
         return new AlignedContent(content, VBoxContent.HorizontalAlign.RIGHT);
     }
 
+    /**
+     * 将 TipContent 转换为 JSON
+     */
     public static JsonObject toJson(TipContent content) {
         JsonObject json = new JsonObject();
 
@@ -270,22 +408,15 @@ public class TipContentBuilder {
             if (textContent.text() != null) {
                 json.addProperty("text", textContent.text());
             }
-            if (textContent.langText() != null && !textContent.langText().isEmpty()) {
-                JsonObject langObj = new JsonObject();
-                for (Map.Entry<String, String> entry : textContent.langText().entrySet()) {
-                    langObj.addProperty(entry.getKey(), entry.getValue());
-                }
-                json.add("text", langObj);
-            }
             if (textContent.color() != 0xFFFFFF) {
                 json.addProperty("color", String.format("#%06X", textContent.color() & 0xFFFFFF));
             }
             if (textContent.font() != null) {
                 json.addProperty("font", textContent.font().toString());
             }
-            if (textContent.align() == TextContent.TextAlign.CENTER) {
+            if (textContent.align() == BaseTextContent.TextAlign.CENTER) {
                 json.addProperty("align", "center");
-            } else if (textContent.align() == TextContent.TextAlign.RIGHT) {
+            } else if (textContent.align() == BaseTextContent.TextAlign.RIGHT) {
                 json.addProperty("align", "right");
             }
             if (textContent.bold()) json.addProperty("bold", true);
@@ -333,28 +464,44 @@ public class TipContentBuilder {
             json.addProperty("entity", BuiltInRegistries.ENTITY_TYPE.getKey(entity.entityType()).toString());
             json.addProperty("size", entity.size());
             json.addProperty("autoRotate", entity.autoRotate());
-            if (entity.offsetX() != 0) json.addProperty("offsetX", entity.offsetX());
-            if (entity.offsetY() != 0) json.addProperty("offsetY", entity.offsetY());
+            if (entity.offsetX() != 0) {
+                json.addProperty("offsetX", entity.offsetX());
+            }
+            if (entity.offsetY() != 0) {
+                json.addProperty("offsetY", entity.offsetY());
+            }
         } else if (content instanceof BlockContent block) {
             json.addProperty("type", "block");
             json.addProperty("block", BuiltInRegistries.BLOCK.getKey(block.block()).toString());
             json.addProperty("size", block.size());
             json.addProperty("autoRotate", block.autoRotate());
-            if (block.offsetX() != 0) json.addProperty("offsetX", block.offsetX());
-            if (block.offsetY() != 0) json.addProperty("offsetY", block.offsetY());
+            if (block.offsetX() != 0) {
+                json.addProperty("offsetX", block.offsetX());
+            }
+            if (block.offsetY() != 0) {
+                json.addProperty("offsetY", block.offsetY());
+            }
         } else if (content instanceof AtlasContent atlas) {
             json.addProperty("type", "atlas");
             json.addProperty("texture", atlas.texturePath().toString());
             json.addProperty("size", atlas.width());
-            if (atlas.offsetX() != 0) json.addProperty("offsetX", atlas.offsetX());
-            if (atlas.offsetY() != 0) json.addProperty("offsetY", atlas.offsetY());
+            if (atlas.offsetX() != 0) {
+                json.addProperty("offsetX", atlas.offsetX());
+            }
+            if (atlas.offsetY() != 0) {
+                json.addProperty("offsetY", atlas.offsetY());
+            }
         } else if (content instanceof ImageContent image) {
             json.addProperty("type", "image");
             json.addProperty("texture", image.texture().toString());
             json.addProperty("width", image.width());
             json.addProperty("height", image.height());
-            if (image.offsetX() != 0) json.addProperty("offsetX", image.offsetX());
-            if (image.offsetY() != 0) json.addProperty("offsetY", image.offsetY());
+            if (image.offsetX() != 0) {
+                json.addProperty("offsetX", image.offsetX());
+            }
+            if (image.offsetY() != 0) {
+                json.addProperty("offsetY", image.offsetY());
+            }
         } else if (content instanceof ChartContent chart) {
             json.addProperty("type", "chart");
             json.addProperty("chartType", chart.type().toString().toLowerCase());
@@ -389,6 +536,9 @@ public class TipContentBuilder {
         return json;
     }
 
+    /**
+     * 解析颜色字符串
+     */
     private static int parseColor(String colorStr) {
         if (colorStr.startsWith("#")) {
             try {
