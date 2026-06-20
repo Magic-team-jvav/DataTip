@@ -835,27 +835,6 @@ Then use in JSON:
 }
 ```
 
-### Register Custom Themes
-```java
-TipThemeManager.registerTheme("dark", new TipThemeManager.TipTheme(
-    0xFF1E1E1E,  // background
-    0xFF333333,  // border
-    0xFFFFFFFF,  // text
-    12,          // lineHeight
-    200          // maxWidth
-));
-```
-
-### Register Custom Templates
-```java
-TipTemplateManager.registerTemplate("item_card", variables -> {
-    JsonObject json = new JsonObject();
-    json.addProperty("type", "vbox");
-    // ... build JSON from variables
-    return json;
-});
-```
-
 ### Event Hooks
 ```java
 // Pre-render event (modify or cancel)

@@ -125,7 +125,10 @@ public class LegacyFormatConverter {
                 JsonObject textObj = textElement.getAsJsonObject();
                 boolean isMultiLang = false;
                 for (String k : textObj.keySet()) {
-                    if (k.contains("_")) { isMultiLang = true; break; }
+                    if (k.contains("_")) {
+                        isMultiLang = true;
+                        break;
+                    }
                 }
 
                 if (isMultiLang) {
@@ -134,7 +137,10 @@ public class LegacyFormatConverter {
                         JsonElement langValue = langEntry.getValue();
                         if (langValue.isJsonArray()) {
                             for (JsonElement line : langValue.getAsJsonArray()) {
-                                if (line.isJsonObject()) { hasStyledLines = true; break; }
+                                if (line.isJsonObject()) {
+                                    hasStyledLines = true;
+                                    break;
+                                }
                             }
                         }
                         if (hasStyledLines) break;
@@ -197,13 +203,15 @@ public class LegacyFormatConverter {
                             } else continue;
                             if (!text.isEmpty()) langMap.put(langEntry.getKey(), text);
                         }
-                        if (!langMap.isEmpty()) vbox.addChild(TextContent.ofLang(langMap, color, topBold, topItalic, topUnderlined, topStrikethrough));
+                        if (!langMap.isEmpty())
+                            vbox.addChild(TextContent.ofLang(langMap, color, topBold, topItalic, topUnderlined, topStrikethrough));
                     }
                 } else {
                     for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
                         for (JsonElement line : langEntry.getValue().getAsJsonArray()) {
                             if (line.isJsonPrimitive()) vbox.addChild(TextContent.of(line.getAsString(), color));
-                            else if (line.isJsonObject()) vbox.addChild(convertStyledLine(line.getAsJsonObject(), color, topStrikethrough, topBold, topItalic, topUnderlined));
+                            else if (line.isJsonObject())
+                                vbox.addChild(convertStyledLine(line.getAsJsonObject(), color, topStrikethrough, topBold, topItalic, topUnderlined));
                         }
                     }
                 }
@@ -240,7 +248,8 @@ public class LegacyFormatConverter {
                     TextContent.LangStyle style = entry.getValue();
                     JsonObject styleObj = new JsonObject();
                     styleObj.addProperty("text", style.text());
-                    if (style.color() != 0xFFFFFF) styleObj.addProperty("color", String.format("#%06X", style.color() & 0xFFFFFF));
+                    if (style.color() != 0xFFFFFF)
+                        styleObj.addProperty("color", String.format("#%06X", style.color() & 0xFFFFFF));
                     if (style.bold()) styleObj.addProperty("bold", true);
                     if (style.italic()) styleObj.addProperty("italic", true);
                     if (style.underlined()) styleObj.addProperty("underlined", true);
@@ -250,12 +259,14 @@ public class LegacyFormatConverter {
                 json.add("text", langObj);
             } else if (textContent.langText() != null && !textContent.langText().isEmpty()) {
                 JsonObject langObj = new JsonObject();
-                for (Map.Entry<String, String> entry : textContent.langText().entrySet()) langObj.addProperty(entry.getKey(), entry.getValue());
+                for (Map.Entry<String, String> entry : textContent.langText().entrySet())
+                    langObj.addProperty(entry.getKey(), entry.getValue());
                 json.add("text", langObj);
             } else if (textContent.text() != null) {
                 json.addProperty("text", textContent.text());
             }
-            if (textContent.color() != 0xFFFFFF) json.addProperty("color", String.format("#%06X", textContent.color() & 0xFFFFFF));
+            if (textContent.color() != 0xFFFFFF)
+                json.addProperty("color", String.format("#%06X", textContent.color() & 0xFFFFFF));
             if (textContent.align() == TextContent.TextAlign.CENTER) json.addProperty("align", "center");
             else if (textContent.align() == TextContent.TextAlign.RIGHT) json.addProperty("align", "right");
             if (textContent.bold()) json.addProperty("bold", true);
@@ -280,8 +291,11 @@ public class LegacyFormatConverter {
 
     private static int parseColor(String colorStr) {
         if (colorStr.startsWith("#")) {
-            try { return (int) Long.parseLong(colorStr.substring(1), 16) | 0xFF000000; }
-            catch (NumberFormatException e) { return 0xFFFFFFFF; }
+            try {
+                return (int) Long.parseLong(colorStr.substring(1), 16) | 0xFF000000;
+            } catch (NumberFormatException e) {
+                return 0xFFFFFFFF;
+            }
         }
         return switch (colorStr.toLowerCase()) {
             case "black" -> 0xFF000000;
