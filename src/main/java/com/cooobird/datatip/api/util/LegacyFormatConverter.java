@@ -426,7 +426,7 @@ public class LegacyFormatConverter {
                         TextContent.LangStyle style = entry.getValue();
                         JsonObject styleObj = new JsonObject();
                         styleObj.addProperty("text", style.text());
-                        if (style.color() != 0xFFFFFF) {
+                        if (style.color() != DatatipConfig.DEFAULT_COLOR.get()) {
                             styleObj.addProperty("color", String.format("#%06X", style.color() & 0xFFFFFF));
                         }
                         if (style.bold()) styleObj.addProperty("bold", true);
@@ -446,7 +446,7 @@ public class LegacyFormatConverter {
                 } else if (textContent.text() != null) {
                     json.addProperty("text", textContent.text());
                 }
-                if (textContent.color() != 0xFFFFFF) {
+                if (textContent.color() != DatatipConfig.DEFAULT_COLOR.get()) {
                     json.addProperty("color", String.format("#%06X", textContent.color() & 0xFFFFFF));
                 }
                 if (textContent.align() == TextContent.TextAlign.CENTER) {

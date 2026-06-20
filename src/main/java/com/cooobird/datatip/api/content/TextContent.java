@@ -388,11 +388,14 @@ public record TextContent(
         int effectiveMaxWidth = (maxWidth > 0) ? maxWidth : availableWidth;
         int effectiveWidth = Math.min(effectiveMaxWidth, availableWidth);
 
+        FormattedText text = getFormattedText();
+        // 空文本不占空间
+        if (text == FormattedText.EMPTY) return 0;
+
         if (effectiveWidth <= 0) {
             return lineHeight;
         }
 
-        FormattedText text = getFormattedText();
         List<FormattedCharSequence> lines = font.split(text, effectiveWidth);
         return Math.max(1, lines.size()) * lineHeight;
     }
@@ -409,6 +412,9 @@ public record TextContent(
         int effectiveMaxWidth = (maxWidth > 0) ? maxWidth : availableWidth;
         int effectiveWidth = Math.min(effectiveMaxWidth, availableWidth);
 
+        FormattedText text = getFormattedText();
+        if (text == FormattedText.EMPTY) return 0;
+
         if (effectiveWidth <= 0) {
             return 0;
         }
@@ -416,8 +422,6 @@ public record TextContent(
         if (align == TextAlign.CENTER || align == TextAlign.RIGHT) {
             return effectiveWidth;
         }
-
-        FormattedText text = getFormattedText();
 
         // 如果需要换行，返回换行宽度
         if (maxWidth > 0) {
@@ -431,10 +435,10 @@ public record TextContent(
     @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0) return;
+        if (getFormattedText() == FormattedText.EMPTY) return;
 
         if (shift && !isShowTipDown()) {
-            Component hint = Component.translatable("tooltip.datatip.hold_shift",
-                TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
+            Component hint = Component.translatable("tooltip.datatip.hold_shift", TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
             // 左对齐显示提示文本
             context.drawString(hint, x, y, 0x888888, true);
             return;
