@@ -10,6 +10,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -70,12 +71,12 @@ public class LegacyFormatConverter {
                 return true;
             }
         }
-        return false;
+        return false; // 所有条目都有 "type" 字段，是新版本格式
     }
 
     /**
      * 将老版本格式转换为新版本格式。
-     * 保留 shift、prepend 等顶层属性。
+     * 保留 shift、prepend、conditions 等顶层属性。
      */
     public static JsonObject convert(JsonObject legacyJson) {
         JsonObject result = new JsonObject();
@@ -179,19 +180,43 @@ public class LegacyFormatConverter {
                     }
                 }
             } else if (textElement.isJsonObject()) {
-                // 多语言格式
+                // 多语言格式 {"zh_cn": ["削铁如泥"], "en_us": ["Cuts through iron"]}
                 JsonObject textObj = textElement.getAsJsonObject();
-                // 使用第一个语言
-                for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
-                    JsonArray lines = langEntry.getValue().getAsJsonArray();
-                    for (JsonElement line : lines) {
-                        if (line.isJsonPrimitive()) {
-                            vbox.addChild(TextContent.of(line.getAsString(), color));
-                        } else if (line.isJsonObject()) {
-                            vbox.addChild(convertStyledLine(line.getAsJsonObject(), color, topStrikethrough, topBold, topItalic, topUnderlined));
+
+                boolean isMultiLang = false;
+                for (String key : textObj.keySet()) {
+                    if (key.contains("_")) {
+                        isMultiLang = true;
+                        break;
+                    }
+                }
+                
+                if (isMultiLang) {
+                    // 多语言格式：使用 TextContent.ofLang()
+                    Map<String, String> langMap = new HashMap<>();
+                    for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
+                        JsonArray lines = langEntry.getValue().getAsJsonArray();
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < lines.size(); i++) {
+                            if (i > 0) sb.append("\n");
+                            sb.append(lines.get(i).getAsString());
+                        }
+                        langMap.put(langEntry.getKey(), sb.toString());
+                    }
+                    TextContent langText = TextContent.ofLang(langMap, color, topBold, topItalic, topUnderlined, topStrikethrough);
+                    vbox.addChild(langText);
+                } else {
+                    // 普通对象格式（带样式的行）
+                    for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
+                        JsonArray lines = langEntry.getValue().getAsJsonArray();
+                        for (JsonElement line : lines) {
+                            if (line.isJsonPrimitive()) {
+                                vbox.addChild(TextContent.of(line.getAsString(), color));
+                            } else if (line.isJsonObject()) {
+                                vbox.addChild(convertStyledLine(line.getAsJsonObject(), color, topStrikethrough, topBold, topItalic, topUnderlined));
+                            }
                         }
                     }
-                    break; // 只使用第一个语言
                 }
             } else if (textElement.isJsonPrimitive()) {
                 // 单个字符串
@@ -228,14 +253,12 @@ public class LegacyFormatConverter {
 
     /**
      * 将 TipContent 转换为 JSON。
-     * 保留 shift、prepend 等属性。
      */
     public static JsonObject convertToJson(TipContent content) {
         JsonObject json = new JsonObject();
-
+        
         if (content instanceof TextContent textContent) {
             json.addProperty("type", "text");
-            // 获取文本内容
             if (textContent.text() != null) {
                 json.addProperty("text", textContent.text());
             }
@@ -247,11 +270,6 @@ public class LegacyFormatConverter {
             } else if (textContent.align() == TextContent.TextAlign.RIGHT) {
                 json.addProperty("align", "right");
             }
-            if (textContent.bold()) json.addProperty("bold", true);
-            if (textContent.italic()) json.addProperty("italic", true);
-            if (textContent.underlined()) json.addProperty("underlined", true);
-            if (textContent.strikethrough()) json.addProperty("strikethrough", true);
-            if (textContent.shift()) json.addProperty("shift", true);
         } else if (content instanceof VBoxContent vbox) {
             json.addProperty("type", "vbox");
             json.addProperty("gap", vbox.gap());

@@ -149,10 +149,28 @@ public record TextContent(
             0xFFFFFF, null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
-    // 创建多语言文本内容
+    // 创建多语言文本内容（带颜色）
     public static TextContent ofLang(Map<String, String> langText, int color) {
         return new TextContent(null, null, null, langText, null,
             color, null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+    }
+
+    // 创建多语言文本内容（带颜色和样式）
+    public static TextContent ofLang(Map<String, String> langText, int color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
+        return new TextContent(null, null, null, langText, null,
+            color, null, true, TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
+    }
+
+    // 创建多语言文本内容（带颜色表达式）
+    public static TextContent ofLang(Map<String, String> langText, String colorExpression) {
+        return new TextContent(null, null, null, langText, null,
+            0xFFFFFF, colorExpression, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+    }
+
+    // 创建多语言文本内容（带颜色表达式和样式）
+    public static TextContent ofLang(Map<String, String> langText, String colorExpression, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
+        return new TextContent(null, null, null, langText, null,
+            0xFFFFFF, colorExpression, true, TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
     }
 
     // 创建自动换行的文本内容
