@@ -116,7 +116,7 @@ public class TextContentParser implements ContentParser {
             } else if (textElement.isJsonObject()) {
                 // 多语言对象
                 JsonObject langObj = textElement.getAsJsonObject();
-                
+
                 // 检查是否有带样式的语言（值为对象而非字符串）
                 boolean hasStyledLangs = false;
                 for (Map.Entry<String, JsonElement> entry : langObj.entrySet()) {
@@ -125,7 +125,7 @@ public class TextContentParser implements ContentParser {
                         break;
                     }
                 }
-                
+
                 if (hasStyledLangs) {
                     // 每语言独立样式：{"zh_cn": {"text": "...", "color": "red"}, "en_us": {"text": "...", "italic": true}}
                     langStyledText = new HashMap<>();

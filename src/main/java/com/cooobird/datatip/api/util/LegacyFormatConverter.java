@@ -265,12 +265,12 @@ public class LegacyFormatConverter {
                                 }
                             }
                         }
-                        
+
                         if (longestArray != null) {
                             for (int i = 0; i < longestArray.size(); i++) {
                                 // 收集每行每语言的文本和样式
                                 Map<String, TextContent.LangStyle> lineLangStyles = new HashMap<>();
-                                
+
                                 for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
                                     String lang = langEntry.getKey();
                                     JsonElement langValue = langEntry.getValue();
@@ -300,7 +300,7 @@ public class LegacyFormatConverter {
                                             langValue.getAsString(), color, topBold, topItalic, topUnderlined, topStrikethrough));
                                     }
                                 }
-                                
+
                                 if (!lineLangStyles.isEmpty()) {
                                     TextContent lineText = TextContent.ofLangStyled(lineLangStyles);
                                     vbox.addChild(lineText);
