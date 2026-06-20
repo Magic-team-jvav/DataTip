@@ -813,6 +813,29 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 }
 ```
 
+## 模组开发者
+
+### 事件钩子
+```java
+// 渲染前事件（修改或取消）
+TipEventManager.onPreRender(event -> {
+    event.setItemStack(customStack);
+    // 或 event.cancel() 取消渲染
+});
+
+// 渲染后事件（添加额外信息）
+TipEventManager.onPostRender(event -> {
+    event.addExtraLine("来自其他模组的额外信息");
+});
+
+// 变量解析事件（注入自定义变量）
+TipEventManager.onResolveVariable(event -> {
+    if (event.getVariableName().equals("custom_var")) {
+        event.setValue("custom_value");
+    }
+});
+```
+
 ## 热重载
 
 按 F3+T 或使用 `/reload` 命令重新加载 tooltip，无需重启游戏。

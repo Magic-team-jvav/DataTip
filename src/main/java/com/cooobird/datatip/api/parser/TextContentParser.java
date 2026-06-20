@@ -3,6 +3,7 @@ package com.cooobird.datatip.api.parser;
 import com.cooobird.datatip.api.ContentParser;
 import com.cooobird.datatip.api.ParseContext;
 import com.cooobird.datatip.api.content.TextContent;
+import com.cooobird.datatip.config.DatatipConfig;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.network.chat.Component;
@@ -105,6 +106,7 @@ public class TextContentParser implements ContentParser {
         // 获取文本内容 - 支持字符串或对象（多语言）
         String text = null;
         Map<String, String> langText = null;
+        Map<String, TextContent.LangStyle> langStyledText = null;
 
         JsonElement textElement = json.get("text");
         if (textElement != null) {
@@ -112,11 +114,51 @@ public class TextContentParser implements ContentParser {
                 // 简单字符串
                 text = textElement.getAsString();
             } else if (textElement.isJsonObject()) {
-                // 多语言对象 {"zh_cn": "...", "en_us": "..."}
-                langText = new HashMap<>();
+                // 多语言对象
                 JsonObject langObj = textElement.getAsJsonObject();
+                
+                // 检查是否有带样式的语言（值为对象而非字符串）
+                boolean hasStyledLangs = false;
                 for (Map.Entry<String, JsonElement> entry : langObj.entrySet()) {
-                    langText.put(entry.getKey(), entry.getValue().getAsString());
+                    if (entry.getValue().isJsonObject()) {
+                        hasStyledLangs = true;
+                        break;
+                    }
+                }
+                
+                if (hasStyledLangs) {
+                    // 每语言独立样式：{"zh_cn": {"text": "...", "color": "red"}, "en_us": {"text": "...", "italic": true}}
+                    langStyledText = new HashMap<>();
+                    for (Map.Entry<String, JsonElement> entry : langObj.entrySet()) {
+                        if (entry.getValue().isJsonObject()) {
+                            JsonObject styleObj = entry.getValue().getAsJsonObject();
+                            String langTextStr = styleObj.has("text") ? styleObj.get("text").getAsString() : "";
+                            int langColor = styleObj.has("color") ? parseColor(styleObj.get("color").getAsString(), DatatipConfig.DEFAULT_COLOR.get()) : DatatipConfig.DEFAULT_COLOR.get();
+                            boolean langBold = styleObj.has("bold") && styleObj.get("bold").getAsBoolean();
+                            boolean langItalic = styleObj.has("italic") && styleObj.get("italic").getAsBoolean();
+                            boolean langUnderlined = styleObj.has("underlined") && styleObj.get("underlined").getAsBoolean();
+                            boolean langStrikethrough = styleObj.has("strikethrough") && styleObj.get("strikethrough").getAsBoolean();
+                            TextContent.TextAlign langAlign = TextContent.TextAlign.LEFT;
+                            if (styleObj.has("align")) {
+                                String a = styleObj.get("align").getAsString();
+                                if ("center".equals(a)) langAlign = TextContent.TextAlign.CENTER;
+                                else if ("right".equals(a)) langAlign = TextContent.TextAlign.RIGHT;
+                            }
+                            boolean langShift = styleObj.has("shift") && styleObj.get("shift").getAsBoolean();
+                            langStyledText.put(entry.getKey(), new TextContent.LangStyle(
+                                langTextStr, langColor, langBold, langItalic, langUnderlined, langStrikethrough, langAlign, langShift));
+                        } else if (entry.getValue().isJsonPrimitive()) {
+                            // 混合格式：有些语言是字符串，有些是对象
+                            langStyledText.put(entry.getKey(), new TextContent.LangStyle(
+                                entry.getValue().getAsString(), DatatipConfig.DEFAULT_COLOR.get(), false, false, false, false));
+                        }
+                    }
+                } else {
+                    // 简单多语言：{"zh_cn": "...", "en_us": "..."}
+                    langText = new HashMap<>();
+                    for (Map.Entry<String, JsonElement> entry : langObj.entrySet()) {
+                        langText.put(entry.getKey(), entry.getValue().getAsString());
+                    }
                 }
             }
         }
@@ -130,7 +172,7 @@ public class TextContentParser implements ContentParser {
         }
 
         // 获取颜色 - 支持静态颜色和表达式
-        int color = 0xFFFFFF;
+        int color = DatatipConfig.DEFAULT_COLOR.get();
         String colorExpression = null;
 
         JsonElement colorElement = json.get("color");
@@ -140,10 +182,10 @@ public class TextContentParser implements ContentParser {
             if (colorStr.contains("{") && colorStr.contains("}")) {
                 // 颜色表达式，如 "{durability > 100 ? 'green' : 'red'}"
                 colorExpression = colorStr;
-                color = 0xFFFFFF; // 默认颜色，渲染时会动态解析
+                color = DatatipConfig.DEFAULT_COLOR.get(); // 默认颜色，渲染时会动态解析
             } else {
                 // 静态颜色
-                color = context.getColor(json, "color", 0xFFFFFF);
+                color = context.getColor(json, "color", DatatipConfig.DEFAULT_COLOR.get());
             }
         }
 
@@ -166,17 +208,53 @@ public class TextContentParser implements ContentParser {
             align = TextContent.TextAlign.RIGHT;
         }
 
-        // 构建 TextContent（按优先级：component > langText > text）
+        // 构建 TextContent（按优先级：component > langStyledText > langText > text）
         if (component != null) {
-            return new TextContent(null, component, null, null, null, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
+            return new TextContent(null, component, null, null, null, null, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
+        } else if (langStyledText != null && !langStyledText.isEmpty()) {
+            // 带样式的多语言文本
+            return new TextContent(null, null, null, null, langStyledText, null, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
         } else if (langText != null && !langText.isEmpty()) {
-            // 多语言文本
-            return new TextContent(null, null, null, langText, null, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
+            // 简单多语言文本
+            return new TextContent(null, null, null, langText, null, null, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
         } else if (text != null) {
-            return new TextContent(text, null, null, null, null, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
+            return new TextContent(text, null, null, null, null, null, color, colorExpression, shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
         }
 
         // 默认返回空文本
         return TextContent.of("");
+    }
+
+    // 解析颜色字符串
+    private static int parseColor(String colorStr, int defaultValue) {
+        if (colorStr == null || colorStr.isEmpty()) return defaultValue;
+        return switch (colorStr.toLowerCase()) {
+            case "black" -> 0xFF000000;
+            case "dark_blue" -> 0xFF0000AA;
+            case "dark_green" -> 0xFF00AA00;
+            case "dark_aqua" -> 0xFF00AAAA;
+            case "dark_red" -> 0xFFAA0000;
+            case "dark_purple" -> 0xFFAA00AA;
+            case "gold" -> 0xFFFFAA00;
+            case "gray", "grey" -> 0xFFAAAAAA;
+            case "dark_gray", "dark_grey" -> 0xFF555555;
+            case "blue" -> 0xFF5555FF;
+            case "green" -> 0xFF55FF55;
+            case "aqua" -> 0xFF55FFFF;
+            case "red" -> 0xFFFF5555;
+            case "light_purple" -> 0xFFFF55FF;
+            case "yellow" -> 0xFFFFFF55;
+            case "white" -> 0xFFFFFFFF;
+            default -> {
+                if (colorStr.startsWith("#")) {
+                    try {
+                        yield (int) Long.parseLong(colorStr.substring(1), 16) | 0xFF000000;
+                    } catch (NumberFormatException e) {
+                        yield defaultValue;
+                    }
+                }
+                yield defaultValue;
+            }
+        };
     }
 }

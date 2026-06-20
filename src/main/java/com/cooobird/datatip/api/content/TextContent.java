@@ -76,7 +76,8 @@ public record TextContent(
     @Nullable String text,                    // 纯文本内容
     @Nullable Component component,            // Minecraft Component 对象
     @Nullable FormattedText formattedText,    // FormattedText 对象
-    @Nullable Map<String, String> langText,   // 多语言文本映射
+    @Nullable Map<String, String> langText,   // 多语言文本映射（简单模式，共享样式）
+    @Nullable Map<String, LangStyle> langStyledText, // 多语言文本映射（独立样式）
     @Nullable ResourceLocation font,          // 自定义字体
     int color,                                // 静态颜色值
     @Nullable String colorExpression,         // 颜色表达式
@@ -91,6 +92,22 @@ public record TextContent(
     boolean shift                             // 需要按住 Shift 才显示
 ) implements TipContent {
 
+    // 多语言样式记录
+    public record LangStyle(
+        String text,
+        int color,
+        boolean bold,
+        boolean italic,
+        boolean underlined,
+        boolean strikethrough,
+        TextAlign align,
+        boolean shift
+    ) {
+        public LangStyle(String text, int color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
+            this(text, color, bold, italic, underlined, strikethrough, TextAlign.LEFT, false);
+        }
+    }
+
     // 文本对齐方式
     public enum TextAlign {
         LEFT,    // 左对齐
@@ -100,113 +117,125 @@ public record TextContent(
 
     // 创建纯文本内容
     public static TextContent of(String text) {
-        return new TextContent(text, null, null, null, null,
+        return new TextContent(text, null, null, null, null, null,
             DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT,
             DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
     }
 
     // 创建带颜色的文本内容
     public static TextContent of(String text, int color) {
-        return new TextContent(text, null, null, null, null, color, null, true, TextAlign.LEFT,
+        return new TextContent(text, null, null, null, null, null, color, null, true, TextAlign.LEFT,
             DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
     }
 
     // 创建居中文本内容
     public static TextContent centered(String text) {
-        return new TextContent(text, null, null, null, null,
+        return new TextContent(text, null, null, null, null, null,
             DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.CENTER,
             DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
     }
 
     // 创建居中带颜色的文本内容
     public static TextContent centered(String text, int color) {
-        return new TextContent(text, null, null, null, null, color, null, true, TextAlign.CENTER,
+        return new TextContent(text, null, null, null, null, null, color, null, true, TextAlign.CENTER,
             DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
     }
 
     // 创建右对齐文本内容
     public static TextContent rightAligned(String text) {
-        return new TextContent(text, null, null, null, null,
+        return new TextContent(text, null, null, null, null, null,
             DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.RIGHT,
             DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
     }
 
     // 创建右对齐带颜色的文本内容
     public static TextContent rightAligned(String text, int color) {
-        return new TextContent(text, null, null, null, null, color, null, true, TextAlign.RIGHT,
+        return new TextContent(text, null, null, null, null, null, color, null, true, TextAlign.RIGHT,
             DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
     }
 
     // 创建 Component 内容
     public static TextContent of(Component component) {
-        return new TextContent(null, component, null, null, null,
-            0xFFFFFF, null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+        return new TextContent(null, component, null, null, null, null,
+            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
-    // 创建多语言文本内容
+    // 创建多语言文本内容（简单模式，共享样式）
     public static TextContent ofLang(Map<String, String> langText) {
-        return new TextContent(null, null, null, langText, null,
-            0xFFFFFF, null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+        return new TextContent(null, null, null, langText, null, null,
+            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
-    // 创建多语言文本内容（带颜色）
+    // 创建多语言文本内容（简单模式，带颜色）
     public static TextContent ofLang(Map<String, String> langText, int color) {
-        return new TextContent(null, null, null, langText, null,
+        return new TextContent(null, null, null, langText, null, null,
             color, null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
-    // 创建多语言文本内容（带颜色和样式）
+    // 创建多语言文本内容（简单模式，带颜色和样式）
     public static TextContent ofLang(Map<String, String> langText, int color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
-        return new TextContent(null, null, null, langText, null,
+        return new TextContent(null, null, null, langText, null, null,
             color, null, true, TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
     }
 
-    // 创建多语言文本内容（带颜色表达式）
+    // 创建多语言文本内容（简单模式，带颜色表达式）
     public static TextContent ofLang(Map<String, String> langText, String colorExpression) {
-        return new TextContent(null, null, null, langText, null,
-            0xFFFFFF, colorExpression, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+        return new TextContent(null, null, null, langText, null, null,
+            DatatipConfig.DEFAULT_COLOR.get(), colorExpression, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
-    // 创建多语言文本内容（带颜色表达式和样式）
+    // 创建多语言文本内容（简单模式，带颜色表达式和样式）
     public static TextContent ofLang(Map<String, String> langText, String colorExpression, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
-        return new TextContent(null, null, null, langText, null,
-            0xFFFFFF, colorExpression, true, TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
+        return new TextContent(null, null, null, langText, null, null,
+            DatatipConfig.DEFAULT_COLOR.get(), colorExpression, true, TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
+    }
+
+    // 创建多语言文本内容（独立样式模式）
+    public static TextContent ofLangStyled(Map<String, LangStyle> langStyledText) {
+        return new TextContent(null, null, null, null, langStyledText, null,
+            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+    }
+
+    // 创建多语言文本内容（独立样式模式，带 shift）
+    public static TextContent ofLangStyled(Map<String, LangStyle> langStyledText, boolean shift) {
+        return new TextContent(null, null, null, null, langStyledText, null,
+            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, shift);
     }
 
     // 创建自动换行的文本内容
     public static TextContent wrapped(String text, int maxWidth) {
-        return new TextContent(text, null, null, null, null,
-            0xFFFFFF, null, true, TextAlign.LEFT, 12, maxWidth, false, false, false, false, false);
+        return new TextContent(text, null, null, null, null, null,
+            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, maxWidth, false, false, false, false, false);
     }
 
     // 创建自动换行的文本内容
     public static TextContent wrapped(String text, int maxWidth, int color) {
-        return new TextContent(text, null, null, null, null,
+        return new TextContent(text, null, null, null, null, null,
             color, null, true, TextAlign.LEFT, 12, maxWidth, false, false, false, false, false);
     }
 
     // 创建 FormattedText 内容
     public static TextContent of(FormattedText formattedText, int maxWidth) {
-        return new TextContent(null, null, formattedText, null, null,
-            0xFFFFFF, null, true, TextAlign.LEFT, 12, maxWidth, false, false, false, false, false);
+        return new TextContent(null, null, formattedText, null, null, null,
+            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, maxWidth, false, false, false, false, false);
     }
 
     // 创建带样式的文本内容
     public static TextContent styled(String text, Style style) {
         Component component = Component.literal(text).withStyle(style);
-        return new TextContent(null, component, null, null, null,
-            0xFFFFFF, null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+        return new TextContent(null, component, null, null, null, null,
+            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
     // 创建带字体的文本内容
     public static TextContent withFont(String text, ResourceLocation font) {
-        return new TextContent(text, null, null, null, font,
-            0xFFFFFF, null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+        return new TextContent(text, null, null, null, null, font,
+            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
     // 创建带字体和颜色的文本内容
     public static TextContent withFont(String text, ResourceLocation font, int color) {
-        return new TextContent(text, null, null, null, font,
+        return new TextContent(text, null, null, null, null, font,
             color, null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
@@ -262,7 +291,6 @@ public record TextContent(
             case "yellow" -> 0xFFFFFF55;
             case "white" -> 0xFFFFFFFF;
             default -> {
-                // 尝试解析十六进制格式
                 if (colorStr.startsWith("#")) {
                     try {
                         yield (int) Long.parseLong(colorStr.substring(1), 16) | 0xFF000000;
@@ -291,15 +319,33 @@ public record TextContent(
         if (formattedText != null) return formattedText;
         if (component != null) return component;
 
-        Style style = buildStyle();
-
         // 获取文本内容
         String resolvedText = null;
         if (text != null) {
             resolvedText = (context != null) ? context.resolveVariables(text) : text;
         }
 
-        // 优先使用多语言文本
+        // 优先使用带样式的多语言文本
+        if (langStyledText != null && !langStyledText.isEmpty()) {
+            String lang = Minecraft.getInstance().getLanguageManager().getSelected();
+            LangStyle langStyle = langStyledText.get(lang);
+            // 如果没有当前语言的翻译，使用第一个可用的翻译
+            if (langStyle == null) {
+                langStyle = langStyledText.values().iterator().next();
+            }
+            if (langStyle != null) {
+                Style style = Style.EMPTY.withColor(langStyle.color());
+                if (font != null) style = style.withFont(font);
+                if (langStyle.bold()) style = style.withBold(true);
+                if (langStyle.italic()) style = style.withItalic(true);
+                if (langStyle.underlined()) style = style.withUnderlined(true);
+                if (langStyle.strikethrough()) style = style.withStrikethrough(true);
+                return Component.literal(langStyle.text()).withStyle(style);
+            }
+        }
+
+        // 其次使用简单多语言文本
+        Style style = buildStyle();
         if (langText != null && !langText.isEmpty()) {
             String lang = Minecraft.getInstance().getLanguageManager().getSelected();
             String langContent = langText.get(lang);

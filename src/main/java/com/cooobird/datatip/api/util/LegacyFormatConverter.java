@@ -5,6 +5,7 @@ import com.cooobird.datatip.api.content.DividerContent;
 import com.cooobird.datatip.api.content.SpacerContent;
 import com.cooobird.datatip.api.content.TextContent;
 import com.cooobird.datatip.api.content.VBoxContent;
+import com.cooobird.datatip.config.DatatipConfig;
 import com.google.gson.*;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
@@ -196,7 +197,7 @@ public class LegacyFormatConverter {
         VBoxContent vbox = VBoxContent.create();
 
         // 获取颜色
-        int color = 0xFFFFFF;
+        int color = DatatipConfig.DEFAULT_COLOR.get();
         if (obj.has("color")) {
             color = parseColor(obj.get("color").getAsString());
         }
@@ -253,8 +254,7 @@ public class LegacyFormatConverter {
                     }
 
                     if (hasStyledLines) {
-                        // 有带样式的行：需要按行创建多个 TextContent
-                        // 先找到最长的语言数组，按其结构创建
+                        // 有带样式的行：需要按行创建多个 TextContent，每语言独立样式
                         JsonArray longestArray = null;
                         for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
                             JsonElement langValue = langEntry.getValue();
@@ -268,40 +268,41 @@ public class LegacyFormatConverter {
                         
                         if (longestArray != null) {
                             for (int i = 0; i < longestArray.size(); i++) {
-                                // 收集每行的所有语言文本和样式
-                                Map<String, String> lineLangMap = new HashMap<>();
-                                int lineColor = color;
-                                boolean lineBold = topBold;
-                                boolean lineItalic = topItalic;
-                                boolean lineUnderlined = topUnderlined;
-                                boolean lineStrikethrough = topStrikethrough;
+                                // 收集每行每语言的文本和样式
+                                Map<String, TextContent.LangStyle> lineLangStyles = new HashMap<>();
                                 
                                 for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
+                                    String lang = langEntry.getKey();
                                     JsonElement langValue = langEntry.getValue();
                                     if (langValue.isJsonArray()) {
                                         JsonArray lines = langValue.getAsJsonArray();
                                         if (i < lines.size()) {
                                             JsonElement line = lines.get(i);
                                             if (line.isJsonPrimitive()) {
-                                                lineLangMap.put(langEntry.getKey(), line.getAsString());
+                                                // 纯文本行，使用顶层样式
+                                                lineLangStyles.put(lang, new TextContent.LangStyle(
+                                                    line.getAsString(), color, topBold, topItalic, topUnderlined, topStrikethrough));
                                             } else if (line.isJsonObject()) {
+                                                // 带样式的行，提取该语言的样式
                                                 JsonObject lineObj = line.getAsJsonObject();
-                                                lineLangMap.put(langEntry.getKey(), lineObj.has("text") ? lineObj.get("text").getAsString() : "");
-                                                // 从所有语言提取样式（后设置的覆盖先设置的）
-                                                if (lineObj.has("color")) lineColor = parseColor(lineObj.get("color").getAsString());
-                                                if (lineObj.has("bold")) lineBold = lineObj.get("bold").getAsBoolean();
-                                                if (lineObj.has("italic")) lineItalic = lineObj.get("italic").getAsBoolean();
-                                                if (lineObj.has("underlined")) lineUnderlined = lineObj.get("underlined").getAsBoolean();
-                                                if (lineObj.has("strikethrough")) lineStrikethrough = lineObj.get("strikethrough").getAsBoolean();
+                                                String lineText = lineObj.has("text") ? lineObj.get("text").getAsString() : "";
+                                                int lineColor = lineObj.has("color") ? parseColor(lineObj.get("color").getAsString()) : color;
+                                                boolean lineBold = lineObj.has("bold") ? lineObj.get("bold").getAsBoolean() : topBold;
+                                                boolean lineItalic = lineObj.has("italic") ? lineObj.get("italic").getAsBoolean() : topItalic;
+                                                boolean lineUnderlined = lineObj.has("underlined") ? lineObj.get("underlined").getAsBoolean() : topUnderlined;
+                                                boolean lineStrikethrough = lineObj.has("strikethrough") ? lineObj.get("strikethrough").getAsBoolean() : topStrikethrough;
+                                                lineLangStyles.put(lang, new TextContent.LangStyle(
+                                                    lineText, lineColor, lineBold, lineItalic, lineUnderlined, lineStrikethrough));
                                             }
                                         }
                                     } else if (langValue.isJsonPrimitive() && i == 0) {
-                                        lineLangMap.put(langEntry.getKey(), langValue.getAsString());
+                                        lineLangStyles.put(lang, new TextContent.LangStyle(
+                                            langValue.getAsString(), color, topBold, topItalic, topUnderlined, topStrikethrough));
                                     }
                                 }
                                 
-                                if (!lineLangMap.isEmpty()) {
-                                    TextContent lineText = TextContent.ofLang(lineLangMap, lineColor, lineBold, lineItalic, lineUnderlined, lineStrikethrough);
+                                if (!lineLangStyles.isEmpty()) {
+                                    TextContent lineText = TextContent.ofLangStyled(lineLangStyles);
                                     vbox.addChild(lineText);
                                 }
                             }
@@ -350,7 +351,7 @@ public class LegacyFormatConverter {
                 }
             } else if (textElement.isJsonPrimitive()) {
                 // 单个字符串（应用顶层样式）
-                TextContent singleText = new TextContent(textElement.getAsString(), null, null, null, null,
+                TextContent singleText = new TextContent(textElement.getAsString(), null, null, null, null, null,
                     color, null, true, TextContent.TextAlign.LEFT, 12, 0,
                     topBold, topItalic, topUnderlined, topStrikethrough, false);
                 vbox.addChild(singleText);
@@ -405,7 +406,7 @@ public class LegacyFormatConverter {
         boolean strikethrough = line.has("strikethrough") ? line.get("strikethrough").getAsBoolean() : topStrikethrough;
 
         // 创建 TextContent（使用文本字符串，而非 Component）
-        return new TextContent(text, null, null, null, null, color, null, true,
+        return new TextContent(text, null, null, null, null, null, color, null, true,
             TextContent.TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
     }
 
@@ -418,8 +419,25 @@ public class LegacyFormatConverter {
         switch (content) {
             case TextContent textContent -> {
                 json.addProperty("type", "text");
-                // 优先使用多语言文本
-                if (textContent.langText() != null && !textContent.langText().isEmpty()) {
+                // 优先使用带样式的多语言文本
+                if (textContent.langStyledText() != null && !textContent.langStyledText().isEmpty()) {
+                    JsonObject langObj = new JsonObject();
+                    for (Map.Entry<String, TextContent.LangStyle> entry : textContent.langStyledText().entrySet()) {
+                        TextContent.LangStyle style = entry.getValue();
+                        JsonObject styleObj = new JsonObject();
+                        styleObj.addProperty("text", style.text());
+                        if (style.color() != 0xFFFFFF) {
+                            styleObj.addProperty("color", String.format("#%06X", style.color() & 0xFFFFFF));
+                        }
+                        if (style.bold()) styleObj.addProperty("bold", true);
+                        if (style.italic()) styleObj.addProperty("italic", true);
+                        if (style.underlined()) styleObj.addProperty("underlined", true);
+                        if (style.strikethrough()) styleObj.addProperty("strikethrough", true);
+                        langObj.add(entry.getKey(), styleObj);
+                    }
+                    json.add("text", langObj);
+                } else if (textContent.langText() != null && !textContent.langText().isEmpty()) {
+                    // 其次使用简单多语言文本
                     JsonObject langObj = new JsonObject();
                     for (Map.Entry<String, String> entry : textContent.langText().entrySet()) {
                         langObj.addProperty(entry.getKey(), entry.getValue());

@@ -3,6 +3,7 @@ package com.cooobird.datatip.api.parser;
 import com.cooobird.datatip.api.ContentParser;
 import com.cooobird.datatip.api.ParseContext;
 import com.cooobird.datatip.api.content.TypewriterContent;
+import com.cooobird.datatip.config.DatatipConfig;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -60,7 +61,7 @@ public class TypewriterContentParser implements ContentParser {
         int charsPerSecond = context.getInt(json, "charsPerSecond", 2);
         int pauseSeconds = context.getInt(json, "pauseSeconds", 1);
         boolean loop = context.getBoolean(json, "loop", false);
-        int color = context.getColor(json, "color", 0xFFFFFF);
+        int color = context.getColor(json, "color", DatatipConfig.DEFAULT_COLOR.get());
 
         // 解析文本行
         List<String> lines = new ArrayList<>();
