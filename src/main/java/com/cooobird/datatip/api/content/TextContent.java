@@ -79,47 +79,66 @@ public class TextContent extends BaseTextContent {
         return maxWidth;
     }
 
+    private static final int FALLBACK_COLOR = 0xFFAAAAAA;
+    private static final int FALLBACK_LINE_HEIGHT = 12;
+
+    private static int getDefaultColor() {
+        try {
+            return DatatipConfig.DEFAULT_COLOR.get();
+        } catch (IllegalStateException e) {
+            return FALLBACK_COLOR;
+        }
+    }
+
+    private static int getDefaultLineHeight() {
+        try {
+            return DatatipConfig.DEFAULT_LINE_HEIGHT.get();
+        } catch (IllegalStateException e) {
+            return FALLBACK_LINE_HEIGHT;
+        }
+    }
+
     public static TextContent of(String text) {
         return new TextContent(text, null, null, null, null, null,
-            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT,
-            DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
+            getDefaultColor(), null, true, TextAlign.LEFT,
+            getDefaultLineHeight(), 0, false, false, false, false, false);
     }
 
     public static TextContent of(String text, int color) {
         return new TextContent(text, null, null, null, null, null, color, null, true, TextAlign.LEFT,
-            DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
+            getDefaultLineHeight(), 0, false, false, false, false, false);
     }
 
     public static TextContent centered(String text) {
         return new TextContent(text, null, null, null, null, null,
-            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.CENTER,
-            DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
+            getDefaultColor(), null, true, TextAlign.CENTER,
+            getDefaultLineHeight(), 0, false, false, false, false, false);
     }
 
     public static TextContent centered(String text, int color) {
         return new TextContent(text, null, null, null, null, null, color, null, true, TextAlign.CENTER,
-            DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
+            getDefaultLineHeight(), 0, false, false, false, false, false);
     }
 
     public static TextContent rightAligned(String text) {
         return new TextContent(text, null, null, null, null, null,
-            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.RIGHT,
-            DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
+            getDefaultColor(), null, true, TextAlign.RIGHT,
+            getDefaultLineHeight(), 0, false, false, false, false, false);
     }
 
     public static TextContent rightAligned(String text, int color) {
         return new TextContent(text, null, null, null, null, null, color, null, true, TextAlign.RIGHT,
-            DatatipConfig.DEFAULT_LINE_HEIGHT.get(), 0, false, false, false, false, false);
+            getDefaultLineHeight(), 0, false, false, false, false, false);
     }
 
     public static TextContent of(Component component) {
         return new TextContent(null, component, null, null, null, null,
-            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+            getDefaultColor(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
     public static TextContent ofLang(Map<String, String> langText) {
         return new TextContent(null, null, null, langText, null, null,
-            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+            getDefaultColor(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
     public static TextContent ofLang(Map<String, String> langText, int color) {
@@ -134,27 +153,27 @@ public class TextContent extends BaseTextContent {
 
     public static TextContent ofLang(Map<String, String> langText, String colorExpression) {
         return new TextContent(null, null, null, langText, null, null,
-            DatatipConfig.DEFAULT_COLOR.get(), colorExpression, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+            getDefaultColor(), colorExpression, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
     public static TextContent ofLang(Map<String, String> langText, String colorExpression, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
         return new TextContent(null, null, null, langText, null, null,
-            DatatipConfig.DEFAULT_COLOR.get(), colorExpression, true, TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
+            getDefaultColor(), colorExpression, true, TextAlign.LEFT, 12, 0, bold, italic, underlined, strikethrough, false);
     }
 
     public static TextContent ofLangStyled(Map<String, LangStyle> langStyledText) {
         return new TextContent(null, null, null, null, langStyledText, null,
-            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+            getDefaultColor(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
     public static TextContent ofLangStyled(Map<String, LangStyle> langStyledText, boolean shift) {
         return new TextContent(null, null, null, null, langStyledText, null,
-            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, shift);
+            getDefaultColor(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, shift);
     }
 
     public static TextContent wrapped(String text, int maxWidth) {
         return new TextContent(text, null, null, null, null, null,
-            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, maxWidth, false, false, false, false, false);
+            getDefaultColor(), null, true, TextAlign.LEFT, 12, maxWidth, false, false, false, false, false);
     }
 
     public static TextContent wrapped(String text, int maxWidth, int color) {
@@ -164,18 +183,18 @@ public class TextContent extends BaseTextContent {
 
     public static TextContent of(FormattedText formattedText, int maxWidth) {
         return new TextContent(null, null, formattedText, null, null, null,
-            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, maxWidth, false, false, false, false, false);
+            getDefaultColor(), null, true, TextAlign.LEFT, 12, maxWidth, false, false, false, false, false);
     }
 
     public static TextContent styled(String text, Style style) {
         Component component = Component.literal(text).withStyle(style);
         return new TextContent(null, component, null, null, null, null,
-            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+            getDefaultColor(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
     public static TextContent withFont(String text, ResourceLocation font) {
         return new TextContent(text, null, null, null, null, font,
-            DatatipConfig.DEFAULT_COLOR.get(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
+            getDefaultColor(), null, true, TextAlign.LEFT, 12, 0, false, false, false, false, false);
     }
 
     public static TextContent withFont(String text, ResourceLocation font, int color) {

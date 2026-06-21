@@ -67,12 +67,22 @@ public class TypewriterContent extends BaseTextContent {
         this.completed = false;
     }
 
+    private static final int FALLBACK_COLOR = 0xFFAAAAAA;
+
+    private static int getDefaultColor() {
+        try {
+            return DatatipConfig.DEFAULT_COLOR.get();
+        } catch (IllegalStateException e) {
+            return FALLBACK_COLOR;
+        }
+    }
+
     public static TypewriterContent create() {
-        return new TypewriterContent(List.of(), 2, 1, false, DatatipConfig.DEFAULT_COLOR.get());
+        return new TypewriterContent(List.of(), 2, 1, false, getDefaultColor());
     }
 
     public static TypewriterContent of(String... lines) {
-        return new TypewriterContent(List.of(lines), 2, 1, false, DatatipConfig.DEFAULT_COLOR.get());
+        return new TypewriterContent(List.of(lines), 2, 1, false, getDefaultColor());
     }
 
     public static TypewriterContent of(int color, String... lines) {
