@@ -4,6 +4,7 @@ import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.config.DatatipConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.font.FontSet;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
@@ -19,6 +20,7 @@ import java.util.Map;
  * 逐字显示文本，支持与 TextContent 相同的样式和多语言。
  *
  * @author cooobird
+ * @see BaseTextContent 基类
  * @since 1.2.0
  */
 public class TypewriterContent extends BaseTextContent {
@@ -66,21 +68,26 @@ public class TypewriterContent extends BaseTextContent {
         this.completed = false;
     }
 
+    private static final int FALLBACK_COLOR = 0xFFAAAAAA;
+
+    private static int getDefaultColor() {
+        try {
+            return DatatipConfig.DEFAULT_COLOR.get();
+        } catch (IllegalStateException e) {
+            return FALLBACK_COLOR;
+        }
+    }
+
     public static TypewriterContent create() {
-        return new TypewriterContent(List.of(), 2, 1, false, DatatipConfig.DEFAULT_COLOR.get());
+        return new TypewriterContent(List.of(), 2, 1, false, getDefaultColor());
     }
 
     public static TypewriterContent of(String... lines) {
-        return new TypewriterContent(List.of(lines), 2, 1, false, DatatipConfig.DEFAULT_COLOR.get());
+        return new TypewriterContent(List.of(lines), 2, 1, false, getDefaultColor());
     }
 
     public static TypewriterContent of(int color, String... lines) {
         return new TypewriterContent(List.of(lines), 2, 20, false, color);
-    }
-
-    public TypewriterContent addLine(String line) {
-        lines.add(line);
-        return this;
     }
 
     private List<String> getCurrentLines() {
@@ -254,5 +261,12 @@ public class TypewriterContent extends BaseTextContent {
             context.graphics().drawString(mcFont, Component.literal(displayText).withStyle(style), lineX, renderY, lineColor, shadow);
             renderY += lineHeight;
         }
+    }
+
+    private Font getFont() {
+        if (this.font == null) return Minecraft.getInstance().font;
+        Font existing = Minecraft.getInstance().font;
+        FontSet customFontSet = existing.getFontSet(this.font);
+        return new Font(id -> id.equals(this.font) ? customFontSet : existing.getFontSet(id), false);
     }
 }

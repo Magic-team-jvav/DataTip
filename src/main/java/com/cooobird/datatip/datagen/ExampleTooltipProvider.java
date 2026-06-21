@@ -234,6 +234,18 @@ public class ExampleTooltipProvider implements DataProvider {
             typewriter(0xFF55FFFF, 5, 2, true, "提供增益效果", "需要金字塔基座")
         )));
 
+        // 打字机多语言
+        root.add("minecraft:end_stone", toJson(vbox(4,
+            text("End Stone", "yellow"),
+            typewriter("生成于末地", "可被引爆")
+        )));
+
+        // 打字机带样式
+        root.add("minecraft:purpur_block", toJson(vbox(4,
+            text("Purpur Block", "light_purple"),
+            typewriter("生成于末地", "可被引爆")
+        )));
+
         // 柱状图
         root.add("minecraft:compass", toJson(vbox(4,
             text("Compass", "red"),
