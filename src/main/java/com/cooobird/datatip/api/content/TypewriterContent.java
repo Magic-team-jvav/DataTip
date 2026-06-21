@@ -4,7 +4,6 @@ import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.config.DatatipConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.font.FontSet;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
@@ -261,12 +260,5 @@ public class TypewriterContent extends BaseTextContent {
             context.graphics().drawString(mcFont, Component.literal(displayText).withStyle(style), lineX, renderY, lineColor, shadow);
             renderY += lineHeight;
         }
-    }
-
-    private Font getFont() {
-        if (this.font == null) return Minecraft.getInstance().font;
-        Font existing = Minecraft.getInstance().font;
-        FontSet customFontSet = existing.getFontSet(this.font);
-        return new Font(id -> id.equals(this.font) ? customFontSet : existing.getFontSet(id), false);
     }
 }
