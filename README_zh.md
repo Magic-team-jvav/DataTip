@@ -235,22 +235,22 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 ## 打字机属性
 
-| 属性               | 类型           | 默认值     | 说明                         |
-|------------------|--------------|---------|----------------------------|
-| `lines`          | Array/Object | -       | 文本行数组（支持多语言对象）             |
-| `charsPerSecond` | int          | 2       | 每秒字符数                      |
-| `pauseSeconds`   | int          | 1       | 行间暂停（秒）                    |
-| `loop`           | boolean      | false   | 循环播放                       |
-| `color`          | String       | "white" | 文本颜色                       |
-| `font`           | String       | -       | 自定义字体                      |
-| `bold`           | boolean      | false   | 粗体                         |
-| `italic`         | boolean      | false   | 斜体                         |
-| `underlined`     | boolean      | false   | 下划线                        |
-| `strikethrough`  | boolean      | false   | 删除线                        |
-| `align`          | String       | "left"  | 对齐：`left`、`center`、`right` |
-| `shadow`         | boolean      | true    | 文字阴影                       |
-| `lineHeight`     | int          | 12      | 行高（像素）                     |
-| `shift`          | boolean      | false   | 需要按住 Shift 才显示             |
+| 属性               | 类型           | 默认值     | 说明                                       |
+|------------------|--------------|---------|------------------------------------------|
+| `lines`          | Array/Object | -       | 文本行数组（支持多语言对象）                           |
+| `charsPerSecond` | int          | 2       | 每秒字符数                                    |
+| `pauseSeconds`   | int          | 1       | 行间暂停（秒）                                  |
+| `loop`           | boolean      | false   | 重新悬停/展开时重播（`true` = 每次重播，`false` = 只播一次） |
+| `color`          | String       | "white" | 文本颜色                                     |
+| `font`           | String       | -       | 自定义字体                                    |
+| `bold`           | boolean      | false   | 粗体                                       |
+| `italic`         | boolean      | false   | 斜体                                       |
+| `underlined`     | boolean      | false   | 下划线                                      |
+| `strikethrough`  | boolean      | false   | 删除线                                      |
+| `align`          | String       | "left"  | 对齐：`left`、`center`、`right`               |
+| `shadow`         | boolean      | true    | 文字阴影                                     |
+| `lineHeight`     | int          | 12      | 行高（像素）                                   |
+| `shift`          | boolean      | false   | 需要按住 Shift 才显示                           |
 
 ## 图表属性
 
@@ -431,12 +431,12 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 ## 特殊属性
 
-| 属性           | 说明                                    |
-|--------------|---------------------------------------|
-| `align`      | 对齐：`left`、`center`、`right`（所有内容类型都支持） |
-| `shift`      | 需要按住 Shift 才显示                        |
-| `prepend`    | 显示在物品名之后（原版内容之前）                      |
-| `conditions` | 条件配置                                  |
+| 属性           | 说明                                            |
+|--------------|-----------------------------------------------|
+| `align`      | 对齐：`left`、`center`、`right`（所有内容类型都支持）         |
+| `shift`      | 需要按住 Shift 才显示。容器内多条 `shift: true` 自动合并为一条提示。 |
+| `prepend`    | 显示在物品名之后（原版内容之前）                              |
+| `conditions` | 条件配置                                          |
 
 ## 颜色
 
@@ -469,12 +469,13 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 文件：`config/datatip-common.toml`
 
-| 选项                  | 类型      | 默认值        | 说明            |
-|---------------------|---------|------------|---------------|
-| `enabled`           | boolean | true       | 启用/禁用 DataTip |
-| `defaultColor`      | int     | 0xFFAAAAAA | 默认文本颜色        |
-| `defaultLineHeight` | int     | 12         | 默认行高          |
-| `maxWidth`          | int     | 200        | 最大 tooltip 宽度 |
+| 选项                  | 类型      | 默认值        | 说明                    |
+|---------------------|---------|------------|-----------------------|
+| `enabled`           | boolean | true       | 启用/禁用 DataTip         |
+| `defaultColor`      | int     | 0xFFAAAAAA | 默认文本颜色                |
+| `defaultLineHeight` | int     | 12         | 默认行高                  |
+| `maxWidth`          | int     | 200        | 最大 tooltip 宽度         |
+| `shiftHintColor`    | int     | 0xFF888888 | Shift 提示文字颜色（ARGB 格式） |
 
 ## 旧格式支持
 

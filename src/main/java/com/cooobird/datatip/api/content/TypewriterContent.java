@@ -38,6 +38,8 @@ public class TypewriterContent extends BaseTextContent {
     private int tickCount;
     private int pauseCounter;
     private boolean completed;
+    private boolean wasShiftDown;
+    private int lastTickPc;
 
     public TypewriterContent(List<String> lines, int charsPerSecond, int pauseSeconds, boolean loop, int color) {
         this(lines, null, null, charsPerSecond, pauseSeconds, loop, color, null, null, false, false, false, false, TextAlign.LEFT, true, 12, false);
@@ -135,11 +137,17 @@ public class TypewriterContent extends BaseTextContent {
 
     @Override
     public int getHeight(int maxWidth) {
+        if (shift && !isShowTipDown()) {
+            return lineHeight;
+        }
         return getCurrentLines().size() * lineHeight;
     }
 
     @Override
     public int getWidth(int maxWidth) {
+        if (shift && !isShowTipDown()) {
+            return 0;
+        }
         List<String> currentLines = getCurrentLines();
         if (currentLines.isEmpty()) return 0;
         Font font = Minecraft.getInstance().font;
@@ -156,10 +164,27 @@ public class TypewriterContent extends BaseTextContent {
     }
 
     @Override
-    public void tick(int tickCount) {
+    public void tick(int tickPc) {
+        boolean shiftDown = isShowTipDown();
+
+        // Shift 展开时重置动画（loop:true）
+        if (shift && shiftDown && !wasShiftDown && loop) {
+            reset();
+        }
+        wasShiftDown = shiftDown;
+
+        // 折叠时不推进动画
+        if (shift && !shiftDown) return;
+
+        // loop:true + completed: 检测重新悬停 → 从头播放
+        if (completed && loop && tickPc - lastTickPc > 2) {
+            reset();
+        }
+        lastTickPc = tickPc;
+
         List<String> currentLines = getCurrentLines();
         if (currentLines.isEmpty()) return;
-        if (completed && !loop) return;
+        if (completed) return;
 
         this.tickCount++;
 
@@ -178,12 +203,8 @@ public class TypewriterContent extends BaseTextContent {
                     currentLine++;
                     currentChar = 0;
                     if (currentLine >= currentLines.size()) {
-                        if (loop) {
-                            currentLine = 0;
-                            pauseCounter = pauseSeconds * 20;
-                        } else {
-                            completed = true;
-                        }
+                        // loop:true 不持续循环，由重新悬停/展开触发重置
+                        completed = true;
                     } else {
                         pauseCounter = pauseSeconds * 20;
                     }

@@ -76,6 +76,19 @@ public interface TipContent {
     void render(TipRenderContext context, int x, int y, int maxWidth, float alpha);
 
     /**
+     * 是否因 Shift 折叠而显示为提示行（而非完整内容）。
+     * <p>
+     * 容器（如 VBox）可用此方法判断是否需要将多个折叠项
+     * 合并为一条"按住 Shift 显示详情"提示。
+     * </p>
+     *
+     * @return true 表示当前处于 Shift 折叠状态
+     */
+    default boolean isShiftCollapsed() {
+        return false;
+    }
+
+    /**
      * 此内容是否需要每帧更新（动画）。
      * <p>
      * 返回 true 时，{@link #tick(int)} 方法会在每 tick 被调用。

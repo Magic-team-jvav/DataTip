@@ -248,6 +248,9 @@ public class TextContent extends BaseTextContent {
 
     @Override
     public int getHeight(int availableWidth) {
+        if (shift && !isShowTipDown()) {
+            return lineHeight;
+        }
         Font font = Minecraft.getInstance().font;
         return getHeight(font, availableWidth);
     }
@@ -267,6 +270,9 @@ public class TextContent extends BaseTextContent {
 
     @Override
     public int getWidth(int availableWidth) {
+        if (shift && !isShowTipDown()) {
+            return 0;
+        }
         Font font = Minecraft.getInstance().font;
         return getWidth(font, availableWidth);
     }
