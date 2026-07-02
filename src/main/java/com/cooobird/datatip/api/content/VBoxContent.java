@@ -2,6 +2,10 @@ package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipRenderContext;
+import com.cooobird.datatip.event.TipRenderEventHandler;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -66,17 +70,32 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
         children.add(child);
     }
 
+    private static final int HINT_LINE_HEIGHT = 12;
+
     @Override
     public int getHeight(int maxWidth) {
         int totalHeight = padding * 2;
         int availableWidth = maxWidth - padding * 2;
+        boolean hasCollapsed = false;
+        boolean hasPrevNonCollapsed = false;
 
-        for (int i = 0; i < children.size(); i++) {
-            TipContent child = children.get(i);
-            totalHeight += child.getHeight(availableWidth);
-            if (i < children.size() - 1) {
+        for (TipContent child : children) {
+            if (child.isShiftCollapsed()) {
+                hasCollapsed = true;
+            } else {
+                if (hasPrevNonCollapsed) {
+                    totalHeight += gap;
+                }
+                totalHeight += child.getHeight(availableWidth);
+                hasPrevNonCollapsed = true;
+            }
+        }
+
+        if (hasCollapsed) {
+            if (hasPrevNonCollapsed) {
                 totalHeight += gap;
             }
+            totalHeight += HINT_LINE_HEIGHT;
         }
 
         return totalHeight;
@@ -84,13 +103,28 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
 
     @Override
     public int getWidth(int maxWidth) {
-        int maxChildWidth = 0;
         int availableWidth = maxWidth - padding * 2;
+        boolean hasCollapsed = false;
+        int maxChildWidth = 0;
 
         for (TipContent child : children) {
-            int childWidth = child.getWidth(availableWidth);
-            if (childWidth > maxChildWidth) {
-                maxChildWidth = childWidth;
+            if (child.isShiftCollapsed()) {
+                hasCollapsed = true;
+            } else {
+                int childWidth = child.getWidth(availableWidth);
+                if (childWidth > maxChildWidth) {
+                    maxChildWidth = childWidth;
+                }
+            }
+        }
+
+        if (hasCollapsed) {
+            Font font = Minecraft.getInstance().font;
+            Component hint = Component.translatable("tooltip.datatip.hold_shift",
+                TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
+            int hintWidth = font.width(hint);
+            if (hintWidth > maxChildWidth) {
+                maxChildWidth = hintWidth;
             }
         }
 
@@ -103,17 +137,35 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
 
         int currentY = y + padding;
         int availableWidth = maxWidth - padding * 2;
+        boolean hasCollapsed = false;
+        boolean hasPrevNonCollapsed = false;
 
         for (TipContent child : children) {
-            int childWidth = child.getWidth(availableWidth);
-            int childX = switch (horizontalAlign) {
-                case LEFT -> x + padding;
-                case CENTER -> x + padding + (availableWidth - childWidth) / 2;
-                case RIGHT -> x + padding + availableWidth - childWidth;
-            };
+            if (child.isShiftCollapsed()) {
+                hasCollapsed = true;
+            } else {
+                if (hasPrevNonCollapsed) {
+                    currentY += gap;
+                }
 
-            child.render(context, childX, currentY, availableWidth, alpha);
-            currentY += child.getHeight(availableWidth) + gap;
+                int childWidth = child.getWidth(availableWidth);
+                int childX = switch (horizontalAlign) {
+                    case LEFT -> x + padding;
+                    case CENTER -> x + padding + (availableWidth - childWidth) / 2;
+                    case RIGHT -> x + padding + availableWidth - childWidth;
+                };
+
+                child.render(context, childX, currentY, availableWidth, alpha);
+                currentY += child.getHeight(availableWidth);
+                hasPrevNonCollapsed = true;
+            }
+        }
+
+        if (hasCollapsed) {
+            if (hasPrevNonCollapsed) {
+                currentY += gap;
+            }
+            BaseTextContent.renderShiftHint(context, x + padding, currentY);
         }
     }
 
@@ -123,20 +175,38 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
 
         int currentY = y + padding;
         int availableWidth = maxWidth - padding * 2;
+        boolean hasCollapsed = false;
+        boolean hasPrevNonCollapsed = false;
 
         for (TipContent child : children) {
-            // 跳过动画内容
-            if (child.isAnimated()) continue;
+            if (child.isShiftCollapsed()) {
+                hasCollapsed = true;
+            } else {
+                // 跳过动画内容
+                if (child.isAnimated()) continue;
 
-            int childWidth = child.getWidth(availableWidth);
-            int childX = switch (horizontalAlign) {
-                case LEFT -> x + padding;
-                case CENTER -> x + padding + (availableWidth - childWidth) / 2;
-                case RIGHT -> x + padding + availableWidth - childWidth;
-            };
+                if (hasPrevNonCollapsed) {
+                    currentY += gap;
+                }
 
-            child.render(context, childX, currentY, availableWidth, alpha);
-            currentY += child.getHeight(availableWidth) + gap;
+                int childWidth = child.getWidth(availableWidth);
+                int childX = switch (horizontalAlign) {
+                    case LEFT -> x + padding;
+                    case CENTER -> x + padding + (availableWidth - childWidth) / 2;
+                    case RIGHT -> x + padding + availableWidth - childWidth;
+                };
+
+                child.render(context, childX, currentY, availableWidth, alpha);
+                currentY += child.getHeight(availableWidth);
+                hasPrevNonCollapsed = true;
+            }
+        }
+
+        if (hasCollapsed) {
+            if (hasPrevNonCollapsed) {
+                currentY += gap;
+            }
+            BaseTextContent.renderShiftHint(context, x + padding, currentY);
         }
     }
 

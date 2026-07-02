@@ -248,22 +248,22 @@ Empty spacing between content.
 
 ## Typewriter Properties
 
-| Property         | Type         | Default | Description                                       |
-|------------------|--------------|---------|---------------------------------------------------|
-| `lines`          | Array/Object | -       | Text lines array (supports multi-language object) |
-| `charsPerSecond` | int          | 2       | Characters per second                             |
-| `pauseSeconds`   | int          | 1       | Pause between lines (seconds)                     |
-| `loop`           | boolean      | false   | Loop animation                                    |
-| `color`          | String       | "white" | Text color                                        |
-| `font`           | String       | -       | Custom font                                       |
-| `bold`           | boolean      | false   | Bold text                                         |
-| `italic`         | boolean      | false   | Italic text                                       |
-| `underlined`     | boolean      | false   | Underlined text                                   |
-| `strikethrough`  | boolean      | false   | Strikethrough text                                |
-| `align`          | String       | "left"  | Alignment: `left`, `center`, `right`              |
-| `shadow`         | boolean      | true    | Text shadow                                       |
-| `lineHeight`     | int          | 12      | Line height in pixels                             |
-| `shift`          | boolean      | false   | Only show when holding Shift                      |
+| Property         | Type         | Default | Description                                                                           |
+|------------------|--------------|---------|---------------------------------------------------------------------------------------|
+| `lines`          | Array/Object | -       | Text lines array (supports multi-language object)                                     |
+| `charsPerSecond` | int          | 2       | Characters per second                                                                 |
+| `pauseSeconds`   | int          | 1       | Pause between lines (seconds)                                                         |
+| `loop`           | boolean      | false   | Replay on re-hover/expand (`true` = replay from start each time, `false` = play once) |
+| `color`          | String       | "white" | Text color                                                                            |
+| `font`           | String       | -       | Custom font                                                                           |
+| `bold`           | boolean      | false   | Bold text                                                                             |
+| `italic`         | boolean      | false   | Italic text                                                                           |
+| `underlined`     | boolean      | false   | Underlined text                                                                       |
+| `strikethrough`  | boolean      | false   | Strikethrough text                                                                    |
+| `align`          | String       | "left"  | Alignment: `left`, `center`, `right`                                                  |
+| `shadow`         | boolean      | true    | Text shadow                                                                           |
+| `lineHeight`     | int          | 12      | Line height in pixels                                                                 |
+| `shift`          | boolean      | false   | Only show when holding Shift                                                          |
 
 ## Chart Properties
 
@@ -443,12 +443,12 @@ Supported operators:
 
 ## Special Properties
 
-| Property     | Description                                                       |
-|--------------|-------------------------------------------------------------------|
-| `align`      | Alignment: `left`, `center`, `right` (works on all content types) |
-| `shift`      | Only show when holding Shift                                      |
-| `prepend`    | Show after item name (before original content)                    |
-| `conditions` | Conditions configuration                                          |
+| Property     | Description                                                                                    |
+|--------------|------------------------------------------------------------------------------------------------|
+| `align`      | Alignment: `left`, `center`, `right` (works on all content types)                              |
+| `shift`      | Only show when holding Shift. Multiple `shift: true` items in a container merge into one hint. |
+| `prepend`    | Show after item name (before original content)                                                 |
+| `conditions` | Conditions configuration                                                                       |
 
 ## Colors
 
@@ -481,12 +481,13 @@ Any 6-digit hex with `#` prefix: `"#FF6600"`, `"#AABBCC"`, `"#00FF00"`
 
 File: `config/datatip-common.toml`
 
-| Option              | Type    | Default    | Description            |
-|---------------------|---------|------------|------------------------|
-| `enabled`           | boolean | true       | Enable/disable DataTip |
-| `defaultColor`      | int     | 0xFFAAAAAA | Default text color     |
-| `defaultLineHeight` | int     | 12         | Default line height    |
-| `maxWidth`          | int     | 200        | Maximum tooltip width  |
+| Option              | Type    | Default    | Description                         |
+|---------------------|---------|------------|-------------------------------------|
+| `enabled`           | boolean | true       | Enable/disable DataTip              |
+| `defaultColor`      | int     | 0xFFAAAAAA | Default text color                  |
+| `defaultLineHeight` | int     | 12         | Default line height                 |
+| `maxWidth`          | int     | 200        | Maximum tooltip width               |
+| `shiftHintColor`    | int     | 0xFF888888 | Shift hint text color (ARGB format) |
 
 ## Legacy Format Support
 

@@ -69,7 +69,7 @@ public class DatatipConfig {
      */
     public static final ForgeConfigSpec.IntValue DEFAULT_COLOR = BUILDER
         .comment("Default text color (ARGB format).")
-        .defineInRange("defaultColor", 0xFFAAAAAA, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        .defineInRange("default_color", 0xFFAAAAAA, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     /**
      * 默认行高。
@@ -80,7 +80,7 @@ public class DatatipConfig {
      */
     public static final ForgeConfigSpec.IntValue DEFAULT_LINE_HEIGHT = BUILDER
         .comment("Default line height in pixels.")
-        .defineInRange("defaultLineHeight", 12, 8, 32);
+        .defineInRange("default_line_height", 12, 8, 32);
 
     /**
      * 最大宽度。
@@ -91,7 +91,17 @@ public class DatatipConfig {
      */
     public static final ForgeConfigSpec.IntValue MAX_WIDTH = BUILDER
         .comment("Maximum tooltip width in pixels.")
-        .defineInRange("maxWidth", 200, 50, 500);
+        .defineInRange("max_width", 200, 50, 500);
+
+    /**
+     * Shift 提示文字颜色。
+     * <p>
+     * 按住 Shift 显示详情提示的文字颜色（ARGB 格式）。
+     * </p>
+     */
+    public static final ForgeConfigSpec.IntValue SHIFT_HINT_COLOR = BUILDER
+        .comment("Shift hint text color (ARGB format).")
+        .defineInRange("shift_hint_color", 0xFF888888, Integer.MIN_VALUE, Integer.MAX_VALUE);
 
     /**
      * 配置规范（用于注册）

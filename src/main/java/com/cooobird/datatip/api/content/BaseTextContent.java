@@ -3,6 +3,7 @@ package com.cooobird.datatip.api.content;
 import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.api.expression.ExpressionParser;
+import com.cooobird.datatip.config.DatatipConfig;
 import com.cooobird.datatip.event.TipRenderEventHandler;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
@@ -173,12 +174,26 @@ public abstract class BaseTextContent implements TipContent {
     }
 
     /**
+     * 是否因 Shift 折叠而显示为提示行。
+     */
+    @Override
+    public boolean isShiftCollapsed() {
+        return shift && !isShowTipDown();
+    }
+
+    /**
      * 绘制 Shift 提示
      */
-    protected void renderShiftHint(TipRenderContext context, int x, int y) {
+    public static void renderShiftHint(TipRenderContext context, int x, int y) {
+        int color;
+        try {
+            color = DatatipConfig.SHIFT_HINT_COLOR.get();
+        } catch (IllegalStateException e) {
+            color = 0xFF888888;
+        }
         Component hint = Component.translatable("tooltip.datatip.hold_shift",
             TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
-        context.drawString(hint, x, y, 0x888888, true);
+        context.drawString(hint, x, y, color, true);
     }
 
     /**
