@@ -269,6 +269,11 @@ public class TextContent extends BaseTextContent {
     }
 
     @Override
+    public boolean hasContent() {
+        return getFormattedText() != FormattedText.EMPTY;
+    }
+
+    @Override
     public int getWidth(int availableWidth) {
         if (shift && !isShowTipDown()) {
             return 0;

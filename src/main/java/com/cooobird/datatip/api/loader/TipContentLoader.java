@@ -6,9 +6,10 @@ import com.cooobird.datatip.api.TipContentRegistry;
 import com.cooobird.datatip.api.condition.ConditionChecker;
 import com.cooobird.datatip.api.content.TextContent;
 import com.cooobird.datatip.api.content.VBoxContent;
-import com.cooobird.datatip.api.util.ErrorHandler;
 import com.cooobird.datatip.api.util.LegacyFormatConverter;
+import com.cooobird.datatip.api.util.PerformanceOptimizer;
 import com.cooobird.datatip.api.util.ReloadOptimizer;
+import com.cooobird.datatip.config.DatatipConfig;
 import com.google.gson.*;
 import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
@@ -96,6 +97,9 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener {
         tagContents.clear();
         wildcardContents.clear();
 
+        // 资源重载时清除性能缓存
+        PerformanceOptimizer.clearAllCaches();
+
         ParseContext context = new ParseContext();
         int totalEntries = 0;
         int legacyConverted = 0;
@@ -133,8 +137,7 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener {
 
                 // 验证键格式
                 if (!isValidItemKey(itemKey)) {
-                    ErrorHandler.reportValidationError(location.toString(),
-                        "Invalid key format: '" + itemKey + "'. Expected item ID, tag (#), or wildcard (*, ?)");
+                    LOGGER.warn("Invalid key format: '{}'. Expected item ID, tag (#), or wildcard (*, ?)", itemKey);
                     continue;
                 }
 
@@ -176,6 +179,14 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener {
         LOGGER.info("Loaded {} datatip entries (exact: {}, tag: {}, wildcard: {}, legacy converted: {})",
             totalEntries, exactContents.size(), tagContents.size(), wildcardContents.size(), legacyConverted);
 
+        // 输出解析警告
+        if (context.hasWarnings()) {
+            LOGGER.warn("Datatip parse warnings ({}):", context.getWarnings().size());
+            for (String warning : context.getWarnings()) {
+                LOGGER.warn("  - {}", warning);
+            }
+        }
+
         // 记录热重载优化摘要
         if (ReloadOptimizer.hasChanges()) {
             LOGGER.info("Reload summary: {}", ReloadOptimizer.getUpdateSummary());
@@ -209,7 +220,7 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener {
                 if (content != null) {
                     result.add(content);
                 } else {
-                    ErrorHandler.reportParseError(itemKey, "Failed to parse content type: " + obj.get("type"));
+                    LOGGER.warn("Failed to parse content for '{}'", itemKey);
                 }
             } else if (obj.has("text")) {
                 // 老版本格式：包含 text 字段
@@ -233,7 +244,7 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener {
         VBoxContent vbox = VBoxContent.create();
 
         // 获取颜色
-        int color = 0xFFFFFF;
+        int color = DatatipConfig.DEFAULT_COLOR.get();
         if (json.has("color")) {
             String colorStr = json.get("color").getAsString();
             color = parseColor(colorStr);
@@ -365,61 +376,10 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener {
     }
 
     /**
-     * 获取指定物品的内容列表（无条件检查，向后兼容）。
-     */
-    public List<TipContent> getContents(String itemId) {
-        return getContents(itemId, ItemStack.EMPTY);
-    }
-
-    /**
-     * 获取指定标签的内容列表。
-     *
-     * @param tag 标签名（如 "minecraft:swords"）
-     * @return 内容列表，如果没有则返回空列表
-     */
-    public List<TipContent> getContentsByTag(String tag) {
-        List<ContentEntry> entries = tagContents.getOrDefault(tag, List.of());
-        return entries.stream()
-            .map(ContentEntry::content)
-            .toList();
-    }
-
-    /**
-     * 检查是否有指定物品的内容。
-     */
-    public boolean hasContents(String itemId) {
-        if (exactContents.containsKey(itemId)) {
-            return true;
-        }
-
-        for (WildcardEntry entry : wildcardContents) {
-            if (entry.matches(itemId)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * 检查是否有指定标签的内容。
-     */
-    public boolean hasContentsByTag(String tag) {
-        return tagContents.containsKey(tag);
-    }
-
-    /**
-     * 获取所有精确匹配的物品 ID。
+     * 获取所有已加载的精确物品 ID（用于日志统计）。
      */
     public Set<String> getExactItemIds() {
         return exactContents.keySet();
-    }
-
-    /**
-     * 获取所有标签。
-     */
-    public Set<String> getTags() {
-        return tagContents.keySet();
     }
 
     /**
@@ -507,16 +467,4 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener {
         return defaultValue;
     }
 
-    /**
-     * 获取指定物品的内容列表（检查条件）。
-     */
-    public List<TipContent> getContents(String itemId, ItemStack stack) {
-        List<TipContent> result = new ArrayList<>();
-
-        for (ContentEntry entry : getEntries(itemId, stack)) {
-            result.add(entry.content());
-        }
-
-        return result;
-    }
 }

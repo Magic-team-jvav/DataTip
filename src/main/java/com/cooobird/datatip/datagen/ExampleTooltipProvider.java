@@ -234,6 +234,18 @@ public class ExampleTooltipProvider implements DataProvider {
             typewriter(0xFF55FFFF, 5, 2, true, "提供增益效果", "需要金字塔基座")
         )));
 
+        // 打字机 loop:true（悬停重播）
+        root.add("minecraft:beacon", toJson(vbox(4,
+            text("Beacon — loop:true", "aqua"),
+            typewriter(0xFFAAAAAA, 6, 1, true, "每次悬停都从头播放", "loop:true + gap检测")
+        )));
+
+        // 打字机 + shift（展开重播）
+        root.add("minecraft:end_crystal", toJson(vbox(4,
+            text("End Crystal — shift + loop", "light_purple"),
+            typewriter(0xFFAAAAAA, 8, 1, true, true, "按 Shift 展开", "每次展开都重播")
+        )));
+
         // 打字机多语言
         root.add("minecraft:end_stone", toJson(vbox(4,
             text("End Stone", "yellow"),
@@ -298,6 +310,25 @@ public class ExampleTooltipProvider implements DataProvider {
             text("Barrel", "white"),
             text("Stores items", "gray"),
             text("27 slots", "yellow")
+        )));
+
+        // shift 文本（单行）
+        root.add("minecraft:ender_pearl", toJson(
+            text("Ender Pearl — 按住 Shift 显示", "#00AAAA", false, false, false, false, true)
+        ));
+
+        // VBox 全部 shift（合并提示）
+        root.add("minecraft:obsidian", toJson(vbox(2,
+            text("Obsidian — 全部 shift", "dark_purple", true, false, false, false, true),
+            text("硬度: 50", "gray", false, false, false, false, true),
+            text("用于下界传送门", "gray", false, false, false, false, true)
+        )));
+
+        // VBox 混合 shift（非shift常显 + shift合并提示）
+        root.add("minecraft:crying_obsidian", toJson(vbox(2,
+            text("Crying Obsidian", "dark_purple", true, false, false, false),
+            text("用于合成重生锚", "gray", false, false, false, false, true),
+            text("可在遗迹中找到", "gray", false, false, false, false, true)
         )));
 
         // 复杂布局

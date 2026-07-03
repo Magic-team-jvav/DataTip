@@ -833,6 +833,43 @@ Old format is automatically converted to new format. The converted JSON is saved
       {"type": "entity", "entity": "minecraft:painting", "size": 48, "autoRotate": false, "offsetY": 8},
       {"type": "text", "text": "Decorative item", "color": "gray"}
     ]
+  },
+
+  "minecraft:emerald_block": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Multiple shift items merge into one hint", "color": "green"},
+      {"type": "text", "text": "Hold Shift to reveal", "color": "gray", "shift": true},
+      {"type": "text", "text": "All folded into one line", "color": "gray", "shift": true},
+      {"type": "text", "text": "No more duplicate hints", "color": "gray", "shift": true}
+    ]
+  },
+
+  "minecraft:enchanted_book": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Typewriter + loop replay on hover", "color": "light_purple", "bold": true},
+      {"type": "typewriter", "lines": [
+        "Plays from start on each hover",
+        "loop:true with gap detection",
+        "Try unhovering and re-hovering"
+      ], "charsPerSecond": 6, "pauseSeconds": 1, "loop": true, "color": "gray"}
+    ]
+  },
+
+  "minecraft:nether_star": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "Typewriter + shift replay on expand", "color": "white", "bold": true},
+      {"type": "typewriter", "lines": [
+        "Hold Shift to reveal",
+        "Replays from start each time",
+        "Try releasing and re-pressing Shift"
+      ], "charsPerSecond": 8, "pauseSeconds": 1, "loop": true, "color": "gray", "shift": true}
+    ]
   }
 }
 ```

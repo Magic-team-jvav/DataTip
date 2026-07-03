@@ -38,12 +38,19 @@ public class TipContentBuilder {
     }
 
     /**
-     * 创建带样式的文本内容
+     * 创建带样式的文本内容（支持 shift）
      */
     public static TextContent text(String text, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
+        return text(text, color, bold, italic, underlined, strikethrough, false);
+    }
+
+    /**
+     * 创建带样式的文本内容（含 shift）
+     */
+    public static TextContent text(String text, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough, boolean shift) {
         return new TextContent(text, null, null, null, null, null,
             parseColor(color), null, true, BaseTextContent.TextAlign.LEFT, 12, 0,
-            bold, italic, underlined, strikethrough, false);
+            bold, italic, underlined, strikethrough, shift);
     }
 
     /**
@@ -71,10 +78,19 @@ public class TipContentBuilder {
     }
 
     /**
-     * 创建多语言文本内容（带样式）
+     * 创建多语言文本内容（带样式，支持 shift）
      */
     public static TextContent langText(Map<String, String> langText, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
-        return TextContent.ofLang(langText, parseColor(color), bold, italic, underlined, strikethrough);
+        return langText(langText, color, bold, italic, underlined, strikethrough, false);
+    }
+
+    /**
+     * 创建多语言文本内容（全参数）
+     */
+    public static TextContent langText(Map<String, String> langText, String color, boolean bold, boolean italic, boolean underlined, boolean strikethrough, boolean shift) {
+        return new TextContent(null, null, null, langText, null, null,
+            parseColor(color), null, true, BaseTextContent.TextAlign.LEFT, 12, 0,
+            bold, italic, underlined, strikethrough, shift);
     }
 
     /**
@@ -276,6 +292,15 @@ public class TipContentBuilder {
     }
 
     /**
+     * 创建打字机效果（全参数 + shift）
+     */
+    public static TypewriterContent typewriter(int color, int charsPerSecond, int pauseSeconds, boolean loop, boolean shift, String... lines) {
+        return new TypewriterContent(List.of(lines), null, null, charsPerSecond, pauseSeconds, loop, color,
+            null, null, false, false, false, false,
+            BaseTextContent.TextAlign.LEFT, true, 12, shift);
+    }
+
+    /**
      * 创建实体内容
      */
     public static EntityContent entity(String entityId, int size) {
@@ -398,142 +423,227 @@ public class TipContentBuilder {
     }
 
     /**
-     * 将 TipContent 转换为 JSON
+     * 将 TipContent 转换为 JSON（完整序列化所有属性）
      */
     public static JsonObject toJson(TipContent content) {
         JsonObject json = new JsonObject();
 
         if (content instanceof TextContent textContent) {
             json.addProperty("type", "text");
-            if (textContent.text() != null) {
-                json.addProperty("text", textContent.text());
-            }
-            if (textContent.color() != 0xFFFFFF) {
-                json.addProperty("color", String.format("#%06X", textContent.color() & 0xFFFFFF));
-            }
-            if (textContent.font() != null) {
+            // 基础文本
+            if (textContent.text() != null) json.addProperty("text", textContent.text());
+            // 颜色/字体
+            if (textContent.color() != 0xFFFFFF)
+                json.addProperty("color", colorToHex(textContent.color()));
+            if (textContent.font() != null)
                 json.addProperty("font", textContent.font().toString());
-            }
-            if (textContent.align() == BaseTextContent.TextAlign.CENTER) {
-                json.addProperty("align", "center");
-            } else if (textContent.align() == BaseTextContent.TextAlign.RIGHT) {
-                json.addProperty("align", "right");
-            }
+            // 文本样式
             if (textContent.bold()) json.addProperty("bold", true);
             if (textContent.italic()) json.addProperty("italic", true);
             if (textContent.underlined()) json.addProperty("underlined", true);
             if (textContent.strikethrough()) json.addProperty("strikethrough", true);
-        } else if (content instanceof SpacerContent spacer) {
+            if (!textContent.shadow()) json.addProperty("shadow", false);
+            // 布局
+            if (textContent.align() != BaseTextContent.TextAlign.LEFT)
+                json.addProperty("align", textContent.align().toString().toLowerCase());
+            if (textContent.lineHeight() != 12)
+                json.addProperty("lineHeight", textContent.lineHeight());
+            // shift
+            if (textContent.shift()) json.addProperty("shift", true);
+            if (textContent.maxWidth() > 0) json.addProperty("maxWidth", textContent.maxWidth());
+
+        } else if (content instanceof SpacerContent spacerContent) {
             json.addProperty("type", "spacer");
-            json.addProperty("height", spacer.height());
+            json.addProperty("height", spacerContent.height());
+
         } else if (content instanceof DividerContent divider) {
             json.addProperty("type", "divider");
-            json.addProperty("color", String.format("#%06X", divider.color() & 0xFFFFFF));
+            json.addProperty("color", colorToHex(divider.color()));
+            if (divider.thickness() != 1) json.addProperty("thickness", divider.thickness());
+            if (divider.width() > 0) json.addProperty("width", divider.width());
+            if (divider.marginTop() > 0) json.addProperty("marginTop", divider.marginTop());
+            if (divider.marginBottom() > 0) json.addProperty("marginBottom", divider.marginBottom());
+            if (divider.style() != DividerContent.DividerStyle.SOLID)
+                json.addProperty("style", divider.style().toString().toLowerCase());
+            if (divider.widthMode() != DividerContent.WidthMode.FILL)
+                json.addProperty("widthMode", divider.widthMode().toString().toLowerCase());
+
         } else if (content instanceof ItemContent item) {
             json.addProperty("type", "item");
             json.addProperty("item", item.getStack().getItem().toString());
+            if (item.size() != 16) json.addProperty("size", item.size());
+            if (item.showCount()) json.addProperty("showCount", true);
+            if (item.showDurability()) json.addProperty("showDurability", true);
+            if (item.showLabel()) json.addProperty("showLabel", true);
+            if (item.label() != null) json.addProperty("label", item.label().getString());
+            if (item.labelColor() != null)
+                json.addProperty("labelColor", colorToHex(item.labelColor()));
+            if (item.offsetX() != 0) json.addProperty("offsetX", item.offsetX());
+            if (item.offsetY() != 0) json.addProperty("offsetY", item.offsetY());
+
         } else if (content instanceof ProgressContent progress) {
             json.addProperty("type", "progress");
             json.addProperty("progress", progress.progress());
             json.addProperty("width", progress.width());
+            if (progress.height() != 8) json.addProperty("height", progress.height());
+            if (progress.colorFg() != 0xFF55FF55)
+                json.addProperty("colorFg", colorToHex(progress.colorFg()));
+            if (progress.colorBg() != 0xFF333333)
+                json.addProperty("colorBg", colorToHex(progress.colorBg()));
+            if (progress.style() != ProgressContent.ProgressStyle.GRADIENT)
+                json.addProperty("style", progress.style().toString().toLowerCase());
+            if (progress.showLabel()) {
+                json.addProperty("showLabel", true);
+                if (progress.customLabel() != null)
+                    json.addProperty("label", progress.customLabel().getString());
+                if (progress.labelAlign() != ProgressContent.LabelAlign.LEFT)
+                    json.addProperty("labelAlign", progress.labelAlign().toString().toLowerCase());
+            }
+            if (progress.animated()) {
+                json.addProperty("animated", true);
+                json.addProperty("animSpeed", progress.animSpeed());
+            }
+
         } else if (content instanceof VBoxContent vbox) {
             json.addProperty("type", "vbox");
             json.addProperty("gap", vbox.gap());
+            if (vbox.padding() > 0) json.addProperty("padding", vbox.padding());
+            if (vbox.horizontalAlign() != VBoxContent.HorizontalAlign.LEFT)
+                json.addProperty("align", vbox.horizontalAlign().toString().toLowerCase());
             JsonArray children = new JsonArray();
-            for (TipContent child : vbox.children()) {
-                children.add(toJson(child));
-            }
+            for (TipContent child : vbox.children()) children.add(toJson(child));
             json.add("children", children);
+
         } else if (content instanceof HBoxContent hbox) {
             json.addProperty("type", "hbox");
+            json.addProperty("gap", hbox.gap());
+            if (hbox.padding() > 0) json.addProperty("padding", hbox.padding());
+            if (hbox.verticalAlign() != HBoxContent.VerticalAlign.TOP)
+                json.addProperty("align", hbox.verticalAlign().toString().toLowerCase());
             JsonArray children = new JsonArray();
-            for (TipContent child : hbox.children()) {
-                children.add(toJson(child));
-            }
+            for (TipContent child : hbox.children()) children.add(toJson(child));
             json.add("children", children);
+
         } else if (content instanceof CarouselContent carousel) {
             json.addProperty("type", "carousel");
             json.addProperty("intervalSeconds", carousel.getIntervalSeconds());
+            if (carousel.getTransition() != CarouselContent.TransitionType.NONE)
+                json.addProperty("transition", carousel.getTransition().toString().toLowerCase());
             JsonArray frames = new JsonArray();
-            for (TipContent frame : carousel.getFrames()) {
-                frames.add(toJson(frame));
-            }
+            for (TipContent frame : carousel.getFrames()) frames.add(toJson(frame));
             json.add("frames", frames);
+
         } else if (content instanceof EntityContent entity) {
             json.addProperty("type", "entity");
             json.addProperty("entity", BuiltInRegistries.ENTITY_TYPE.getKey(entity.entityType()).toString());
             json.addProperty("size", entity.size());
-            json.addProperty("autoRotate", entity.autoRotate());
-            if (entity.offsetX() != 0) {
-                json.addProperty("offsetX", entity.offsetX());
-            }
-            if (entity.offsetY() != 0) {
-                json.addProperty("offsetY", entity.offsetY());
-            }
+            if (entity.rotationSpeed() != 1.0f) json.addProperty("rotationSpeed", entity.rotationSpeed());
+            if (!entity.autoRotate()) json.addProperty("autoRotate", false);
+            if (entity.label() != null) json.addProperty("label", entity.label().getString());
+            if (entity.offsetX() != 0) json.addProperty("offsetX", entity.offsetX());
+            if (entity.offsetY() != 0) json.addProperty("offsetY", entity.offsetY());
+
         } else if (content instanceof BlockContent block) {
             json.addProperty("type", "block");
             json.addProperty("block", BuiltInRegistries.BLOCK.getKey(block.block()).toString());
             json.addProperty("size", block.size());
-            json.addProperty("autoRotate", block.autoRotate());
-            if (block.offsetX() != 0) {
-                json.addProperty("offsetX", block.offsetX());
-            }
-            if (block.offsetY() != 0) {
-                json.addProperty("offsetY", block.offsetY());
-            }
+            if (block.rotationSpeed() != 1.0f) json.addProperty("rotationSpeed", block.rotationSpeed());
+            if (!block.autoRotate()) json.addProperty("autoRotate", false);
+            if (block.label() != null) json.addProperty("label", block.label().getString());
+            if (block.offsetX() != 0) json.addProperty("offsetX", block.offsetX());
+            if (block.offsetY() != 0) json.addProperty("offsetY", block.offsetY());
+
         } else if (content instanceof AtlasContent atlas) {
             json.addProperty("type", "atlas");
             json.addProperty("texture", atlas.texturePath().toString());
-            json.addProperty("size", atlas.width());
-            if (atlas.offsetX() != 0) {
-                json.addProperty("offsetX", atlas.offsetX());
+            if (atlas.width() == atlas.height()) {
+                json.addProperty("size", atlas.width());
+            } else {
+                json.addProperty("width", atlas.width());
+                json.addProperty("height", atlas.height());
             }
-            if (atlas.offsetY() != 0) {
-                json.addProperty("offsetY", atlas.offsetY());
-            }
+            if (atlas.label() != null) json.addProperty("label", atlas.label());
+            if (atlas.offsetX() != 0) json.addProperty("offsetX", atlas.offsetX());
+            if (atlas.offsetY() != 0) json.addProperty("offsetY", atlas.offsetY());
+
         } else if (content instanceof ImageContent image) {
             json.addProperty("type", "image");
             json.addProperty("texture", image.texture().toString());
             json.addProperty("width", image.width());
             json.addProperty("height", image.height());
-            if (image.offsetX() != 0) {
-                json.addProperty("offsetX", image.offsetX());
+            if (image.u() != 0 || image.v() != 0) {
+                json.addProperty("u", image.u());
+                json.addProperty("v", image.v());
             }
-            if (image.offsetY() != 0) {
-                json.addProperty("offsetY", image.offsetY());
+            if (image.textureWidth() != image.width() || image.textureHeight() != image.height()) {
+                json.addProperty("textureWidth", image.textureWidth());
+                json.addProperty("textureHeight", image.textureHeight());
             }
+            if (image.scale() != 1.0f) json.addProperty("scale", image.scale());
+            if (image.offsetX() != 0) json.addProperty("offsetX", image.offsetX());
+            if (image.offsetY() != 0) json.addProperty("offsetY", image.offsetY());
+
         } else if (content instanceof ChartContent chart) {
             json.addProperty("type", "chart");
             json.addProperty("chartType", chart.type().toString().toLowerCase());
             json.addProperty("width", chart.width());
             json.addProperty("height", chart.height());
+            if (chart.title() != null) json.addProperty("title", chart.title().getString());
+            if (!chart.showLabels()) json.addProperty("showLabels", false);
+            if (!chart.showValues()) json.addProperty("showValues", false);
+            if (chart.titleColor() != 0xFFFFFFFF)
+                json.addProperty("titleColor", colorToHex(chart.titleColor()));
+            if (chart.labelColor() != 0xFFAAAAAA)
+                json.addProperty("labelColor", colorToHex(chart.labelColor()));
+            if (chart.valueColor() != 0xFFFFFFFF)
+                json.addProperty("valueColor", colorToHex(chart.valueColor()));
+            if (chart.zeroLineColor() != 0xFF888888)
+                json.addProperty("zeroLineColor", colorToHex(chart.zeroLineColor()));
             JsonArray entries = new JsonArray();
             for (var entry : chart.entries()) {
                 JsonObject entryJson = new JsonObject();
                 entryJson.addProperty("label", entry.label());
                 entryJson.addProperty("value", entry.valueExpr());
-                entryJson.addProperty("color", String.format("#%06X", entry.color() & 0xFFFFFF));
+                entryJson.addProperty("color", colorToHex(entry.color()));
                 entries.add(entryJson);
             }
             json.add("entries", entries);
+
         } else if (content instanceof TypewriterContent typewriter) {
             json.addProperty("type", "typewriter");
             JsonArray lines = new JsonArray();
-            for (String line : typewriter.getLines()) {
-                lines.add(line);
-            }
+            for (String line : typewriter.getLines()) lines.add(line);
             json.add("lines", lines);
             json.addProperty("charsPerSecond", typewriter.getCharsPerSecond());
+            json.addProperty("pauseSeconds", 1);
             json.addProperty("loop", typewriter.isLoop());
-            if (typewriter.color() != 0xFFFFFF) {
-                json.addProperty("color", String.format("#%06X", typewriter.color() & 0xFFFFFF));
-            }
-            if (typewriter.font() != null) {
+            // 颜色/字体
+            if (typewriter.color() != 0xFFFFFF)
+                json.addProperty("color", colorToHex(typewriter.color()));
+            if (typewriter.font() != null)
                 json.addProperty("font", typewriter.font().toString());
-            }
+            // 样式
+            if (typewriter.bold()) json.addProperty("bold", true);
+            if (typewriter.italic()) json.addProperty("italic", true);
+            if (typewriter.underlined()) json.addProperty("underlined", true);
+            if (typewriter.strikethrough()) json.addProperty("strikethrough", true);
+            if (!typewriter.shadow()) json.addProperty("shadow", false);
+            // 布局
+            if (typewriter.align() != BaseTextContent.TextAlign.LEFT)
+                json.addProperty("align", typewriter.align().toString().toLowerCase());
+            if (typewriter.lineHeight() != 12)
+                json.addProperty("lineHeight", typewriter.lineHeight());
+            if (typewriter.shift()) json.addProperty("shift", true);
         }
 
         return json;
+    }
+
+    /**
+     * 将 ARGB int 转为 #RRGGBB 字符串
+     */
+    private static String colorToHex(int argb) {
+        return String.format("#%06X", argb & 0xFFFFFF);
     }
 
     /**

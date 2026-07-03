@@ -11,11 +11,43 @@ import java.util.List;
 /**
  * 解析上下文。
  * 提供 JSON 解析的便捷方法，支持嵌套内容解析。
+ * <p>
+ * 每次资源重载时创建新的 ParseContext 实例，收集解析过程中的警告。
+ * </p>
  *
  * @author cooobird
  * @since 1.2.0
  */
 public class ParseContext {
+
+    private final List<String> warnings = new ArrayList<>();
+
+    /**
+     * 添加解析警告。
+     *
+     * @param warning 警告信息
+     */
+    public void addWarning(String warning) {
+        warnings.add(warning);
+    }
+
+    /**
+     * 获取所有解析警告。
+     *
+     * @return 警告列表
+     */
+    public List<String> getWarnings() {
+        return warnings;
+    }
+
+    /**
+     * 是否有任何警告。
+     *
+     * @return true 存在警告
+     */
+    public boolean hasWarnings() {
+        return !warnings.isEmpty();
+    }
 
     /**
      * 解析嵌套的 TipContent。

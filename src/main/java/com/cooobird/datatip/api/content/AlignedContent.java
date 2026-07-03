@@ -56,6 +56,11 @@ public record AlignedContent(
     }
 
     @Override
+    public boolean hasContent() {
+        return inner.hasContent();
+    }
+
+    @Override
     public boolean isAnimated() {
         return inner.isAnimated();
     }
@@ -65,13 +70,4 @@ public record AlignedContent(
         inner.tick(tickCount);
     }
 
-    @Override
-    public void onShow() {
-        inner.onShow();
-    }
-
-    @Override
-    public void onHide() {
-        inner.onHide();
-    }
 }

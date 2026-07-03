@@ -18,12 +18,8 @@ import java.util.List;
  * @author cooobird
  * @since 1.2.0
  */
-public class HBoxContent implements ContainerContent {
-
-    private final List<TipContent> children;
-    private final int gap;
-    private final int padding;
-    private final VerticalAlign verticalAlign;
+public record HBoxContent(List<TipContent> children, int gap, int padding,
+                          VerticalAlign verticalAlign) implements ContainerContent {
 
     // 创建水平布局容器
     public HBoxContent(List<TipContent> children, int gap, int padding, VerticalAlign verticalAlign) {
@@ -63,131 +59,66 @@ public class HBoxContent implements ContainerContent {
         children.add(child);
     }
 
-    private static final int HINT_LINE_HEIGHT = 12;
-
     @Override
     public int getHeight(int maxWidth) {
-        int availableWidth = maxWidth - padding * 2;
-        boolean hasCollapsed = false;
-        int maxHeight = 0;
-
-        for (TipContent child : children) {
-            if (child.isShiftCollapsed()) {
-                hasCollapsed = true;
-            } else {
-                int childHeight = child.getHeight(availableWidth);
-                if (childHeight > maxHeight) {
-                    maxHeight = childHeight;
-                }
-            }
-        }
-
-        if (hasCollapsed && maxHeight == 0) {
+        int aw = maxWidth - padding * 2;
+        int[] maxH = {0};
+        var iter = forEachVisibleContent((child, needsGap) -> {
+            int ch = child.getHeight(aw);
+            if (ch > maxH[0]) maxH[0] = ch;
+        });
+        if (iter.hasCollapsed() && maxH[0] == 0) {
             return padding * 2 + HINT_LINE_HEIGHT;
         }
-        if (hasCollapsed && HINT_LINE_HEIGHT > maxHeight) {
-            maxHeight = HINT_LINE_HEIGHT;
+        if (iter.hasCollapsed() && HINT_LINE_HEIGHT > maxH[0]) {
+            maxH[0] = HINT_LINE_HEIGHT;
         }
-
-        return maxHeight + padding * 2;
+        return maxH[0] + padding * 2;
     }
 
     @Override
     public int getWidth(int maxWidth) {
-        int availableWidth = maxWidth - padding * 2;
-        boolean hasCollapsed = false;
-        int totalWidth = padding * 2;
-        boolean hasPrevNonCollapsed = false;
-
-        for (int i = 0; i < children.size(); i++) {
-            TipContent child = children.get(i);
-            if (child.isShiftCollapsed()) {
-                hasCollapsed = true;
-            } else {
-                if (hasPrevNonCollapsed) {
-                    totalWidth += gap;
-                }
-                totalWidth += child.getWidth(availableWidth);
-                hasPrevNonCollapsed = true;
-            }
-        }
-
-        if (hasCollapsed) {
+        int aw = maxWidth - padding * 2;
+        int[] totalW = {padding * 2};
+        var iter = forEachVisibleContent((child, needsGap) -> {
+            if (needsGap) totalW[0] += gap;
+            totalW[0] += child.getWidth(aw);
+        });
+        if (iter.hasCollapsed()) {
             Font font = Minecraft.getInstance().font;
             Component hint = Component.translatable("tooltip.datatip.hold_shift",
                 TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
-            if (hasPrevNonCollapsed) {
-                totalWidth += gap;
-            }
-            totalWidth += font.width(hint);
+            if (iter.hasNonCollapsed()) totalW[0] += gap;
+            totalW[0] += font.width(hint);
         }
-
-        return Math.min(totalWidth, maxWidth);
+        return Math.min(totalW[0], maxWidth);
     }
 
     @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0 || children.isEmpty()) return;
 
-        int currentX = x + padding;
-        int availableWidth = maxWidth - padding * 2;
-        int containerHeight = getHeight(maxWidth) - padding * 2;
-        boolean hasCollapsed = false;
-        boolean hasPrevNonCollapsed = false;
-
-        for (TipContent child : children) {
-            if (child.isShiftCollapsed()) {
-                hasCollapsed = true;
-            } else {
-                if (hasPrevNonCollapsed) {
-                    currentX += gap;
-                }
-
-                int childHeight = child.getHeight(availableWidth);
-                int childY = switch (verticalAlign) {
-                    case TOP -> y + padding;
-                    case CENTER -> y + padding + (containerHeight - childHeight) / 2;
-                    case BOTTOM -> y + padding + containerHeight - childHeight;
-                };
-
-                child.render(context, currentX, childY, availableWidth, alpha);
-                currentX += child.getWidth(availableWidth);
-                hasPrevNonCollapsed = true;
-            }
-        }
-
-        if (hasCollapsed) {
+        int[] cx = {x + padding};
+        int aw = maxWidth - padding * 2;
+        int ch = getHeight(maxWidth) - padding * 2;
+        var iter = forEachVisibleContent((child, needsGap) -> {
+            if (needsGap) cx[0] += gap;
+            int childH = child.getHeight(aw);
+            int cy = switch (verticalAlign) {
+                case TOP -> y + padding;
+                case CENTER -> y + padding + (ch - childH) / 2;
+                case BOTTOM -> y + padding + ch - childH;
+            };
+            child.render(context, cx[0], cy, aw, alpha);
+            cx[0] += child.getWidth(aw);
+        });
+        if (iter.hasCollapsed()) {
             int hintY = y + padding;
-            if (verticalAlign == VerticalAlign.CENTER) {
-                hintY += (containerHeight - HINT_LINE_HEIGHT) / 2;
-            } else if (verticalAlign == VerticalAlign.BOTTOM) {
-                hintY += containerHeight - HINT_LINE_HEIGHT;
-            }
-            if (hasPrevNonCollapsed) {
-                currentX += gap;
-            }
-            BaseTextContent.renderShiftHint(context, currentX, hintY);
+            if (verticalAlign == VerticalAlign.CENTER) hintY += (ch - HINT_LINE_HEIGHT) / 2;
+            else if (verticalAlign == VerticalAlign.BOTTOM) hintY += ch - HINT_LINE_HEIGHT;
+            if (iter.hasNonCollapsed()) cx[0] += gap;
+            BaseTextContent.renderShiftHint(context, cx[0], hintY);
         }
-    }
-
-    @Override
-    public boolean isAnimated() {
-        return children.stream().anyMatch(TipContent::isAnimated);
-    }
-
-    @Override
-    public void tick(int tickCount) {
-        children.forEach(child -> child.tick(tickCount));
-    }
-
-    @Override
-    public void onShow() {
-        children.forEach(TipContent::onShow);
-    }
-
-    @Override
-    public void onHide() {
-        children.forEach(TipContent::onHide);
     }
 
     // 垂直对齐方式

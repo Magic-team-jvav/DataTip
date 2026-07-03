@@ -821,6 +821,42 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
       {"type": "entity", "entity": "minecraft:painting", "size": 48, "autoRotate": false, "offsetY": 8},
       {"type": "text", "text": "装饰性物品", "color": "gray"}
     ]
+  },
+
+  "minecraft:emerald_block": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "多条 shift 自动合并为一条提示", "color": "green"},
+      {"type": "text", "text": "只有按住 Shift 才显示", "color": "gray", "shift": true},
+      {"type": "text", "text": "多条合并为一行", "color": "gray", "shift": true}
+    ]
+  },
+
+  "minecraft:enchanted_book": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "打字机 loop:true 悬停重播", "color": "light_purple", "bold": true},
+      {"type": "typewriter", "lines": [
+        "每次悬停都从头播放",
+        "loop:true + gap 检测",
+        "移开再悬停试试"
+      ], "charsPerSecond": 6, "pauseSeconds": 1, "loop": true, "color": "gray"}
+    ]
+  },
+
+  "minecraft:nether_star": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {"type": "text", "text": "打字机 + shift 展开重播", "color": "white", "bold": true},
+      {"type": "typewriter", "lines": [
+        "按 Shift 展开",
+        "每次展开重头播放",
+        "松开再按试试"
+      ], "charsPerSecond": 8, "pauseSeconds": 1, "loop": true, "color": "gray", "shift": true}
+    ]
   }
 }
 ```

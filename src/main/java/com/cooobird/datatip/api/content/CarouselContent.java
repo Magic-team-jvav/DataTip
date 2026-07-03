@@ -45,6 +45,10 @@ public class CarouselContent implements TipContent {
         return Collections.unmodifiableList(frames);
     }
 
+    public TransitionType getTransition() {
+        return transition;
+    }
+
     // 获取轮播间隔
     public int getIntervalSeconds() {
         return intervalTicks / 20;
