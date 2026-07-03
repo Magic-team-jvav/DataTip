@@ -1,6 +1,7 @@
 package com.cooobird.datatip.event;
 
 import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.TipEventManager;
 import com.cooobird.datatip.api.component.TipContentTooltipComponent;
 import com.cooobird.datatip.api.loader.TipContentLoader;
 import com.cooobird.datatip.api.util.PerformanceOptimizer;
@@ -132,6 +133,9 @@ public class TipRenderEventHandler {
         // 获取或解析内容
         List<TipContentLoader.ContentEntry> entries = getOrParseContents(stack);
         if (entries == null || entries.isEmpty()) return;
+
+        // 触发 tooltip 显示事件（tooltip 将显示时调用）
+        TipEventManager.fireTooltipShow(stack, true);
 
         // 检查是否有 shift 内容
         boolean anyShift = entries.stream().anyMatch(TipContentLoader.ContentEntry::shift);

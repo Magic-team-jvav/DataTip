@@ -125,24 +125,26 @@ public class TipContentRegistry {
     @Nullable
     public static TipContent parse(JsonObject json, ParseContext context) {
         if (!json.has("type")) {
+            context.addWarning("JSON object missing 'type' field");
             return null;
         }
 
-        String type = json.get("type").getAsString();
+        String type = json.get("type").getAsString().toLowerCase();
         ContentParser parser = parsers.get(type);
 
         if (parser == null) {
+            context.addWarning("Unknown content type: '" + type + "'");
             return null;
         }
 
         try {
             TipContent content = parser.parse(json, context);
             if (content == null) {
+                context.addWarning("Parser returned null for type: '" + type + "'");
                 return null;
             }
 
             // 如果 JSON 中有 align 属性，自动包装为 AlignedContent
-            // TextContent 已经内部处理了 align，所以跳过
             if (json.has("align") && !(content instanceof TextContent)) {
                 String alignStr = json.get("align").getAsString();
                 VBoxContent.HorizontalAlign align = switch (alignStr.toLowerCase()) {
@@ -155,6 +157,7 @@ public class TipContentRegistry {
 
             return content;
         } catch (Exception e) {
+            context.addWarning("Failed to parse type '" + type + "': " + e.getMessage());
             return null;
         }
     }

@@ -144,6 +144,11 @@ public class TypewriterContent extends BaseTextContent {
     }
 
     @Override
+    public boolean hasContent() {
+        return !getCurrentLines().isEmpty();
+    }
+
+    @Override
     public int getWidth(int maxWidth) {
         if (shift && !isShowTipDown()) {
             return 0;
@@ -211,11 +216,6 @@ public class TypewriterContent extends BaseTextContent {
                 }
             }
         }
-    }
-
-    @Override
-    public void onShow() {
-        reset();
     }
 
     public void reset() {

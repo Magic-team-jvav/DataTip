@@ -99,13 +99,36 @@ public class ConditionChecker {
     }
 
     /**
-     * 注册自定义条件。
+     * 注册自定义条件（可覆盖内置条件）。
      *
      * @param type      条件类型名
      * @param condition 条件检查实现
      */
     public static void registerCondition(String type, CustomCondition condition) {
         CUSTOM_CONDITIONS.put(type, condition);
+    }
+
+    // 注册内置条件
+    static {
+        registerCondition("dimension", (v, s, p, l) -> checkDimension(v, l));
+        registerCondition("biome", (v, s, p, l) -> checkBiome(v, p, l));
+        registerCondition("holding", (v, s, p, l) -> checkHolding(v, p));
+        registerCondition("sneaking", (v, s, p, l) -> p.isShiftKeyDown());
+        registerCondition("creative", (v, s, p, l) -> p.isCreative());
+        registerCondition("survival", (v, s, p, l) -> !p.isCreative() && !p.isSpectator());
+        registerCondition("health", (v, s, p, l) -> checkHealth(v, p));
+        registerCondition("hunger", (v, s, p, l) -> checkHunger(v, p));
+        registerCondition("experience", (v, s, p, l) -> checkExperience(v, p));
+        registerCondition("level", (v, s, p, l) -> checkExperience(v, p));
+        registerCondition("time", (v, s, p, l) -> checkTime(v, l));
+        registerCondition("weather", (v, s, p, l) -> checkWeather(v, l));
+        registerCondition("light", (v, s, p, l) -> checkLight(v, p, l));
+        registerCondition("altitude", (v, s, p, l) -> checkAltitude(v, p));
+        registerCondition("enchanted", (v, s, p, l) -> checkEnchanted(v, s));
+        registerCondition("damage", (v, s, p, l) -> checkDamage(v, s));
+        registerCondition("count", (v, s, p, l) -> checkCount(v, s));
+        registerCondition("nbt", (v, s, p, l) -> checkNbt(v, s));
+        registerCondition("item_tag", (v, s, p, l) -> checkItemTag(v, s));
     }
 
     /**
@@ -173,13 +196,7 @@ public class ConditionChecker {
      * @return true 如果条件满足
      */
     private static boolean checkCondition(Condition condition, ItemStack stack, Player player, Level level) {
-        // 先检查自定义条件
-        CustomCondition custom = CUSTOM_CONDITIONS.get(condition.type());
-        if (custom != null) {
-            return custom.check(condition.value(), stack, player, level);
-        }
-
-        // 内置条件
+        // 先检查内置条件
         return switch (condition.type()) {
             case "dimension" -> checkDimension(condition.value(), level);
             case "biome" -> checkBiome(condition.value(), player, level);
@@ -199,7 +216,11 @@ public class ConditionChecker {
             case "count" -> checkCount(condition.value(), stack);
             case "nbt" -> checkNbt(condition.value(), stack);
             case "item_tag" -> checkItemTag(condition.value(), stack);
-            default -> true;
+            default -> {
+                // 自定义条件（mod 通过 registerCondition 注册的覆盖）
+                CustomCondition custom = CUSTOM_CONDITIONS.get(condition.type());
+                yield custom != null && custom.check(condition.value(), stack, player, level);
+            }
         };
     }
 

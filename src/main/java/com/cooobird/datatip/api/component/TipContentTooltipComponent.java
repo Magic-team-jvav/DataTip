@@ -30,14 +30,12 @@ public record TipContentTooltipComponent(TipContent content, @Nullable ItemStack
 
     @Override
     public int getHeight() {
-        int maxWidth = DatatipConfig.MAX_WIDTH.get();
-        return content.getHeight(maxWidth);
+        return content.getHeight(DatatipConfig.MAX_WIDTH.get());
     }
 
     @Override
     public int getWidth(Font font) {
-        int maxWidth = DatatipConfig.MAX_WIDTH.get();
-        return content.getWidth(maxWidth);
+        return content.getWidth(DatatipConfig.MAX_WIDTH.get());
     }
 
     @Override

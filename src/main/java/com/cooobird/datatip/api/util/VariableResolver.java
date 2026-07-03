@@ -1,5 +1,6 @@
 package com.cooobird.datatip.api.util;
 
+import com.cooobird.datatip.api.TipEventManager;
 import com.cooobird.datatip.api.expression.ExpressionParser;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.component.DataComponents;
@@ -117,25 +118,25 @@ public class VariableResolver {
     // 注册内置变量
     static {
         // 耐久相关
-        BUILT_IN_VARS.put("durability", stack ->
+        registerVariable("durability", stack ->
             String.valueOf(stack.getMaxDamage() - stack.getDamageValue()));
-        BUILT_IN_VARS.put("max_durability", stack ->
+        registerVariable("max_durability", stack ->
             String.valueOf(stack.getMaxDamage()));
-        BUILT_IN_VARS.put("damage", stack ->
+        registerVariable("damage", stack ->
             String.valueOf(stack.getDamageValue()));
 
         // 数量
-        BUILT_IN_VARS.put("count", stack ->
+        registerVariable("count", stack ->
             String.valueOf(stack.getCount()));
 
         // 物品信息
-        BUILT_IN_VARS.put("item_name", stack ->
+        registerVariable("item_name", stack ->
             stack.getHoverName().getString());
-        BUILT_IN_VARS.put("item_id", stack ->
+        registerVariable("item_id", stack ->
             stack.getItem().toString());
 
         // 耐久百分比
-        BUILT_IN_VARS.put("durability_percent", stack -> {
+        registerVariable("durability_percent", stack -> {
             if (!stack.isDamageableItem()) return "100";
             int max = stack.getMaxDamage();
             int current = max - stack.getDamageValue();
@@ -143,84 +144,84 @@ public class VariableResolver {
         });
 
         // 附魔相关
-        BUILT_IN_VARS.put("enchantment_count", stack -> {
+        registerVariable("enchantment_count", stack -> {
             ItemEnchantments enchants = stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
             return String.valueOf(enchants.size());
         });
-        BUILT_IN_VARS.put("is_enchanted", stack ->
+        registerVariable("is_enchanted", stack ->
             String.valueOf(stack.isEnchanted()));
 
         // 物品属性
-        BUILT_IN_VARS.put("rarity", stack ->
+        registerVariable("rarity", stack ->
             stack.getRarity().name().toLowerCase());
-        BUILT_IN_VARS.put("max_stack_size", stack ->
+        registerVariable("max_stack_size", stack ->
             String.valueOf(stack.getMaxStackSize()));
-        BUILT_IN_VARS.put("is_stackable", stack ->
+        registerVariable("is_stackable", stack ->
             String.valueOf(stack.getMaxStackSize() > 1));
-        BUILT_IN_VARS.put("is_damageable", stack ->
+        registerVariable("is_damageable", stack ->
             String.valueOf(stack.isDamageableItem()));
 
         // 玩家相关（需要上下文）
-        BUILT_IN_VARS.put("player_health", stack -> {
+        registerVariable("player_health", stack -> {
             var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf((int) player.getHealth()) : "0";
         });
-        BUILT_IN_VARS.put("player_max_health", stack -> {
+        registerVariable("player_max_health", stack -> {
             var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf((int) player.getMaxHealth()) : "0";
         });
-        BUILT_IN_VARS.put("player_hunger", stack -> {
+        registerVariable("player_hunger", stack -> {
             var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf(player.getFoodData().getFoodLevel()) : "0";
         });
-        BUILT_IN_VARS.put("player_experience", stack -> {
+        registerVariable("player_experience", stack -> {
             var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf(player.experienceLevel) : "0";
         });
 
         // 游戏状态
-        BUILT_IN_VARS.put("game_time", stack -> {
+        registerVariable("game_time", stack -> {
             var level = Minecraft.getInstance().level;
             return level != null ? String.valueOf(level.getDayTime()) : "0";
         });
-        BUILT_IN_VARS.put("is_day", stack -> {
+        registerVariable("is_day", stack -> {
             var level = Minecraft.getInstance().level;
             if (level == null) return "false";
             long time = level.getDayTime() % 24000;
             return String.valueOf(time >= 0 && time < 12000);
         });
-        BUILT_IN_VARS.put("is_raining", stack -> {
+        registerVariable("is_raining", stack -> {
             var level = Minecraft.getInstance().level;
             return level != null ? String.valueOf(level.isRaining()) : "false";
         });
-        BUILT_IN_VARS.put("is_thundering", stack -> {
+        registerVariable("is_thundering", stack -> {
             var level = Minecraft.getInstance().level;
             return level != null ? String.valueOf(level.isThundering()) : "false";
         });
 
         // 玩家位置
-        BUILT_IN_VARS.put("player_x", stack -> {
+        registerVariable("player_x", stack -> {
             var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf((int) player.getX()) : "0";
         });
-        BUILT_IN_VARS.put("player_y", stack -> {
+        registerVariable("player_y", stack -> {
             var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf((int) player.getY()) : "0";
         });
-        BUILT_IN_VARS.put("player_z", stack -> {
+        registerVariable("player_z", stack -> {
             var player = Minecraft.getInstance().player;
             return player != null ? String.valueOf((int) player.getZ()) : "0";
         });
 
         // 格式化显示
-        BUILT_IN_VARS.put("durability_bar", stack -> {
+        registerVariable("durability_bar", stack -> {
             if (!stack.isDamageableItem()) return "████████████";
             int max = stack.getMaxDamage();
             int current = max - stack.getDamageValue();
             int bars = (int) ((current * 12.0) / max);
             return "█".repeat(bars) + "░".repeat(12 - bars);
         });
-        BUILT_IN_VARS.put("health_bar", stack -> {
+        registerVariable("health_bar", stack -> {
             var player = Minecraft.getInstance().player;
             if (player == null) return "░░░░░░░░░░░░";
             float health = player.getHealth();
@@ -269,6 +270,9 @@ public class VariableResolver {
                 result = result.replace(placeholder, value != null ? value : "");
             }
         }
+
+        // 触发变量解析事件（让 mod 提供自定义变量值）
+        result = resolveEventVariables(result, stack);
 
         // 检查是否有表达式
         if (result.contains("{") && result.contains("}") &&
@@ -416,6 +420,35 @@ public class VariableResolver {
     }
 
     /**
+     * 对文本中剩余未解析的 {变量} 触发变量解析事件。
+     */
+    private static String resolveEventVariables(String text, ItemStack stack) {
+        StringBuilder result = new StringBuilder();
+        int i = 0;
+        while (i < text.length()) {
+            if (text.charAt(i) == '{') {
+                int end = findClosingBrace(text, i);
+                if (end > i + 1) {
+                    String varName = text.substring(i + 1, end);
+                    // 跳过已解析的变量和表达式
+                    if (!varName.contains("?") && !varName.contains(">") &&
+                        !varName.contains("<") && !varName.contains("nbt:")) {
+                        var event = TipEventManager.fireVariableResolve(varName, stack);
+                        if (event.isResolved() && event.getValue() != null) {
+                            result.append(event.getValue());
+                            i = end + 1;
+                            continue;
+                        }
+                    }
+                }
+            }
+            result.append(text.charAt(i));
+            i++;
+        }
+        return result.toString();
+    }
+
+    /**
      * 注册自定义变量。
      *
      * @param name     变量名（不含大括号）
@@ -423,24 +456,5 @@ public class VariableResolver {
      */
     public static void registerVariable(String name, Function<ItemStack, String> resolver) {
         BUILT_IN_VARS.put(name, resolver);
-    }
-
-    /**
-     * 检查文本是否包含变量。
-     *
-     * @param text 文本
-     * @return true 如果包含变量
-     */
-    public static boolean hasVariables(String text) {
-        return text != null && text.contains("{") && text.contains("}");
-    }
-
-    /**
-     * 获取所有可用变量名。
-     *
-     * @return 变量名集合
-     */
-    public static java.util.Set<String> getAvailableVariables() {
-        return BUILT_IN_VARS.keySet();
     }
 }

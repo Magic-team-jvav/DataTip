@@ -89,6 +89,19 @@ public interface TipContent {
     }
 
     /**
+     * 在当前语言环境下是否有可显示的内容。
+     * <p>
+     * 多语言文本若当前语言无对应翻译则返回 false。
+     * 容器在判断折叠合并时应跳过无内容的子元素。
+     * </p>
+     *
+     * @return true 表示当前语言有可显示内容
+     */
+    default boolean hasContent() {
+        return true;
+    }
+
+    /**
      * 此内容是否需要每帧更新（动画）。
      * <p>
      * 返回 true 时，{@link #tick(int)} 方法会在每 tick 被调用。
@@ -111,19 +124,4 @@ public interface TipContent {
         // 默认空实现
     }
 
-    /**
-     * 当 tooltip 显示时调用。
-     * 可用于初始化动画状态或资源。
-     */
-    default void onShow() {
-        // 默认空实现
-    }
-
-    /**
-     * 当 tooltip 隐藏时调用。
-     * 可用于清理资源或重置状态。
-     */
-    default void onHide() {
-        // 默认空实现
-    }
 }
