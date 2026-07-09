@@ -275,58 +275,40 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 ## 变量
 
-| 变量                     | 说明                |
-|------------------------|-------------------|
-| `{durability}`         | 当前耐久              |
-| `{max_durability}`     | 最大耐久              |
-| `{damage}`             | 已损坏值              |
-| `{durability_percent}` | 耐久百分比             |
-| `{durability_bar}`     | 耐久条（可视化）          |
-| `{count}`              | 物品数量              |
-| `{item_name}`          | 物品称               |
-| `{item_id}`            | 物品 ID             |
-| `{enchantment_count}`  | 附魔数量              |
-| `{is_enchanted}`       | 是否附魔              |
-| `{rarity}`             | 稀有度               |
-| `{max_stack_size}`     | 最大堆叠数             |
-| `{is_stackable}`       | 是否可堆叠             |
-| `{is_damageable}`      | 是否可损坏             |
-| `{player_health}`      | 玩家生命值             |
-| `{player_max_health}`  | 玩家最大生命值           |
-| `{player_hunger}`      | 玩家饥饿值             |
-| `{player_experience}`  | 玩家经验等级            |
-| `{player_x}`           | 玩家 X 坐标           |
-| `{player_y}`           | 玩家 Y 坐标           |
-| `{player_z}`           | 玩家 Z 坐标           |
-| `{game_time}`          | 游戏时间              |
-| `{is_day}`             | 是否白天              |
-| `{is_raining}`         | 是否下雨              |
-| `{is_thundering}`      | 是否雷暴              |
-| `{health_bar}`         | 生命条（可视化）          |
-| `{nbt:path}`           | 组件值（见下方 NBT 变量说明） |
+| 变量                     | 说明                     |
+|------------------------|------------------------|
+| `{durability}`         | 当前耐久                   |
+| `{max_durability}`     | 最大耐久                   |
+| `{damage}`             | 已损坏值                   |
+| `{durability_percent}` | 耐久百分比                  |
+| `{durability_bar}`     | 耐久条（可视化）               |
+| `{count}`              | 物品数量                   |
+| `{item_name}`          | 物品称                    |
+| `{item_id}`            | 物品 ID                  |
+| `{enchantment_count}`  | 附魔数量                   |
+| `{is_enchanted}`       | 是否附魔                   |
+| `{rarity}`             | 稀有度                    |
+| `{max_stack_size}`     | 最大堆叠数                  |
+| `{is_stackable}`       | 是否可堆叠                  |
+| `{is_damageable}`      | 是否可损坏                  |
+| `{player_health}`      | 玩家生命值                  |
+| `{player_max_health}`  | 玩家最大生命值                |
+| `{player_hunger}`      | 玩家饥饿值                  |
+| `{player_experience}`  | 玩家经验等级                 |
+| `{player_x}`           | 玩家 X 坐标                |
+| `{player_y}`           | 玩家 Y 坐标                |
+| `{player_z}`           | 玩家 Z 坐标                |
+| `{game_time}`          | 游戏时间                   |
+| `{is_day}`             | 是否白天                   |
+| `{is_raining}`         | 是否下雨                   |
+| `{is_thundering}`      | 是否雷暴                   |
+| `{health_bar}`         | 生命条（可视化）               |
+| `{nbt:path}`           | 物品 NBT 值（见下方 NBT 变量说明） |
 
 ### NBT 变量
 
-使用 `{nbt:path}` 语法读取物品组件/NBT 数据。
+Forge 1.20.1 的物品自定义数据仍然存储在 NBT 中。使用 `{nbt:path}` 读取当前物品栈上的点分隔 NBT 路径。
 
-**NeoForge 1.21.1（组件系统）：**
-```json
-{
-  "type": "text",
-  "text": "名称: {nbt:custom_name}",
-  "color": "white"
-}
-```
-
-**支持的路径：**
-- `custom_name` - 自定义物品名称
-- `item_name` - 物品名称
-- `lore` - 物品描述
-- `damage` - 损坏值
-- `max_damage` - 最大损坏值
-- `enchantments` - 附魔
-
-**Forge 1.20.1（NBT 系统）：**
 ```json
 {
   "type": "text",
@@ -337,52 +319,54 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 **支持的路径：**
 - `display.Name` - 自定义物品名称
-- `display.Lore` - 物品描述
+- `display.Lore[0]` - 第一行 lore
 - `Damage` - 损坏值
-- `Enchantments` - 附魔
-| `{nbt:path}`           | 组件值（如 `{nbt:custom_name}`、`{nbt:lore}`） |
+- `RepairCost` - 修复花费
+- `Enchantments[0].id` - 第一个附魔 id
+- `Count` - 物品堆叠数量（合成值）
 
 ## 条件
 
-| 条件           | 说明   | 示例                                     |
-|--------------|------|----------------------------------------|
-| `dimension`  | 维度   | `"dimension": "minecraft:the_nether"`  |
-| `biome`      | 生物群系 | `"biome": "minecraft:desert"`          |
-| `holding`    | 手持物品 | `"holding": "minecraft:diamond_sword"` |
-| `sneaking`   | 是否潜行 | `"sneaking": true`                     |
-| `creative`   | 创造模式 | `"creative": true`                     |
-| `survival`   | 生存模式 | `"survival": true`                     |
-| `health`     | 生命值  | `"health": "50%"` 或 `"health": 10`     |
-| `hunger`     | 饥饿值  | `"hunger": 15`                         |
-| `experience` | 经验等级 | `"experience": 30`                     |
-| `time`       | 时间   | `"time": "day"` 或 `"time": 6000`       |
-| `weather`    | 天气   | `"weather": "rain"`                    |
-| `light`      | 光照   | `"light": "dark"` 或 `"light": 8`       |
-| `altitude`   | 海拔   | `"altitude": ">=64"`                   |
-| `enchanted`  | 是否附魔 | `"enchanted": true`                    |
-| `damage`     | 损坏值  | `"damage": 100`                        |
-| `count`      | 物品数量 | `"count": 16`                          |
-| `nbt`        | 组件存在 | `"nbt": "custom_name"`                 |
-| `item_tag`   | 物品标签 | `"item_tag": "minecraft:swords"`       |
+| 条件           | 说明           | 示例                                     |
+|--------------|--------------|----------------------------------------|
+| `dimension`  | 维度           | `"dimension": "minecraft:the_nether"`  |
+| `biome`      | 生物群系         | `"biome": "minecraft:desert"`          |
+| `holding`    | 手持物品         | `"holding": "minecraft:diamond_sword"` |
+| `sneaking`   | 是否潜行         | `"sneaking": true`                     |
+| `creative`   | 创造模式         | `"creative": true`                     |
+| `survival`   | 生存模式         | `"survival": true`                     |
+| `health`     | 生命值          | `"health": "50%"` 或 `"health": 10`     |
+| `hunger`     | 饥饿值          | `"hunger": 15`                         |
+| `experience` | 经验等级         | `"experience": 30`                     |
+| `time`       | 时间           | `"time": "day"` 或 `"time": 6000`       |
+| `weather`    | 天气           | `"weather": "rain"`                    |
+| `light`      | 光照           | `"light": "dark"` 或 `"light": 8`       |
+| `altitude`   | 海拔           | `"altitude": ">=64"`                   |
+| `enchanted`  | 是否附魔         | `"enchanted": true`                    |
+| `damage`     | 损坏值          | `"damage": 100`                        |
+| `count`      | 物品数量         | `"count": 16`                          |
+| `nbt`        | NBT 路径存在或值匹配 | `"nbt": "display.Name"`                |
+| `item_tag`   | 物品标签         | `"item_tag": "minecraft:swords"`       |
 
 ### NBT 条件
 
-检查物品是否有指定的组件/NBT 数据。
+检查物品是否存在某个 NBT 路径，或一组 NBT 路径是否匹配指定值。
 
-**NeoForge 1.21.1：**
 ```json
 {
   "conditions": {
-    "nbt": "custom_name"
+      "nbt": "display.Name"
   }
 }
 ```
 
-**Forge 1.20.1：**
 ```json
 {
   "conditions": {
-    "nbt": "display.Name"
+      "nbt": {
+          "Damage": 0,
+          "RepairCost": 0
+      }
   }
 }
 ```
@@ -465,6 +449,35 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 任何 6 位十六进制值，带 `#` 前缀：`"#FF6600"`、`"#AABBCC"`、`"#00FF00"`
 
+## JSON Schema
+
+`datatip.schema.json` 只用于编辑器补全和校验。DataTip 加载资源文件时会忽略 `$schema` 字段。
+
+DataTip 会自动导出一份到：
+
+```text
+.minecraft/datatip.schema.json
+```
+
+在 IntelliJ IDEA 中，打开 `Settings > Languages & Frameworks > Schemas and DTDs > JSON Schema Mappings`，添加这个 schema
+文件，并把它映射到资源包 JSON，例如：
+
+```text
+assets/*/datatip/*.json
+```
+
+也可以在资源包 JSON 中临时写入 `$schema` 方便编辑：
+
+```json
+{
+    "$schema": "../../../datatip.schema.json",
+    "minecraft:diamond": {
+        "type": "text",
+        "text": "钻石"
+    }
+}
+```
+
 ## 配置
 
 文件：`config/datatip-common.toml`
@@ -473,8 +486,8 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 |---------------------|---------|------------|-----------------------|
 | `enabled`           | boolean | true       | 启用/禁用 DataTip         |
 | `defaultColor`      | int     | 0xFFAAAAAA | 默认文本颜色                |
-| `defaultLineHeight` | int     | 12         | 默认行高                  |
-| `maxWidth`          | int     | 200        | 最大 tooltip 宽度         |
+| `defaultLineHeight` | int     | 0          | 0 表示使用原版字体行高          |
+| `maxWidth`          | int     | 0          | 0 表示交给原版 tooltip 布局   |
 | `shiftHintColor`    | int     | 0xFF888888 | Shift 提示文字颜色（ARGB 格式） |
 
 ## 旧格式支持

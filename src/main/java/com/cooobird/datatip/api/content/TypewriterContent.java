@@ -1,11 +1,6 @@
 package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipRenderContext;
-import com.cooobird.datatip.config.DatatipConfig;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
@@ -24,29 +19,22 @@ import java.util.Map;
  */
 public class TypewriterContent extends BaseTextContent {
 
-    private final List<String> lines;
+    final List<String> lines;
     @Nullable
-    private final Map<String, List<String>> langLines;
+    final Map<String, List<String>> langLines;
     @Nullable
-    private final Map<String, List<LangStyle>> langStyledLines;
-    private final int charsPerSecond;
-    private final int pauseSeconds;
-    private final boolean loop;
-
-    private int currentLine;
-    private int currentChar;
-    private int tickCount;
-    private int pauseCounter;
-    private boolean completed;
-    private boolean wasShiftDown;
-    private int lastTickPc;
+    final Map<String, List<LangStyle>> langStyledLines;
+    final int charsPerSecond;
+    final int pauseSeconds;
+    final boolean loop;
+    private final TypewriterState state;
 
     public TypewriterContent(List<String> lines, int charsPerSecond, int pauseSeconds, boolean loop, int color) {
-        this(lines, null, null, charsPerSecond, pauseSeconds, loop, color, null, null, false, false, false, false, TextAlign.LEFT, true, 12, false);
+        this(lines, null, null, charsPerSecond, pauseSeconds, loop, color, null, null, false, false, false, false, TextAlign.LEFT, true, TextContentDefaults.lineHeight(), false);
     }
 
     public TypewriterContent(List<String> lines, int charsPerSecond, int pauseSeconds, boolean loop, int color, @Nullable ResourceLocation font) {
-        this(lines, null, null, charsPerSecond, pauseSeconds, loop, color, null, font, false, false, false, false, TextAlign.LEFT, true, 12, false);
+        this(lines, null, null, charsPerSecond, pauseSeconds, loop, color, null, font, false, false, false, false, TextAlign.LEFT, true, TextContentDefaults.lineHeight(), false);
     }
 
     public TypewriterContent(List<String> lines, @Nullable Map<String, List<String>> langLines,
@@ -62,65 +50,19 @@ public class TypewriterContent extends BaseTextContent {
         this.charsPerSecond = Math.max(1, charsPerSecond);
         this.pauseSeconds = Math.max(0, pauseSeconds);
         this.loop = loop;
-        this.currentLine = 0;
-        this.currentChar = 0;
-        this.tickCount = 0;
-        this.pauseCounter = 0;
-        this.completed = false;
-    }
-
-    private static final int FALLBACK_COLOR = 0xFFAAAAAA;
-
-    private static int getDefaultColor() {
-        try {
-            return DatatipConfig.DEFAULT_COLOR.get();
-        } catch (IllegalStateException e) {
-            return FALLBACK_COLOR;
-        }
+        this.state = new TypewriterState();
     }
 
     public static TypewriterContent create() {
-        return new TypewriterContent(List.of(), 2, 1, false, getDefaultColor());
+        return new TypewriterContent(List.of(), 2, 1, false, TextContentDefaults.color());
     }
 
     public static TypewriterContent of(String... lines) {
-        return new TypewriterContent(List.of(lines), 2, 1, false, getDefaultColor());
+        return new TypewriterContent(List.of(lines), 2, 1, false, TextContentDefaults.color());
     }
 
     public static TypewriterContent of(int color, String... lines) {
         return new TypewriterContent(List.of(lines), 2, 20, false, color);
-    }
-
-    private List<String> getCurrentLines() {
-        if (langStyledLines != null && !langStyledLines.isEmpty()) {
-            String lang = Minecraft.getInstance().getLanguageManager().getSelected();
-            List<LangStyle> styledLines = langStyledLines.get(lang);
-            if (styledLines != null) {
-                List<String> result = new ArrayList<>();
-                for (LangStyle ls : styledLines) result.add(ls.text());
-                return result;
-            }
-            return List.of();
-        }
-        if (langLines != null && !langLines.isEmpty()) {
-            String lang = Minecraft.getInstance().getLanguageManager().getSelected();
-            List<String> langLinesList = langLines.get(lang);
-            if (langLinesList != null) return langLinesList;
-            return List.of();
-        }
-        return lines;
-    }
-
-    @Nullable
-    private LangStyle getCurrentLineStyle(int lineIndex) {
-        if (langStyledLines != null && !langStyledLines.isEmpty()) {
-            String lang = Minecraft.getInstance().getLanguageManager().getSelected();
-            List<LangStyle> styledLines = langStyledLines.get(lang);
-            if (styledLines != null && lineIndex < styledLines.size()) {
-                return styledLines.get(lineIndex);
-            }
-        }
-        return null;
     }
 
     public List<String> getLines() {
@@ -137,30 +79,17 @@ public class TypewriterContent extends BaseTextContent {
 
     @Override
     public int getHeight(int maxWidth) {
-        if (shift && !isShowTipDown()) {
-            return lineHeight;
-        }
-        return getCurrentLines().size() * lineHeight;
+        return TypewriterLayout.getHeight(this);
     }
 
     @Override
     public boolean hasContent() {
-        return !getCurrentLines().isEmpty();
+        return TypewriterLayout.hasContent(this);
     }
 
     @Override
     public int getWidth(int maxWidth) {
-        if (shift && !isShowTipDown()) {
-            return 0;
-        }
-        List<String> currentLines = getCurrentLines();
-        if (currentLines.isEmpty()) return 0;
-        Font font = Minecraft.getInstance().font;
-        int maxLineWidth = 0;
-        for (String line : currentLines) {
-            maxLineWidth = Math.max(maxLineWidth, font.width(line));
-        }
-        return Math.min(maxLineWidth, maxWidth);
+        return TypewriterLayout.getWidth(this, maxWidth);
     }
 
     @Override
@@ -170,116 +99,15 @@ public class TypewriterContent extends BaseTextContent {
 
     @Override
     public void tick(int tickPc) {
-        boolean shiftDown = isShowTipDown();
-
-        // Shift 展开时重置动画（loop:true）
-        if (shift && shiftDown && !wasShiftDown && loop) {
-            reset();
-        }
-        wasShiftDown = shiftDown;
-
-        // 折叠时不推进动画
-        if (shift && !shiftDown) return;
-
-        // loop:true + completed: 检测重新悬停 → 从头播放
-        if (completed && loop && tickPc - lastTickPc > 2) {
-            reset();
-        }
-        lastTickPc = tickPc;
-
-        List<String> currentLines = getCurrentLines();
-        if (currentLines.isEmpty()) return;
-        if (completed) return;
-
-        this.tickCount++;
-
-        if (pauseCounter > 0) {
-            pauseCounter--;
-            return;
-        }
-
-        int ticksPerChar = Math.max(1, 20 / charsPerSecond);
-        if (this.tickCount % ticksPerChar == 0) {
-            if (currentLine < currentLines.size()) {
-                String currentLineText = currentLines.get(currentLine);
-                if (currentChar < currentLineText.length()) {
-                    currentChar++;
-                } else {
-                    currentLine++;
-                    currentChar = 0;
-                    if (currentLine >= currentLines.size()) {
-                        // loop:true 不持续循环，由重新悬停/展开触发重置
-                        completed = true;
-                    } else {
-                        pauseCounter = pauseSeconds * 20;
-                    }
-                }
-            }
-        }
+        state.tick(this, tickPc);
     }
 
     public void reset() {
-        currentLine = 0;
-        currentChar = 0;
-        tickCount = 0;
-        pauseCounter = 0;
-        completed = false;
+        state.reset();
     }
 
     @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
-        List<String> currentLines = getCurrentLines();
-        if (alpha <= 0 || currentLines.isEmpty()) return;
-
-        if (shift && !isShowTipDown()) {
-            renderShiftHint(context, x, y);
-            return;
-        }
-
-        int resolvedColor = resolveColor(context);
-        Font mcFont = context.font();
-        int renderY = y;
-
-        for (int i = 0; i <= currentLine && i < currentLines.size(); i++) {
-            String line = currentLines.get(i);
-            String displayText;
-            int lineColor = resolvedColor;
-            boolean lineBold = bold;
-            boolean lineItalic = italic;
-            boolean lineUnderlined = underlined;
-            boolean lineStrikethrough = strikethrough;
-
-            LangStyle lineStyle = getCurrentLineStyle(i);
-            if (lineStyle != null) {
-                lineColor = lineStyle.color();
-                lineBold = lineStyle.bold();
-                lineItalic = lineStyle.italic();
-                lineUnderlined = lineStyle.underlined();
-                lineStrikethrough = lineStyle.strikethrough();
-            }
-
-            if (i < currentLine) {
-                displayText = line;
-            } else if (i == currentLine) {
-                displayText = line.substring(0, Math.min(currentChar, line.length()));
-                if (!completed && tickCount % 20 < 10) {
-                    displayText += "▌";
-                }
-            } else {
-                break;
-            }
-
-            Style style = buildStyle(lineColor);
-            if (lineBold != bold) style = lineBold ? style.withBold(true) : style.withBold(false);
-            if (lineItalic != italic) style = lineItalic ? style.withItalic(true) : style.withItalic(false);
-            if (lineUnderlined != underlined)
-                style = lineUnderlined ? style.withUnderlined(true) : style.withUnderlined(false);
-            if (lineStrikethrough != strikethrough)
-                style = lineStrikethrough ? style.withStrikethrough(true) : style.withStrikethrough(false);
-
-            int lineX = calcLineX(mcFont, displayText, x, maxWidth);
-            context.graphics().drawString(mcFont, Component.literal(displayText).withStyle(style), lineX, renderY, lineColor, shadow);
-            renderY += lineHeight;
-        }
+        TypewriterRenderer.render(this, state, context, x, y, maxWidth, alpha);
     }
 }

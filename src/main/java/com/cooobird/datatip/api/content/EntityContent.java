@@ -20,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
  * 在 tooltip 中渲染 3D 实体模型。
  */
 public class EntityContent implements TipContent {
+    private static final float ENTITY_BOX_PADDING = 0.9f;
 
     private final EntityType<?> entityType;  // 实体类型
     private final int size;                  // 渲染大小
@@ -30,7 +31,6 @@ public class EntityContent implements TipContent {
     @Nullable
     private final Component label;           // 可选的标签文本
 
-    // 实例级别的旋转状态
     private float currentRotation = 0;
     private int lastTick = -1;
 
@@ -97,17 +97,17 @@ public class EntityContent implements TipContent {
 
     @Override
     public int getHeight(int maxWidth) {
-        return size + (label != null ? 12 : 0);
+        return visualHeight() + (label != null ? 12 : 0);
     }
 
     @Override
     public int getWidth(int maxWidth) {
-        int width = size;
+        int width = visualWidth();
         if (label != null) {
             Font font = Minecraft.getInstance().font;
             width += 4 + font.width(label.getString());
         }
-        return Math.min(width, maxWidth);
+        return width;
     }
 
     @Override
@@ -117,7 +117,6 @@ public class EntityContent implements TipContent {
 
     @Override
     public void tick(int tickCount) {
-        // 更新实例级别的旋转状态
         if (autoRotate && tickCount != lastTick) {
             lastTick = tickCount;
             currentRotation += rotationSpeed;
@@ -141,15 +140,33 @@ public class EntityContent implements TipContent {
         // 获取旋转角度，使用 partialTick 进行插值让旋转更平滑
         float rotation = autoRotate ? currentRotation + rotationSpeed * context.partialTick() : 0;
 
+        int renderBaseX = x + Math.max(0, -offsetX);
+        int renderBaseY = y + Math.max(0, -offsetY);
+
         // 渲染实体
-        renderEntity(context.graphics(), entity, x + size / 2 + offsetX, y + size + offsetY, size, rotation);
+        renderEntity(
+            context.graphics(),
+            entity,
+            renderBaseX + size / 2 + offsetX,
+            renderBaseY + size + offsetY,
+            size,
+            rotation
+        );
 
         // 渲染标签
         if (label != null) {
-            int labelX = x + size + 4;
-            int labelY = y + (size - 8) / 2;
+            int labelX = x + visualWidth() + 4;
+            int labelY = y + (visualHeight() - 8) / 2;
             context.drawString(label, labelX, labelY, 0xFFFFFF);
         }
+    }
+
+    private int visualWidth() {
+        return size + Math.abs(offsetX);
+    }
+
+    private int visualHeight() {
+        return size + Math.abs(offsetY);
     }
 
     // 渲染实体到 GUI
@@ -159,7 +176,8 @@ public class EntityContent implements TipContent {
 
         // 移动到指定位置
         poseStack.translate(x, y, 100);
-        poseStack.scale(size, -size, size);
+        float scale = calculateEntityScale(entity, size);
+        poseStack.scale(scale, -scale, scale);
 
         // 绕 Y 轴旋转
         poseStack.mulPose(Axis.YP.rotationDegrees(rotation));
@@ -180,5 +198,13 @@ public class EntityContent implements TipContent {
         Lighting.setupFor3DItems();
 
         poseStack.popPose();
+    }
+
+    private static float calculateEntityScale(Entity entity, int size) {
+        float width = Math.max(entity.getBbWidth(), 0.1f);
+        float height = Math.max(entity.getBbHeight(), 0.1f);
+        float rotatedWidth = width * 1.4142136f;
+        float maxDimension = Math.max(rotatedWidth, height);
+        return size * ENTITY_BOX_PADDING / maxDimension;
     }
 }

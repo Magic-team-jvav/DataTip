@@ -13,21 +13,21 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Tooltip 渲染上下文。
- * 封装了 {@link GuiGraphics} 和动画状态，提供便捷的绘图方法。
+ * 封装 GuiGraphics、字体、动画状态和当前物品栈，提供内容渲染时需要的常用绘制方法。
  *
  * @param graphics    GuiGraphics 实例
  * @param font        字体渲染器
  * @param tickCount   当前 tick 计数
- * @param partialTick 帧间插值 (0.0-1.0)
- * @param itemStack   物品栈（用于变量解析）
+ * @param partialTick 帧间插值
+ * @param itemStack   当前物品栈，用于变量解析
  * @author cooobird
  * @since 1.2.0
  */
 public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, float partialTick, ItemStack itemStack) {
 
-    public TipRenderContext {
-    }
-
+    /**
+     * 创建不绑定物品栈的渲染上下文。
+     */
     public TipRenderContext(GuiGraphics graphics, Font font, int tickCount, float partialTick) {
         this(graphics, font, tickCount, partialTick, ItemStack.EMPTY);
     }
@@ -37,8 +37,7 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
     }
 
     public void drawStringWithVariables(String text, int x, int y, int color) {
-        String resolved = resolveVariables(text);
-        graphics.drawString(font, resolved, x, y, color, true);
+        drawString(resolveVariables(text), x, y, color);
     }
 
     public void drawString(String text, int x, int y, int color, boolean shadow) {
@@ -47,9 +46,10 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
 
     public void drawString(String text, int x, int y, int color, @Nullable ResourceLocation customFont) {
         if (customFont != null) {
-            graphics.drawString(font, Component.literal(text).withStyle(Style.EMPTY.withFont(customFont)), x, y, color, true);
+            Component component = Component.literal(text).withStyle(Style.EMPTY.withFont(customFont));
+            graphics.drawString(font, component, x, y, color, true);
         } else {
-            graphics.drawString(font, text, x, y, color, true);
+            drawString(text, x, y, color);
         }
     }
 
@@ -112,6 +112,10 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
         graphics.blit(texture, x, y, width, height, u1, v1, u2, v2, textureWidth, textureHeight);
     }
 
+    public void blitSprite(ResourceLocation sprite, int x, int y, int width, int height) {
+        graphics.blit(sprite, x, y, 0, 0, width, height, width, height);
+    }
+
     public void renderItem(ItemStack stack, int x, int y) {
         graphics.renderItem(stack, x, y);
     }
@@ -138,30 +142,13 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
         graphics.renderItemDecorations(font, stack, x, y);
     }
 
-    @Override
-    public int tickCount() {
-        return tickCount;
-    }
-
-    @Override
-    public float partialTick() {
-        return partialTick;
-    }
-
-    @Override
-    public GuiGraphics graphics() {
-        return graphics;
-    }
-
-    @Override
-    public Font font() {
-        return font;
-    }
-
     public PoseStack pose() {
         return graphics.pose();
     }
 
+    /**
+     * 解析文本中的变量。
+     */
     public String resolveVariables(String text) {
         if (text == null || itemStack.isEmpty()) {
             return text;

@@ -2,10 +2,11 @@ package com.cooobird.datatip;
 
 import com.cooobird.datatip.api.TipContentRegistry;
 import com.cooobird.datatip.api.component.TipContentTooltipComponent;
-import com.cooobird.datatip.api.loader.TipContentLoader;
 import com.cooobird.datatip.api.parser.*;
 import com.cooobird.datatip.config.DatatipConfig;
 import com.cooobird.datatip.event.TipRenderEventHandler;
+import com.cooobird.datatip.internal.loader.TipContentLoader;
+import com.cooobird.datatip.internal.util.SchemaExporter;
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
@@ -27,19 +28,13 @@ public class Datatip {
     public Datatip() {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, DatatipConfig.SPEC);
         registerContentParsers();
+        SchemaExporter.exportDefaultSchema();
+        TipRenderEventHandler.setContentSource(CONTENT_LOADER);
 
-        // 设置内容加载器
-        TipRenderEventHandler.setContentLoader(CONTENT_LOADER);
-
-        // MOD 事件总线
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-
-        // 注册 TooltipComponent 工厂
-        modEventBus.<RegisterClientTooltipComponentFactoriesEvent>addListener(event -> {
-            event.register(TipContentTooltipComponent.class, tip -> tip);
-        });
-
-        // 注册客户端资源重载监听器
+        modEventBus.addListener(TipRenderEventHandler::registerKeyMapping);
+        modEventBus.<RegisterClientTooltipComponentFactoriesEvent>addListener(event ->
+            event.register(TipContentTooltipComponent.class, tip -> tip));
         modEventBus.<RegisterClientReloadListenersEvent>addListener(event -> {
             event.registerReloadListener(CONTENT_LOADER);
             LOGGER.info("TipContentLoader registered for client reload");

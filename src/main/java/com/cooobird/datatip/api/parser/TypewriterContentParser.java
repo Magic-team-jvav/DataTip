@@ -3,6 +3,7 @@ package com.cooobird.datatip.api.parser;
 import com.cooobird.datatip.api.ContentParser;
 import com.cooobird.datatip.api.ParseContext;
 import com.cooobird.datatip.api.content.BaseTextContent;
+import com.cooobird.datatip.api.content.TextContentDefaults;
 import com.cooobird.datatip.api.content.TypewriterContent;
 import com.cooobird.datatip.config.DatatipConfig;
 import com.google.gson.JsonElement;
@@ -34,7 +35,7 @@ public class TypewriterContentParser implements ContentParser {
         int color = context.getColor(json, "color", DatatipConfig.DEFAULT_COLOR.get());
 
         boolean shadow = context.getBoolean(json, "shadow", true);
-        int lineHeight = context.getInt(json, "lineHeight", 12);
+        int lineHeight = context.getInt(json, "lineHeight", TextContentDefaults.lineHeight());
         boolean bold = context.getBoolean(json, "bold", false);
         boolean italic = context.getBoolean(json, "italic", false);
         boolean underlined = context.getBoolean(json, "underlined", false);

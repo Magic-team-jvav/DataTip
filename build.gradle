@@ -116,6 +116,10 @@ tasks.named('processResources', ProcessResources) {
         expand replaceProperties
     }
 
+    from('datatip.schema.json') {
+        into ''
+    }
+
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 

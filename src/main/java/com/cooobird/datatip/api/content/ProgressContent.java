@@ -34,6 +34,15 @@ public record ProgressContent(
 
     private static int animOffset = 0;
 
+    public ProgressContent {
+        progress = Float.isFinite(progress) ? progress : 0.0f;
+        width = Math.max(1, width);
+        height = Math.max(1, height);
+        style = style != null ? style : ProgressStyle.GRADIENT;
+        labelAlign = labelAlign != null ? labelAlign : LabelAlign.LEFT;
+        animSpeed = Math.max(1, animSpeed);
+    }
+
     public static ProgressContent of(float progress, int width) {
         return new ProgressContent(progress, width, 8,
             0xFF55FF55, 0xFF333333, 0xFF81C784, 0xFF1A1A1A,
@@ -97,7 +106,7 @@ public record ProgressContent(
         if (alpha <= 0) return;
 
         // 限制宽度不超过 maxWidth
-        int renderWidth = Math.min(width, maxWidth);
+        int renderWidth = Math.max(1, Math.min(width, maxWidth));
         float clampedProgress = Math.max(0, Math.min(1, progress));
         int filledWidth = (int) (renderWidth * clampedProgress);
 

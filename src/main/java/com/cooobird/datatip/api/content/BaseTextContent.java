@@ -3,6 +3,7 @@ package com.cooobird.datatip.api.content;
 import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.api.expression.ExpressionParser;
+import com.cooobird.datatip.api.util.ColorParser;
 import com.cooobird.datatip.config.DatatipConfig;
 import com.cooobird.datatip.event.TipRenderEventHandler;
 import net.minecraft.client.gui.Font;
@@ -26,8 +27,11 @@ import java.util.Map;
  * @since 1.2.0
  */
 public abstract class BaseTextContent implements TipContent {
+    private static final int FALLBACK_SHIFT_HINT_COLOR = 0xFF888888;
 
-    // 多语言样式记录
+    /**
+     * 多语言样式记录。
+     */
     public record LangStyle(
         String text,
         int color,
@@ -43,7 +47,9 @@ public abstract class BaseTextContent implements TipContent {
         }
     }
 
-    // 文本对齐方式
+    /**
+     * 文本对齐方式。
+     */
     public enum TextAlign {
         LEFT,
         CENTER,
@@ -78,7 +84,6 @@ public abstract class BaseTextContent implements TipContent {
         this.shift = shift;
     }
 
-    // Getter 方法
     public @Nullable ResourceLocation font() {
         return font;
     }
@@ -124,37 +129,36 @@ public abstract class BaseTextContent implements TipContent {
     }
 
     /**
-     * 解析颜色（支持表达式）
+     * 解析颜色，支持变量和简单表达式。
      */
     protected int resolveColor(TipRenderContext context) {
         if (colorExpression == null || colorExpression.isEmpty()) return color;
+
         String resolved = context.resolveVariables(colorExpression);
         if (resolved == null || resolved.isEmpty()) return color;
+
         if (resolved.contains("?") || resolved.contains(">") || resolved.contains("<")) {
             try {
                 Map<String, String> variables = new HashMap<>();
                 Object result = ExpressionParser.evaluate(resolved, variables);
                 if (result instanceof String s) return parseColorString(s, color);
-            } catch (Exception e) { /* ignore */ }
+            } catch (Exception e) {
+                // 表达式解析失败时，继续按普通颜色字符串解析。
+            }
         }
+
         return parseColorString(resolved, color);
     }
 
     /**
-     * 构建样式
+     * 构建当前文本样式。
      */
     protected Style buildStyle() {
-        Style style = Style.EMPTY.withColor(color);
-        if (font != null) style = style.withFont(font);
-        if (bold) style = style.withBold(true);
-        if (italic) style = style.withItalic(true);
-        if (underlined) style = style.withUnderlined(true);
-        if (strikethrough) style = style.withStrikethrough(true);
-        return style;
+        return buildStyle(color);
     }
 
     /**
-     * 构建指定颜色的样式
+     * 构建指定颜色的文本样式。
      */
     protected Style buildStyle(int customColor) {
         Style style = Style.EMPTY.withColor(customColor);
@@ -167,14 +171,14 @@ public abstract class BaseTextContent implements TipContent {
     }
 
     /**
-     * 检查 Shift 键是否按下
+     * 检查 Shift 键是否按下。
      */
     protected static boolean isShowTipDown() {
         return Screen.hasShiftDown();
     }
 
     /**
-     * 是否因 Shift 折叠而显示为提示行。
+     * 是否因为 Shift 折叠而显示为提示行。
      */
     @Override
     public boolean isShiftCollapsed() {
@@ -182,86 +186,48 @@ public abstract class BaseTextContent implements TipContent {
     }
 
     /**
-     * 绘制 Shift 提示
+     * 绘制 Shift 提示。
      */
     public static void renderShiftHint(TipRenderContext context, int x, int y) {
-        int color;
-        try {
-            color = DatatipConfig.SHIFT_HINT_COLOR.get();
-        } catch (IllegalStateException e) {
-            color = 0xFF888888;
-        }
         Component hint = Component.translatable("tooltip.datatip.hold_shift",
             TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
-        context.drawString(hint, x, y, color, true);
+        context.drawString(hint, x, y, shiftHintColor(), true);
     }
 
     /**
-     * 根据对齐方式计算 X 坐标
+     * 根据对齐方式计算 X 坐标。
      */
     protected int calcLineX(Font font, String text, int x, int maxWidth) {
-        return switch (align) {
-            case LEFT -> x;
-            case CENTER -> {
-                int lineWidth = font.width(text);
-                yield x + (maxWidth > 0 ? (maxWidth - lineWidth) / 2 : -lineWidth / 2);
-            }
-            case RIGHT -> {
-                int lineWidth = font.width(text);
-                yield x + (maxWidth > 0 ? maxWidth - lineWidth : -lineWidth);
-            }
-        };
+        return calcLineX(font.width(text), x, maxWidth);
     }
 
     /**
-     * 根据对齐方式计算 X 坐标（FormattedCharSequence 版本）
+     * 根据对齐方式计算 X 坐标。
      */
     protected int calcLineX(Font font, FormattedCharSequence text, int x, int maxWidth) {
+        return calcLineX(font.width(text), x, maxWidth);
+    }
+
+    private int calcLineX(int lineWidth, int x, int maxWidth) {
         return switch (align) {
             case LEFT -> x;
-            case CENTER -> {
-                int lineWidth = font.width(text);
-                yield x + (maxWidth > 0 ? (maxWidth - lineWidth) / 2 : -lineWidth / 2);
-            }
-            case RIGHT -> {
-                int lineWidth = font.width(text);
-                yield x + (maxWidth > 0 ? maxWidth - lineWidth : -lineWidth);
-            }
+            case CENTER -> x + (maxWidth > 0 ? (maxWidth - lineWidth) / 2 : -lineWidth / 2);
+            case RIGHT -> x + (maxWidth > 0 ? maxWidth - lineWidth : -lineWidth);
         };
     }
 
     /**
-     * 解析颜色字符串为 ARGB 颜色值
+     * 解析颜色字符串为 ARGB 颜色值。
      */
     public static int parseColorString(String colorStr, int defaultValue) {
-        if (colorStr == null || colorStr.isEmpty()) return defaultValue;
-        return switch (colorStr.toLowerCase()) {
-            case "black" -> 0xFF000000;
-            case "dark_blue" -> 0xFF0000AA;
-            case "dark_green" -> 0xFF00AA00;
-            case "dark_aqua" -> 0xFF00AAAA;
-            case "dark_red" -> 0xFFAA0000;
-            case "dark_purple" -> 0xFFAA00AA;
-            case "gold" -> 0xFFFFAA00;
-            case "gray", "grey" -> 0xFFAAAAAA;
-            case "dark_gray", "dark_grey" -> 0xFF555555;
-            case "blue" -> 0xFF5555FF;
-            case "green" -> 0xFF55FF55;
-            case "aqua" -> 0xFF55FFFF;
-            case "red" -> 0xFFFF5555;
-            case "light_purple" -> 0xFFFF55FF;
-            case "yellow" -> 0xFFFFFF55;
-            case "white" -> 0xFFFFFFFF;
-            default -> {
-                if (colorStr.startsWith("#")) {
-                    try {
-                        yield (int) Long.parseLong(colorStr.substring(1), 16) | 0xFF000000;
-                    } catch (NumberFormatException e) {
-                        yield defaultValue;
-                    }
-                }
-                yield defaultValue;
-            }
-        };
+        return ColorParser.parse(colorStr, defaultValue);
+    }
+
+    private static int shiftHintColor() {
+        try {
+            return DatatipConfig.SHIFT_HINT_COLOR.get();
+        } catch (IllegalStateException e) {
+            return FALLBACK_SHIFT_HINT_COLOR;
+        }
     }
 }

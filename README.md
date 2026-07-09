@@ -288,58 +288,41 @@ Empty spacing between content.
 
 ## Variables
 
-| Variable               | Description                                      |
-|------------------------|--------------------------------------------------|
-| `{durability}`         | Current durability                               |
-| `{max_durability}`     | Maximum durability                               |
-| `{damage}`             | Damage value                                     |
-| `{durability_percent}` | Durability percentage                            |
-| `{durability_bar}`     | Durability bar (visual)                          |
-| `{count}`              | Item count                                       |
-| `{item_name}`          | Item name                                        |
-| `{item_id}`            | Item ID                                          |
-| `{enchantment_count}`  | Enchantment count                                |
-| `{is_enchanted}`       | Is enchanted                                     |
-| `{rarity}`             | Rarity                                           |
-| `{max_stack_size}`     | Max stack size                                   |
-| `{is_stackable}`       | Is stackable                                     |
-| `{is_damageable}`      | Is damageable                                    |
-| `{player_health}`      | Player health                                    |
-| `{player_max_health}`  | Player max health                                |
-| `{player_hunger}`      | Player hunger                                    |
-| `{player_experience}`  | Player experience level                          |
-| `{player_x}`           | Player X coordinate                              |
-| `{player_y}`           | Player Y coordinate                              |
-| `{player_z}`           | Player Z coordinate                              |
-| `{game_time}`          | Game time                                        |
-| `{is_day}`             | Is daytime                                       |
-| `{is_raining}`         | Is raining                                       |
-| `{is_thundering}`      | Is thundering                                    |
-| `{health_bar}`         | Health bar (visual)                              |
-| `{nbt:path}`           | Component value (see NBT Variable section below) |
+| Variable               | Description                                     |
+|------------------------|-------------------------------------------------|
+| `{durability}`         | Current durability                              |
+| `{max_durability}`     | Maximum durability                              |
+| `{damage}`             | Damage value                                    |
+| `{durability_percent}` | Durability percentage                           |
+| `{durability_bar}`     | Durability bar (visual)                         |
+| `{count}`              | Item count                                      |
+| `{item_name}`          | Item name                                       |
+| `{item_id}`            | Item ID                                         |
+| `{enchantment_count}`  | Enchantment count                               |
+| `{is_enchanted}`       | Is enchanted                                    |
+| `{rarity}`             | Rarity                                          |
+| `{max_stack_size}`     | Max stack size                                  |
+| `{is_stackable}`       | Is stackable                                    |
+| `{is_damageable}`      | Is damageable                                   |
+| `{player_health}`      | Player health                                   |
+| `{player_max_health}`  | Player max health                               |
+| `{player_hunger}`      | Player hunger                                   |
+| `{player_experience}`  | Player experience level                         |
+| `{player_x}`           | Player X coordinate                             |
+| `{player_y}`           | Player Y coordinate                             |
+| `{player_z}`           | Player Z coordinate                             |
+| `{game_time}`          | Game time                                       |
+| `{is_day}`             | Is daytime                                      |
+| `{is_raining}`         | Is raining                                      |
+| `{is_thundering}`      | Is thundering                                   |
+| `{health_bar}`         | Health bar (visual)                             |
+| `{nbt:path}`           | Item NBT value (see NBT Variable section below) |
 
 ### NBT Variable
 
-Read item component data using `{nbt:path}` syntax.
+Forge 1.20.1 stores item custom data in NBT. Use `{nbt:path}` to read a dot-separated NBT path from the current item
+stack.
 
-**NeoForge 1.21.1 (Component System):**
-```json
-{
-  "type": "text",
-  "text": "Name: {nbt:custom_name}",
-  "color": "white"
-}
-```
-
-**Supported paths:**
-- `custom_name` - Custom item name
-- `item_name` - Item name
-- `lore` - Item lore
-- `damage` - Damage value
-- `max_damage` - Max damage
-- `enchantments` - Enchantments
-
-**Forge 1.20.1 (NBT System):**
 ```json
 {
   "type": "text",
@@ -350,51 +333,54 @@ Read item component data using `{nbt:path}` syntax.
 
 **Supported paths:**
 - `display.Name` - Custom item name
-- `display.Lore` - Item lore
+- `display.Lore[0]` - First lore line
 - `Damage` - Damage value
-- `Enchantments` - Enchantments
+- `RepairCost` - Repair cost
+- `Enchantments[0].id` - First enchantment id
+- `Count` - Item stack count (synthetic value)
 
 ## Conditions
 
-| Condition    | Description      | Example                                |
-|--------------|------------------|----------------------------------------|
-| `dimension`  | Dimension        | `"dimension": "minecraft:the_nether"`  |
-| `biome`      | Biome            | `"biome": "minecraft:desert"`          |
-| `holding`    | Held item        | `"holding": "minecraft:diamond_sword"` |
-| `sneaking`   | Is sneaking      | `"sneaking": true`                     |
-| `creative`   | Creative mode    | `"creative": true`                     |
-| `survival`   | Survival mode    | `"survival": true`                     |
-| `health`     | Health           | `"health": "50%"` or `"health": 10`    |
-| `hunger`     | Hunger           | `"hunger": 15`                         |
-| `experience` | Experience level | `"experience": 30`                     |
-| `time`       | Time             | `"time": "day"` or `"time": 6000`      |
-| `weather`    | Weather          | `"weather": "rain"`                    |
-| `light`      | Light level      | `"light": "dark"` or `"light": 8`      |
-| `altitude`   | Altitude         | `"altitude": ">=64"`                   |
-| `enchanted`  | Is enchanted     | `"enchanted": true`                    |
-| `damage`     | Damage value     | `"damage": 100`                        |
-| `count`      | Item count       | `"count": 16`                          |
-| `nbt`        | Component exists | `"nbt": "custom_name"`                 |
-| `item_tag`   | Item tag         | `"item_tag": "minecraft:swords"`       |
+| Condition    | Description                     | Example                                |
+|--------------|---------------------------------|----------------------------------------|
+| `dimension`  | Dimension                       | `"dimension": "minecraft:the_nether"`  |
+| `biome`      | Biome                           | `"biome": "minecraft:desert"`          |
+| `holding`    | Held item                       | `"holding": "minecraft:diamond_sword"` |
+| `sneaking`   | Is sneaking                     | `"sneaking": true`                     |
+| `creative`   | Creative mode                   | `"creative": true`                     |
+| `survival`   | Survival mode                   | `"survival": true`                     |
+| `health`     | Health                          | `"health": "50%"` or `"health": 10`    |
+| `hunger`     | Hunger                          | `"hunger": 15`                         |
+| `experience` | Experience level                | `"experience": 30`                     |
+| `time`       | Time                            | `"time": "day"` or `"time": 6000`      |
+| `weather`    | Weather                         | `"weather": "rain"`                    |
+| `light`      | Light level                     | `"light": "dark"` or `"light": 8`      |
+| `altitude`   | Altitude                        | `"altitude": ">=64"`                   |
+| `enchanted`  | Is enchanted                    | `"enchanted": true`                    |
+| `damage`     | Damage value                    | `"damage": 100`                        |
+| `count`      | Item count                      | `"count": 16`                          |
+| `nbt`        | NBT path exists or values match | `"nbt": "display.Name"`                |
+| `item_tag`   | Item tag                        | `"item_tag": "minecraft:swords"`       |
 
 ### NBT Condition
 
-Check if item has specific component/NBT data.
+Check if an item has an NBT path, or if a set of NBT paths matches expected values.
 
-**NeoForge 1.21.1:**
-```json
-{
-  "conditions": {
-    "nbt": "custom_name"
-  }
-}
-```
-
-**Forge 1.20.1:**
 ```json
 {
   "conditions": {
     "nbt": "display.Name"
+  }
+}
+```
+
+```json
+{
+  "conditions": {
+    "nbt": {
+      "Damage": 0,
+      "RepairCost": 0
+    }
   }
 }
 ```
@@ -477,17 +463,47 @@ Supported operators:
 
 Any 6-digit hex with `#` prefix: `"#FF6600"`, `"#AABBCC"`, `"#00FF00"`
 
+## JSON Schema
+
+`datatip.schema.json` is only for editor completion and validation. DataTip ignores the `$schema` field when loading
+resource files.
+
+DataTip exports a copy to:
+
+```text
+.minecraft/datatip.schema.json
+```
+
+In IntelliJ IDEA, open `Settings > Languages & Frameworks > Schemas and DTDs > JSON Schema Mappings`, add this schema
+file, and map it to your resource pack files, for example:
+
+```text
+assets/*/datatip/*.json
+```
+
+You can also add `$schema` inside a resource pack JSON while editing:
+
+```json
+{
+  "$schema": "../../../datatip.schema.json",
+  "minecraft:diamond": {
+    "type": "text",
+    "text": "Diamond"
+  }
+}
+```
+
 ## Configuration
 
 File: `config/datatip-common.toml`
 
-| Option              | Type    | Default    | Description                         |
-|---------------------|---------|------------|-------------------------------------|
-| `enabled`           | boolean | true       | Enable/disable DataTip              |
-| `defaultColor`      | int     | 0xFFAAAAAA | Default text color                  |
-| `defaultLineHeight` | int     | 12         | Default line height                 |
-| `maxWidth`          | int     | 200        | Maximum tooltip width               |
-| `shiftHintColor`    | int     | 0xFF888888 | Shift hint text color (ARGB format) |
+| Option              | Type    | Default    | Description                          |
+|---------------------|---------|------------|--------------------------------------|
+| `enabled`           | boolean | true       | Enable/disable DataTip               |
+| `defaultColor`      | int     | 0xFFAAAAAA | Default text color                   |
+| `defaultLineHeight` | int     | 0          | 0 uses vanilla font line height      |
+| `maxWidth`          | int     | 0          | 0 lets vanilla tooltip layout decide |
+| `shiftHintColor`    | int     | 0xFF888888 | Shift hint text color (ARGB format)  |
 
 ## Legacy Format Support
 
