@@ -81,6 +81,9 @@ tasks.named('processResources', ProcessResources) {
     filesMatching(['META-INF/neoforge.mods.toml']) {
         expand replaceProperties
     }
+    from('datatip.schema.json') {
+        into ''
+    }
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 

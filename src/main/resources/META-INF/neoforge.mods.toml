@@ -1,26 +1,26 @@
 modLoader = "javafml"
-loaderVersion = "[4,)"
-license = "GNU LGPL 3.0"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
 
 [[mods]]
-modId = "datatip"
-version = "1.0-SNAPSHOT"
-displayName = "DataTip"
-authors = "cooobird"
+modId = "${mod_id}"
+version = "${mod_version}"
+displayName = "${mod_name}"
+authors = "${mod_authors}"
 logoFile = "logo.png"
 logoBlur = false
-description = '''JSON-driven custom item tooltips. Define rich, multi-language tooltips for any item via resource-pack JSON at assets/<namespace>/datatip/. Supports exact/tag/wildcard matching, NBT filtering, context conditions, rich text styling, and live variables.'''
+description = '''${mod_description}'''
 
 [[dependencies.datatip]]
 modId = "neoforge"
 type = "required"
-versionRange = "[21,)"
+versionRange = "${neo_version_range}"
 ordering = "NONE"
 side = "BOTH"
 
 [[dependencies.datatip]]
 modId = "minecraft"
 type = "required"
-versionRange = "[1.21.1,1.22)"
+versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"

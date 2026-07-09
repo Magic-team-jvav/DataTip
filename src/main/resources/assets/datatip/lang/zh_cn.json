@@ -8,9 +8,9 @@
     "datatip.configuration.default_color": "默认文本颜色",
     "datatip.configuration.default_color.tooltip": "默认文本颜色（ARGB 格式）。",
     "datatip.configuration.default_line_height": "默认行高",
-    "datatip.configuration.default_line_height.tooltip": "默认行高（像素）。",
-    "datatip.configuration.max_width": "最大宽度",
-    "datatip.configuration.max_width.tooltip": "tooltip 最大宽度（像素）。",
+    "datatip.configuration.default_line_height.tooltip": "默认行高（像素）。设为 0 时使用原版字体行高。",
+    "datatip.configuration.max_width": "宽度覆盖值",
+    "datatip.configuration.max_width.tooltip": "tooltip 宽度覆盖值（像素）。设为 0 时使用原版 tooltip 宽度。",
     "datatip.configuration.shift_hint_color": "Shift 提示颜色",
     "datatip.configuration.shift_hint_color.tooltip": "按住 Shift 显示详情的提示文字颜色（ARGB 格式）。"
 }

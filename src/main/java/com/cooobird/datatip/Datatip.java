@@ -1,54 +1,23 @@
 package com.cooobird.datatip;
 
 import com.cooobird.datatip.api.TipContentRegistry;
-import com.cooobird.datatip.api.component.TipContentTooltipComponent;
-import com.cooobird.datatip.api.loader.TipContentLoader;
 import com.cooobird.datatip.api.parser.*;
 import com.cooobird.datatip.config.DatatipConfig;
-import com.cooobird.datatip.event.TipRenderEventHandler;
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
-import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
-import net.neoforged.neoforge.client.gui.ConfigurationScreen;
-import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import org.slf4j.Logger;
-
-import java.util.concurrent.CompletableFuture;
 
 @Mod(Datatip.MODID)
 public class Datatip {
     public static final String MODID = "datatip";
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    // 内容加载器
-    private static final TipContentLoader CONTENT_LOADER = new TipContentLoader();
-
     public Datatip(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, DatatipConfig.SPEC);
-        if (FMLEnvironment.dist.isClient())
-            modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         registerContentParsers();
-        modEventBus.addListener(RegisterClientTooltipComponentFactoriesEvent.class, event -> {
-            event.register(TipContentTooltipComponent.class, tip -> tip);
-        });
-
-        modEventBus.addListener(RegisterClientReloadListenersEvent.class, event -> {
-            event.registerReloadListener(CONTENT_LOADER);
-            event.registerReloadListener((stage, rm, prepProf, reloadProf, bgExec, gameExec) ->
-                CompletableFuture
-                    .supplyAsync(() -> null, bgExec)
-                    .thenCompose(stage::wait)
-                    .thenRunAsync(() -> {
-                        TipRenderEventHandler.setContentLoader(CONTENT_LOADER);
-                        LOGGER.info("TipContentLoader updated with {} entries",
-                            CONTENT_LOADER.getExactItemIds().size());
-                    }, gameExec));
-        });
 
         LOGGER.info("DataTip loaded");
     }

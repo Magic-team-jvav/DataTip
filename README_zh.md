@@ -249,7 +249,7 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 | `strikethrough`  | boolean      | false   | 删除线                                      |
 | `align`          | String       | "left"  | 对齐：`left`、`center`、`right`               |
 | `shadow`         | boolean      | true    | 文字阴影                                     |
-| `lineHeight`     | int          | 12      | 行高（像素）                                   |
+| `lineHeight`     | int          | 9       | 行高（像素，默认使用原版字体行高）                        |
 | `shift`          | boolean      | false   | 需要按住 Shift 才显示                           |
 
 ## 图表属性
@@ -275,45 +275,46 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 ## 变量
 
-| 变量                     | 说明                |
-|------------------------|-------------------|
-| `{durability}`         | 当前耐久              |
-| `{max_durability}`     | 最大耐久              |
-| `{damage}`             | 已损坏值              |
-| `{durability_percent}` | 耐久百分比             |
-| `{durability_bar}`     | 耐久条（可视化）          |
-| `{count}`              | 物品数量              |
-| `{item_name}`          | 物品称               |
-| `{item_id}`            | 物品 ID             |
-| `{enchantment_count}`  | 附魔数量              |
-| `{is_enchanted}`       | 是否附魔              |
-| `{rarity}`             | 稀有度               |
-| `{max_stack_size}`     | 最大堆叠数             |
-| `{is_stackable}`       | 是否可堆叠             |
-| `{is_damageable}`      | 是否可损坏             |
-| `{player_health}`      | 玩家生命值             |
-| `{player_max_health}`  | 玩家最大生命值           |
-| `{player_hunger}`      | 玩家饥饿值             |
-| `{player_experience}`  | 玩家经验等级            |
-| `{player_x}`           | 玩家 X 坐标           |
-| `{player_y}`           | 玩家 Y 坐标           |
-| `{player_z}`           | 玩家 Z 坐标           |
-| `{game_time}`          | 游戏时间              |
-| `{is_day}`             | 是否白天              |
-| `{is_raining}`         | 是否下雨              |
-| `{is_thundering}`      | 是否雷暴              |
-| `{health_bar}`         | 生命条（可视化）          |
-| `{nbt:path}`           | 组件值（见下方 NBT 变量说明） |
+| 变量                     | 说明                                |
+|------------------------|-----------------------------------|
+| `{durability}`         | 当前耐久                              |
+| `{max_durability}`     | 最大耐久                              |
+| `{damage}`             | 已损坏值                              |
+| `{durability_percent}` | 耐久百分比                             |
+| `{durability_bar}`     | 耐久条（可视化）                          |
+| `{count}`              | 物品数量                              |
+| `{item_name}`          | 物品称                               |
+| `{item_id}`            | 物品 ID                             |
+| `{enchantment_count}`  | 附魔数量                              |
+| `{is_enchanted}`       | 是否附魔                              |
+| `{rarity}`             | 稀有度                               |
+| `{max_stack_size}`     | 最大堆叠数                             |
+| `{is_stackable}`       | 是否可堆叠                             |
+| `{is_damageable}`      | 是否可损坏                             |
+| `{player_health}`      | 玩家生命值                             |
+| `{player_max_health}`  | 玩家最大生命值                           |
+| `{player_hunger}`      | 玩家饥饿值                             |
+| `{player_experience}`  | 玩家经验等级                            |
+| `{player_x}`           | 玩家 X 坐标                           |
+| `{player_y}`           | 玩家 Y 坐标                           |
+| `{player_z}`           | 玩家 Z 坐标                           |
+| `{game_time}`          | 游戏时间                              |
+| `{is_day}`             | 是否白天                              |
+| `{is_raining}`         | 是否下雨                              |
+| `{is_thundering}`      | 是否雷暴                              |
+| `{health_bar}`         | 生命条（可视化）                          |
+| `{component:path}`     | 数据组件值（见下方数据组件变量说明）                |
+| `{custom_data:path}`   | `minecraft:custom_data` 组件中的自定义数据 |
 
-### NBT 变量
+### 数据组件变量
 
-使用 `{nbt:path}` 语法读取物品组件/NBT 数据。
+Minecraft 1.21.1 使用数据组件系统。推荐使用 `{component:path}` 读取常用数据组件，
+使用 `{custom_data:path}` 读取 `minecraft:custom_data` 中的自定义数据。
 
-**NeoForge 1.21.1（组件系统）：**
 ```json
 {
   "type": "text",
-  "text": "名称: {nbt:custom_name}",
+  "text": "名称: {component:custom_name}",
   "color": "white"
 }
 ```
@@ -322,67 +323,63 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 - `custom_name` - 自定义物品名称
 - `item_name` - 物品名称
 - `lore` - 物品描述
-- `damage` - 损坏值
-- `max_damage` - 最大损坏值
+- `damage` - 物品已损耗值。剩余耐久请使用 `{durability}`。
+- `max_damage` - 最大耐久
+- `repair_cost` - 修复花费
 - `enchantments` - 附魔
+- `custom_data` - 自定义数据组件整体内容
 
-**Forge 1.20.1（NBT 系统）：**
+读取自定义数据：
 ```json
 {
   "type": "text",
-  "text": "名称: {nbt:display.Name}",
+  "text": "品质: {custom_data:quality}",
   "color": "white"
 }
 ```
 
-**支持的路径：**
-- `display.Name` - 自定义物品名称
-- `display.Lore` - 物品描述
-- `Damage` - 损坏值
-- `Enchantments` - 附魔
-| `{nbt:path}`           | 组件值（如 `{nbt:custom_name}`、`{nbt:lore}`） |
-
 ## 条件
 
-| 条件           | 说明   | 示例                                     |
-|--------------|------|----------------------------------------|
-| `dimension`  | 维度   | `"dimension": "minecraft:the_nether"`  |
-| `biome`      | 生物群系 | `"biome": "minecraft:desert"`          |
-| `holding`    | 手持物品 | `"holding": "minecraft:diamond_sword"` |
-| `sneaking`   | 是否潜行 | `"sneaking": true`                     |
-| `creative`   | 创造模式 | `"creative": true`                     |
-| `survival`   | 生存模式 | `"survival": true`                     |
-| `health`     | 生命值  | `"health": "50%"` 或 `"health": 10`     |
-| `hunger`     | 饥饿值  | `"hunger": 15`                         |
-| `experience` | 经验等级 | `"experience": 30`                     |
-| `time`       | 时间   | `"time": "day"` 或 `"time": 6000`       |
-| `weather`    | 天气   | `"weather": "rain"`                    |
-| `light`      | 光照   | `"light": "dark"` 或 `"light": 8`       |
-| `altitude`   | 海拔   | `"altitude": ">=64"`                   |
-| `enchanted`  | 是否附魔 | `"enchanted": true`                    |
-| `damage`     | 损坏值  | `"damage": 100`                        |
-| `count`      | 物品数量 | `"count": 16`                          |
-| `nbt`        | 组件存在 | `"nbt": "custom_name"`                 |
-| `item_tag`   | 物品标签 | `"item_tag": "minecraft:swords"`       |
+| 条件            | 说明         | 示例                                                                |
+|---------------|------------|-------------------------------------------------------------------|
+| `dimension`   | 维度         | `"dimension": "minecraft:the_nether"`                             |
+| `biome`       | 生物群系       | `"biome": "minecraft:desert"`                                     |
+| `holding`     | 手持物品       | `"holding": "minecraft:diamond_sword"`                            |
+| `sneaking`    | 是否潜行       | `"sneaking": true`                                                |
+| `creative`    | 创造模式       | `"creative": true`                                                |
+| `survival`    | 生存模式       | `"survival": true`                                                |
+| `health`      | 生命值        | `"health": "50%"` 或 `"health": 10`                                |
+| `hunger`      | 饥饿值        | `"hunger": 15`                                                    |
+| `experience`  | 经验等级       | `"experience": 30`                                                |
+| `time`        | 时间         | `"time": "day"` 或 `"time": 6000`                                  |
+| `weather`     | 天气         | `"weather": "rain"`                                               |
+| `light`       | 光照         | `"light": "dark"` 或 `"light": 8`                                  |
+| `altitude`    | 海拔         | `"altitude": ">=64"`                                              |
+| `enchanted`   | 是否附魔       | `"enchanted": true`                                               |
+| `damage`      | 损坏值        | `"damage": 100`                                                   |
+| `count`       | 物品数量       | `"count": 16`                                                     |
+| `component`   | 数据组件存在     | `"component": "custom_name"`                                      |
+| `custom_data` | 自定义数据存在或匹配 | `"custom_data": "quality"` 或 `"custom_data": {"quality": "rare"}` |
+| `item_tag`    | 物品标签       | `"item_tag": "minecraft:swords"`                                  |
 
-### NBT 条件
+### 数据组件条件
 
-检查物品是否有指定的组件/NBT 数据。
+检查物品是否有指定的数据组件或自定义数据。
 
-**NeoForge 1.21.1：**
 ```json
 {
   "conditions": {
-    "nbt": "custom_name"
+    "component": "custom_name"
   }
 }
 ```
 
-**Forge 1.20.1：**
 ```json
 {
   "conditions": {
-    "nbt": "display.Name"
+    "custom_data": {
+      "quality": "rare"
+    }
   }
 }
 ```
@@ -465,17 +462,65 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 任何 6 位十六进制值，带 `#` 前缀：`"#FF6600"`、`"#AABBCC"`、`"#00FF00"`
 
+## JSON Schema
+
+`datatip.schema.json` 是给 DataTip 资源包 JSON 使用的编辑器辅助文件。它可以在 IntelliJ IDEA
+或 VS Code 里提供字段补全、类型提示和基础格式校验。它不是运行时必需文件，修改它也不会改变
+DataTip 在游戏内加载 tooltip 的逻辑。
+
+DataTip 会在客户端启动时自动导出 schema：
+
+```text
+.minecraft/datatip.schema.json
+```
+
+推荐的 IntelliJ IDEA 配置方式：
+
+1. 先启动一次游戏，让 DataTip 导出 `.minecraft/datatip.schema.json`。
+2. 打开 `Settings | Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings`。
+3. 新增一个映射，选择 `.minecraft/datatip.schema.json`。
+4. 把它映射到资源包里的 DataTip 文件，例如 `assets/*/datatip/*.json`。
+
+这样资源包作者不需要给每个 JSON 都写 `$schema`，也不需要打开 mod jar。
+
+可选的资源包内置方式：
+
+```text
+MyResourcePack/
+  datatip.schema.json
+  assets/
+    minecraft/
+      datatip/
+        datatip.json
+```
+
+如果你把 `.minecraft/datatip.schema.json` 复制到了资源包根目录，可以在
+`assets/<namespace>/datatip/datatip.json` 中添加：
+
+```json
+{
+  "$schema": "../../../datatip.schema.json",
+  "minecraft:diamond": {
+    "type": "text",
+    "text": "Schema enabled"
+  }
+}
+```
+
+如果你是在模组开发环境里编辑 `src/main/resources/assets/<namespace>/datatip/` 下的文件，
+推荐使用上面的 IDEA 映射方式，或者按你的项目目录调整 `$schema` 相对路径。
+
 ## 配置
 
 文件：`config/datatip-common.toml`
 
-| 选项                  | 类型      | 默认值        | 说明                    |
-|---------------------|---------|------------|-----------------------|
-| `enabled`           | boolean | true       | 启用/禁用 DataTip         |
-| `defaultColor`      | int     | 0xFFAAAAAA | 默认文本颜色                |
-| `defaultLineHeight` | int     | 12         | 默认行高                  |
-| `maxWidth`          | int     | 200        | 最大 tooltip 宽度         |
-| `shiftHintColor`    | int     | 0xFF888888 | Shift 提示文字颜色（ARGB 格式） |
+| 选项                  | 类型      | 默认值        | 说明                      |
+|---------------------|---------|------------|-------------------------|
+| `enabled`           | boolean | true       | 启用/禁用 DataTip           |
+| `defaultColor`      | int     | 0xFFAAAAAA | 默认文本颜色                  |
+| `defaultLineHeight` | int     | 0          | 默认行高（0=使用原版字体行高）        |
+| `maxWidth`          | int     | 0          | tooltip 宽度覆盖值（0=使用原版宽度） |
+| `shiftHintColor`    | int     | 0xFF888888 | Shift 提示文字颜色（ARGB 格式）   |
 
 ## 旧格式支持
 
@@ -863,7 +908,48 @@ JSON 驱动的自定义物品 Tooltip 系统。在资源包中定义 tooltip，�
 
 ## 模组开发者
 
+### 运行时注册 Tooltip 内容
+
+运行时注册的内容不会写入资源包，但会和资源包 JSON 内容一起显示。
+
+```java
+TipRuntimeContentRegistry.register(
+    "minecraft:diamond",
+    TextContent.of("来自代码注册的 DataTip")
+);
+
+TipRuntimeContentRegistry.register(
+    "#minecraft:swords",
+    new TipContentEntry(TextContent.of("剑类物品额外提示"), List.of(), false, true)
+);
+```
+
+也可以按命名空间清理运行时注册内容：
+
+```java
+TipRuntimeContentRegistry.clearNamespace("mymod");
+```
+
+### 注册自定义数据组件读取器
+
+当某个数据组件不是 DataTip 内置支持的组件时，可以使用 `ComponentReaderRegistry` 注册读取逻辑。
+注册名称就是 JSON 里 `{component:name}` 和 `"component": "name"` 使用的名称。
+
+```java
+ComponentReaderRegistry.register("mymod:quality", stack -> {
+    var value = stack.get(MyComponents.QUALITY.get());
+    return value != null ? value.displayName() : null;
+});
+```
+
+对于原版命名空间的组件名，`minecraft:custom_name` 和 `custom_name` 会归一化为同一个读取器名称。
+旧的 `ItemComponentMatcher.registerComponentReader(...)` 入口仍然保留用于兼容，但新集成推荐使用
+`ComponentReaderRegistry`。
+
 ### 事件钩子
+
+`onAppendLines` 会在 tooltip 收集阶段触发，即使当前物品没有匹配的 DataTip 配置，也可以追加额外文本。
+
 ```java
 // 渲染前事件（修改或取消）
 TipEventManager.onPreRender(event -> {
@@ -871,9 +957,9 @@ TipEventManager.onPreRender(event -> {
     // 或 event.cancel() 取消渲染
 });
 
-// 渲染后事件（添加额外信息）
-TipEventManager.onPostRender(event -> {
-    event.addExtraLine("来自其他模组的额外信息");
+// 追加额外 tooltip 文本行
+TipEventManager.onAppendLines(event -> {
+    event.addLine("来自其他模组的额外信息");
 });
 
 // 变量解析事件（注入自定义变量）

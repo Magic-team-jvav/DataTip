@@ -14,8 +14,8 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  *   <tr><th>选项</th><th>类型</th><th>默认值</th><th>说明</th></tr>
  *   <tr><td>enabled</td><td>boolean</td><td>true</td><td>启用/禁用 DataTip</td></tr>
  *   <tr><td>defaultColor</td><td>int</td><td>0xFFAAAAAA</td><td>默认文本颜色（ARGB）</td></tr>
- *   <tr><td>defaultLineHeight</td><td>int</td><td>12</td><td>默认行高（像素）</td></tr>
- *   <tr><td>maxWidth</td><td>int</td><td>200</td><td>最大 tooltip 宽度（像素）</td></tr>
+ *   <tr><td>defaultLineHeight</td><td>int</td><td>0</td><td>默认行高（0=使用原版字体行高）</td></tr>
+ *   <tr><td>maxWidth</td><td>int</td><td>0</td><td>Tooltip 宽度覆盖值（0=使用原版宽度）</td></tr>
  * </table>
  *
  * <h3>配置文件示例</h3>
@@ -28,11 +28,11 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  * # 默认文本颜色（ARGB 格式）
  * defaultColor = -5592406  # 0xFFAAAAAA
  *
- * # 默认行高（像素）
- * defaultLineHeight = 12
+ * # 默认行高（0=使用原版字体行高）
+ * defaultLineHeight = 0
  *
- * # 最大 tooltip 宽度（像素）
- * maxWidth = 200
+ * # Tooltip 宽度覆盖值（0=使用原版宽度）
+ * maxWidth = 0
  * }</pre>
  *
  * @author cooobird
@@ -73,24 +73,22 @@ public class DatatipConfig {
     /**
      * 默认行高。
      * <p>
-     * 文本行与行之间的间距（像素）。
-     * 建议值：10-16。
+     * 文本行与行之间的间距（像素）。0 表示使用原版字体行高。
      * </p>
      */
     public static final ModConfigSpec.IntValue DEFAULT_LINE_HEIGHT = BUILDER
-        .comment("Default line height in pixels.")
-        .defineInRange("default_line_height", 12, 8, 32);
+        .comment("Default line height in pixels. Set to 0 to use the vanilla font line height.")
+        .defineInRange("default_line_height", 0, 0, 32);
 
     /**
-     * 最大宽度。
+     * 宽度覆盖值。
      * <p>
-     * Tooltip 的最大宽度（像素）。
-     * 超过此宽度的内容会自动换行。
+     * Tooltip 的宽度覆盖值（像素）。0 表示使用原版 tooltip 宽度。
      * </p>
      */
     public static final ModConfigSpec.IntValue MAX_WIDTH = BUILDER
-        .comment("Maximum tooltip width in pixels.")
-        .defineInRange("max_width", 200, 50, 500);
+        .comment("Tooltip width override in pixels. Set to 0 to use vanilla tooltip width.")
+        .defineInRange("max_width", 0, 0, 10000);
 
     /**
      * Shift 提示文字颜色。

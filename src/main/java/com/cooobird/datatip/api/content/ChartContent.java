@@ -6,7 +6,6 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -29,6 +28,9 @@ public record ChartContent(
     int valueColor,           // 数值颜色
     int zeroLineColor         // 零线颜色
 ) implements TipContent {
+    private static final int TITLE_HEIGHT = 14;
+    private static final int VALUE_LABEL_HEIGHT = 12;
+    private static final int AXIS_LABEL_HEIGHT = 12;
 
     // 图表类型
     public enum ChartType {
@@ -38,6 +40,13 @@ public record ChartContent(
     }
 
     // 图表条目，支持静态值和变量表达式
+    public ChartContent {
+        type = type != null ? type : ChartType.BAR;
+        entries = entries != null ? new ArrayList<>(entries) : new ArrayList<>();
+        width = Math.max(1, width);
+        height = Math.max(1, height);
+    }
+
     public record ChartEntry(
         String label,      // 标签
         String valueExpr,  // 值表达式
@@ -106,11 +115,12 @@ public record ChartContent(
     @Override
     public int getHeight(int maxWidth) {
         int h = height;
-        if (title != null) h += 12;
+        if (title != null) h += TITLE_HEIGHT;
+        if (type == ChartType.BAR && showValues) h += VALUE_LABEL_HEIGHT;
         if (showLabels) {
             // 根据图表类型计算标签高度
             switch (type) {
-                case BAR, LINE -> h += 12; // 柱状图和折线图只有一行标签
+                case BAR, LINE -> h += AXIS_LABEL_HEIGHT; // 柱状图和折线图只有一行标签
                 case PIE -> h += 4 + entries.size() * 12; // 饼图每个条目一行标签
             }
         }
@@ -127,256 +137,20 @@ public record ChartContent(
         if (alpha <= 0 || entries.isEmpty()) return;
 
         // 限制标题宽度
-        int renderWidth = Math.min(width, maxWidth);
+        int renderWidth = Math.max(1, Math.min(width, maxWidth));
 
         // 渲染标题
         if (title != null) {
             context.drawCenteredString(title, x + renderWidth / 2, y, titleColor);
-            y += 14;
+            y += TITLE_HEIGHT;
+        }
+
+        if (type == ChartType.BAR && showValues) {
+            y += VALUE_LABEL_HEIGHT;
         }
 
         switch (type) {
-            case BAR -> renderBarChart(context, x, y, maxWidth);
-            case PIE -> renderPieChart(context, x, y, maxWidth);
-            case LINE -> renderLineChart(context, x, y, maxWidth);
-        }
-    }
-
-    // 渲染柱状图
-    private void renderBarChart(TipRenderContext context, int x, int y, int maxWidth) {
-        // 限制宽度
-        int renderWidth = Math.min(width, maxWidth);
-
-        // 先解析所有值
-        double[] values = entries.stream()
-            .mapToDouble(e -> e.resolveValue(context))
-            .toArray();
-
-        double maxValue = Arrays.stream(values).max().orElse(1);
-        double minValue = Arrays.stream(values).min().orElse(0);
-
-        // 处理负值：确保 minValue <= 0
-        if (minValue > 0) minValue = 0;
-
-        double range = maxValue - minValue;
-        if (range == 0) range = 1;
-
-        // 计算零线位置
-        int zeroLineY = y + height - (int) (((0 - minValue) / range) * height);
-
-        int barWidth = Math.max(4, (renderWidth - 4) / entries.size() - 2);
-        int barX = x;
-
-        for (int i = 0; i < entries.size(); i++) {
-            ChartEntry entry = entries.get(i);
-            double value = values[i];
-
-            // 计算柱子位置和高度
-            int barHeight = (int) (Math.abs(value) / range * height);
-            int barY;
-            if (value >= 0) {
-                barY = zeroLineY - barHeight;
-            } else {
-                barY = zeroLineY;
-            }
-
-            // 确保柱子在边界内
-            barY = Math.max(y, Math.min(y + height, barY));
-            barHeight = Math.min(barHeight, y + height - barY);
-
-            // 绘制柱子
-            context.fill(barX, barY, barX + barWidth, barY + barHeight, entry.color());
-
-            // 绘制标签
-            if (showLabels) {
-                int labelWidth = context.getStringWidth(entry.label());
-                context.drawString(entry.label(), barX + (barWidth - labelWidth) / 2, y + height + 2, labelColor);
-            }
-
-            // 绘制数值
-            if (showValues) {
-                String valueStr = String.format("%.0f", value);
-                int valueWidth = context.getStringWidth(valueStr);
-                int valueY = value >= 0 ? barY - 12 : barY + 2;
-                context.drawString(valueStr, barX + (barWidth - valueWidth) / 2, valueY, valueColor);
-            }
-
-            barX += barWidth + 2;
-        }
-
-        // 绘制零线
-        if (minValue < 0) {
-            context.hLine(x, x + renderWidth, zeroLineY, zeroLineColor);
-        }
-    }
-
-    // 渲染饼图
-    private void renderPieChart(TipRenderContext context, int x, int y, int maxWidth) {
-        // 先解析所有值
-        double[] values = entries.stream()
-            .mapToDouble(e -> Math.abs(e.resolveValue(context)))
-            .toArray();
-        double total = Arrays.stream(values).sum();
-        if (total == 0) return;
-
-        // 限制尺寸不超过 maxWidth
-        int renderWidth = Math.min(width, maxWidth);
-        int renderHeight = Math.min(height, maxWidth);
-
-        int centerX = x + renderWidth / 2;
-        int centerY = y + renderHeight / 2;
-        int radius = Math.min(renderWidth, renderHeight) / 2 - 4;
-
-        double startAngle = -90; // 从顶部开始
-        int labelY = y + renderHeight + 4;
-
-        for (int i = 0; i < entries.size(); i++) {
-            ChartEntry entry = entries.get(i);
-            double value = values[i];
-            double sweepAngle = (value / total) * 360;
-            double endAngle = startAngle + sweepAngle;
-
-            // 绘制扇形
-            for (int angle = (int) startAngle; angle < endAngle; angle++) {
-                double rad = Math.toRadians(angle);
-                double nextRad = Math.toRadians(angle + 1);
-
-                // 扇形的三角形顶点
-                int x1 = centerX + (int) (radius * Math.cos(rad));
-                int y1 = centerY + (int) (radius * Math.sin(rad));
-                int x2 = centerX + (int) (radius * Math.cos(nextRad));
-                int y2 = centerY + (int) (radius * Math.sin(nextRad));
-
-                // 绘制三角形
-                drawTriangle(context, centerX, centerY, x1, y1, x2, y2, entry.color());
-            }
-
-            // 绘制标签
-            if (showLabels) {
-                context.drawString(entry.label(), x, labelY, entry.color());
-                labelY += 10;
-            }
-
-            startAngle = endAngle;
-        }
-    }
-
-    // 绘制填充三角形
-    private void drawTriangle(TipRenderContext context, int x1, int y1, int x2, int y2, int x3, int y3, int color) {
-        // 计算边界框
-        int minX = Math.min(x1, Math.min(x2, x3));
-        int maxX = Math.max(x1, Math.max(x2, x3));
-        int minY = Math.min(y1, Math.min(y2, y3));
-        int maxY = Math.max(y1, Math.max(y2, y3));
-
-        // 遍历边界框内的每个像素
-        for (int px = minX; px <= maxX; px++) {
-            for (int py = minY; py <= maxY; py++) {
-                // 使用重心坐标判断点是否在三角形内
-                if (isPointInTriangle(px, py, x1, y1, x2, y2, x3, y3)) {
-                    context.fill(px, py, px + 1, py + 1, color);
-                }
-            }
-        }
-    }
-
-    // 判断点是否在三角形内
-    private boolean isPointInTriangle(int px, int py, int x1, int y1, int x2, int y2, int x3, int y3) {
-        double d1 = sign(px, py, x1, y1, x2, y2);
-        double d2 = sign(px, py, x2, y2, x3, y3);
-        double d3 = sign(px, py, x3, y3, x1, y1);
-
-        boolean hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
-        boolean hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
-
-        return !(hasNeg && hasPos);
-    }
-
-    private double sign(int px, int py, int x1, int y1, int x2, int y2) {
-        return (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2);
-    }
-
-    // 渲染折线图
-    private void renderLineChart(TipRenderContext context, int x, int y, int maxWidth) {
-        if (entries.size() < 2) return;
-
-        // 限制宽度
-        int renderWidth = Math.min(width, maxWidth);
-
-        // 先解析所有值
-        double[] values = entries.stream()
-            .mapToDouble(e -> e.resolveValue(context))
-            .toArray();
-        double maxValue = Arrays.stream(values).max().orElse(1);
-        double minValue = Arrays.stream(values).min().orElse(0);
-
-        // 处理负值：确保 minValue <= 0
-        if (minValue > 0) minValue = 0;
-
-        double range = maxValue - minValue;
-        if (range == 0) range = 1;
-
-        int stepX = renderWidth / (entries.size() - 1);
-
-        // 绘制线条
-        for (int i = 0; i < entries.size() - 1; i++) {
-            ChartEntry current = entries.get(i);
-            ChartEntry next = entries.get(i + 1);
-            double currentValue = values[i];
-            double nextValue = values[i + 1];
-
-            int x1 = x + i * stepX;
-            int y1 = y + height - (int) (((currentValue - minValue) / range) * height);
-            int x2 = x + (i + 1) * stepX;
-            int y2 = y + height - (int) (((nextValue - minValue) / range) * height);
-
-            // 绘制线段
-            drawLine(context, x1, y1, x2, y2, current.color());
-
-            // 绘制点
-            context.fill(x1 - 2, y1 - 2, x1 + 2, y1 + 2, current.color());
-        }
-
-        // 绘制最后一个点
-        ChartEntry last = entries.getLast();
-        double lastValue = values[entries.size() - 1];
-        int lastX = x + (entries.size() - 1) * stepX;
-        int lastY = y + height - (int) (((lastValue - minValue) / range) * height);
-        context.fill(lastX - 2, lastY - 2, lastX + 2, lastY + 2, last.color());
-
-        // 绘制标签
-        if (showLabels) {
-            for (int i = 0; i < entries.size(); i++) {
-                ChartEntry entry = entries.get(i);
-                int labelX = x + i * stepX;
-                context.drawCenteredString(entry.label(), labelX, y + height + 2, labelColor);
-            }
-        }
-    }
-
-    // 绘制线段
-    private void drawLine(TipRenderContext context, int x1, int y1, int x2, int y2, int color) {
-        // 简单的线段绘制
-        int dx = Math.abs(x2 - x1);
-        int dy = Math.abs(y2 - y1);
-        int sx = x1 < x2 ? 1 : -1;
-        int sy = y1 < y2 ? 1 : -1;
-        int err = dx - dy;
-
-        while (true) {
-            context.fill(x1, y1, x1 + 1, y1 + 1, color);
-
-            if (x1 == x2 && y1 == y2) break;
-
-            int e2 = 2 * err;
-            if (e2 > -dy) {
-                err -= dy;
-                x1 += sx;
-            }
-            if (e2 < dx) {
-                err += dx;
-                y1 += sy;
-            }
+            case BAR, PIE, LINE -> ChartRenderers.render(this, context, x, y, maxWidth);
         }
     }
 }

@@ -262,7 +262,7 @@ Empty spacing between content.
 | `strikethrough`  | boolean      | false   | Strikethrough text                                                                    |
 | `align`          | String       | "left"  | Alignment: `left`, `center`, `right`                                                  |
 | `shadow`         | boolean      | true    | Text shadow                                                                           |
-| `lineHeight`     | int          | 12      | Line height in pixels                                                                 |
+| `lineHeight`     | int          | 9       | Line height in pixels, defaulting to the vanilla font line height                     |
 | `shift`          | boolean      | false   | Only show when holding Shift                                                          |
 
 ## Chart Properties
@@ -288,45 +288,46 @@ Empty spacing between content.
 
 ## Variables
 
-| Variable               | Description                                      |
-|------------------------|--------------------------------------------------|
-| `{durability}`         | Current durability                               |
-| `{max_durability}`     | Maximum durability                               |
-| `{damage}`             | Damage value                                     |
-| `{durability_percent}` | Durability percentage                            |
-| `{durability_bar}`     | Durability bar (visual)                          |
-| `{count}`              | Item count                                       |
-| `{item_name}`          | Item name                                        |
-| `{item_id}`            | Item ID                                          |
-| `{enchantment_count}`  | Enchantment count                                |
-| `{is_enchanted}`       | Is enchanted                                     |
-| `{rarity}`             | Rarity                                           |
-| `{max_stack_size}`     | Max stack size                                   |
-| `{is_stackable}`       | Is stackable                                     |
-| `{is_damageable}`      | Is damageable                                    |
-| `{player_health}`      | Player health                                    |
-| `{player_max_health}`  | Player max health                                |
-| `{player_hunger}`      | Player hunger                                    |
-| `{player_experience}`  | Player experience level                          |
-| `{player_x}`           | Player X coordinate                              |
-| `{player_y}`           | Player Y coordinate                              |
-| `{player_z}`           | Player Z coordinate                              |
-| `{game_time}`          | Game time                                        |
-| `{is_day}`             | Is daytime                                       |
-| `{is_raining}`         | Is raining                                       |
-| `{is_thundering}`      | Is thundering                                    |
-| `{health_bar}`         | Health bar (visual)                              |
-| `{nbt:path}`           | Component value (see NBT Variable section below) |
+| Variable               | Description                                                      |
+|------------------------|------------------------------------------------------------------|
+| `{durability}`         | Current durability                                               |
+| `{max_durability}`     | Maximum durability                                               |
+| `{damage}`             | Damage value                                                     |
+| `{durability_percent}` | Durability percentage                                            |
+| `{durability_bar}`     | Durability bar (visual)                                          |
+| `{count}`              | Item count                                                       |
+| `{item_name}`          | Item name                                                        |
+| `{item_id}`            | Item ID                                                          |
+| `{enchantment_count}`  | Enchantment count                                                |
+| `{is_enchanted}`       | Is enchanted                                                     |
+| `{rarity}`             | Rarity                                                           |
+| `{max_stack_size}`     | Max stack size                                                   |
+| `{is_stackable}`       | Is stackable                                                     |
+| `{is_damageable}`      | Is damageable                                                    |
+| `{player_health}`      | Player health                                                    |
+| `{player_max_health}`  | Player max health                                                |
+| `{player_hunger}`      | Player hunger                                                    |
+| `{player_experience}`  | Player experience level                                          |
+| `{player_x}`           | Player X coordinate                                              |
+| `{player_y}`           | Player Y coordinate                                              |
+| `{player_z}`           | Player Z coordinate                                              |
+| `{game_time}`          | Game time                                                        |
+| `{is_day}`             | Is daytime                                                       |
+| `{is_raining}`         | Is raining                                                       |
+| `{is_thundering}`      | Is thundering                                                    |
+| `{health_bar}`         | Health bar (visual)                                              |
+| `{component:path}`     | Data component value (see Data Component Variable section below) |
+| `{custom_data:path}`   | Custom data stored in the `minecraft:custom_data` component      |
 
-### NBT Variable
+### Data Component Variable
 
-Read item component data using `{nbt:path}` syntax.
+Minecraft 1.21.1 uses the data component system. Use `{component:path}` for common item
+components, and `{custom_data:path}` for values stored in `minecraft:custom_data`.
 
-**NeoForge 1.21.1 (Component System):**
 ```json
 {
   "type": "text",
-  "text": "Name: {nbt:custom_name}",
+  "text": "Name: {component:custom_name}",
   "color": "white"
 }
 ```
@@ -335,66 +336,63 @@ Read item component data using `{nbt:path}` syntax.
 - `custom_name` - Custom item name
 - `item_name` - Item name
 - `lore` - Item lore
-- `damage` - Damage value
-- `max_damage` - Max damage
+- `damage` - Damage taken by the item. Use `{durability}` for remaining durability.
+- `max_damage` - Maximum durability
+- `repair_cost` - Repair cost
 - `enchantments` - Enchantments
+- `custom_data` - Full custom data component
 
-**Forge 1.20.1 (NBT System):**
+Read custom data:
 ```json
 {
   "type": "text",
-  "text": "Name: {nbt:display.Name}",
+  "text": "Quality: {custom_data:quality}",
   "color": "white"
 }
 ```
 
-**Supported paths:**
-- `display.Name` - Custom item name
-- `display.Lore` - Item lore
-- `Damage` - Damage value
-- `Enchantments` - Enchantments
-
 ## Conditions
 
-| Condition    | Description      | Example                                |
-|--------------|------------------|----------------------------------------|
-| `dimension`  | Dimension        | `"dimension": "minecraft:the_nether"`  |
-| `biome`      | Biome            | `"biome": "minecraft:desert"`          |
-| `holding`    | Held item        | `"holding": "minecraft:diamond_sword"` |
-| `sneaking`   | Is sneaking      | `"sneaking": true`                     |
-| `creative`   | Creative mode    | `"creative": true`                     |
-| `survival`   | Survival mode    | `"survival": true`                     |
-| `health`     | Health           | `"health": "50%"` or `"health": 10`    |
-| `hunger`     | Hunger           | `"hunger": 15`                         |
-| `experience` | Experience level | `"experience": 30`                     |
-| `time`       | Time             | `"time": "day"` or `"time": 6000`      |
-| `weather`    | Weather          | `"weather": "rain"`                    |
-| `light`      | Light level      | `"light": "dark"` or `"light": 8`      |
-| `altitude`   | Altitude         | `"altitude": ">=64"`                   |
-| `enchanted`  | Is enchanted     | `"enchanted": true`                    |
-| `damage`     | Damage value     | `"damage": 100`                        |
-| `count`      | Item count       | `"count": 16`                          |
-| `nbt`        | Component exists | `"nbt": "custom_name"`                 |
-| `item_tag`   | Item tag         | `"item_tag": "minecraft:swords"`       |
+| Condition     | Description                   | Example                                                            |
+|---------------|-------------------------------|--------------------------------------------------------------------|
+| `dimension`   | Dimension                     | `"dimension": "minecraft:the_nether"`                              |
+| `biome`       | Biome                         | `"biome": "minecraft:desert"`                                      |
+| `holding`     | Held item                     | `"holding": "minecraft:diamond_sword"`                             |
+| `sneaking`    | Is sneaking                   | `"sneaking": true`                                                 |
+| `creative`    | Creative mode                 | `"creative": true`                                                 |
+| `survival`    | Survival mode                 | `"survival": true`                                                 |
+| `health`      | Health                        | `"health": "50%"` or `"health": 10`                                |
+| `hunger`      | Hunger                        | `"hunger": 15`                                                     |
+| `experience`  | Experience level              | `"experience": 30`                                                 |
+| `time`        | Time                          | `"time": "day"` or `"time": 6000`                                  |
+| `weather`     | Weather                       | `"weather": "rain"`                                                |
+| `light`       | Light level                   | `"light": "dark"` or `"light": 8`                                  |
+| `altitude`    | Altitude                      | `"altitude": ">=64"`                                               |
+| `enchanted`   | Is enchanted                  | `"enchanted": true`                                                |
+| `damage`      | Damage value                  | `"damage": 100`                                                    |
+| `count`       | Item count                    | `"count": 16`                                                      |
+| `component`   | Data component exists         | `"component": "custom_name"`                                       |
+| `custom_data` | Custom data exists or matches | `"custom_data": "quality"` or `"custom_data": {"quality": "rare"}` |
+| `item_tag`    | Item tag                      | `"item_tag": "minecraft:swords"`                                   |
 
-### NBT Condition
+### Data Component Condition
 
-Check if item has specific component/NBT data.
+Check if item has a specific data component or custom data value.
 
-**NeoForge 1.21.1:**
 ```json
 {
   "conditions": {
-    "nbt": "custom_name"
+    "component": "custom_name"
   }
 }
 ```
 
-**Forge 1.20.1:**
 ```json
 {
   "conditions": {
-    "nbt": "display.Name"
+    "custom_data": {
+      "quality": "rare"
+    }
   }
 }
 ```
@@ -477,17 +475,65 @@ Supported operators:
 
 Any 6-digit hex with `#` prefix: `"#FF6600"`, `"#AABBCC"`, `"#00FF00"`
 
+## JSON Schema
+
+`datatip.schema.json` is an editor helper for DataTip resource-pack JSON files. It provides completion,
+type hints, and basic validation in editors such as IntelliJ IDEA or VS Code. It is not required at
+runtime, and changing it does not change how DataTip loads tooltips in-game.
+
+DataTip automatically exports the schema on client startup:
+
+```text
+.minecraft/datatip.schema.json
+```
+
+Recommended IntelliJ IDEA setup:
+
+1. Start the game once so DataTip exports `.minecraft/datatip.schema.json`.
+2. Open `Settings | Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings`.
+3. Add a new mapping and select `.minecraft/datatip.schema.json`.
+4. Map it to your DataTip files, for example `assets/*/datatip/*.json` inside a resource pack.
+
+With this setup, resource-pack authors do not need to edit every JSON file or open the mod jar.
+
+Optional per-resource-pack setup:
+
+```text
+MyResourcePack/
+  datatip.schema.json
+  assets/
+    minecraft/
+      datatip/
+        datatip.json
+```
+
+If you copy `.minecraft/datatip.schema.json` to the resource-pack root, you can add this to
+`assets/<namespace>/datatip/datatip.json`:
+
+```json
+{
+  "$schema": "../../../datatip.schema.json",
+  "minecraft:diamond": {
+    "type": "text",
+    "text": "Schema enabled"
+  }
+}
+```
+
+For mod development files under `src/main/resources/assets/<namespace>/datatip/`, either use the IDEA
+mapping above or adjust the `$schema` path to your project layout.
+
 ## Configuration
 
 File: `config/datatip-common.toml`
 
-| Option              | Type    | Default    | Description                         |
-|---------------------|---------|------------|-------------------------------------|
-| `enabled`           | boolean | true       | Enable/disable DataTip              |
-| `defaultColor`      | int     | 0xFFAAAAAA | Default text color                  |
-| `defaultLineHeight` | int     | 12         | Default line height                 |
-| `maxWidth`          | int     | 200        | Maximum tooltip width               |
-| `shiftHintColor`    | int     | 0xFF888888 | Shift hint text color (ARGB format) |
+| Option              | Type    | Default    | Description                                      |
+|---------------------|---------|------------|--------------------------------------------------|
+| `enabled`           | boolean | true       | Enable/disable DataTip                           |
+| `defaultColor`      | int     | 0xFFAAAAAA | Default text color                               |
+| `defaultLineHeight` | int     | 0          | Default line height (0=vanilla font line height) |
+| `maxWidth`          | int     | 0          | Tooltip width override (0=vanilla tooltip width) |
+| `shiftHintColor`    | int     | 0xFF888888 | Shift hint text color (ARGB format)              |
 
 ## Legacy Format Support
 
@@ -876,6 +922,44 @@ Old format is automatically converted to new format. The converted JSON is saved
 
 ## For Mod Developers
 
+### Register Runtime Tooltip Content
+
+Runtime content is not written to resource packs, but it is displayed together with JSON-loaded DataTip content.
+
+```java
+TipRuntimeContentRegistry.register(
+    "minecraft:diamond",
+    TextContent.of("DataTip registered from code")
+);
+
+TipRuntimeContentRegistry.register(
+    "#minecraft:swords",
+    new TipContentEntry(TextContent.of("Extra sword tooltip"), List.of(), false, true)
+);
+```
+
+Runtime content can also be removed by namespace:
+
+```java
+TipRuntimeContentRegistry.clearNamespace("mymod");
+```
+
+### Register Custom Component Readers
+
+Use `ComponentReaderRegistry` when a data component is not handled by DataTip's built-in component readers.
+The registered name is what JSON uses in `{component:name}` and `"component": "name"`.
+
+```java
+ComponentReaderRegistry.register("mymod:quality", stack -> {
+    var value = stack.get(MyComponents.QUALITY.get());
+    return value != null ? value.displayName() : null;
+});
+```
+
+For vanilla-namespace component names, both `minecraft:custom_name` and `custom_name` are normalized to
+the same reader name. The older `ItemComponentMatcher.registerComponentReader(...)` entry point is kept
+for compatibility, but new integrations should prefer `ComponentReaderRegistry`.
+
 ### Register Custom Variables
 ```java
 VariableResolver.registerVariable("my_var", stack -> "custom_value");
@@ -898,6 +982,9 @@ Then use in JSON:
 ```
 
 ### Event Hooks
+
+`onAppendLines` runs during tooltip collection, even when the item has no matching DataTip content.
+
 ```java
 // Pre-render event (modify or cancel)
 TipEventManager.onPreRender(event -> {
@@ -905,9 +992,9 @@ TipEventManager.onPreRender(event -> {
     // or event.cancel() to cancel rendering
 });
 
-// Post-render event (add extra info)
-TipEventManager.onPostRender(event -> {
-    event.addExtraLine("Extra info from other mod");
+// Append extra tooltip lines
+TipEventManager.onAppendLines(event -> {
+    event.addLine("Extra info from other mod");
 });
 
 // Variable resolve event (inject custom variables)

@@ -1,0 +1,348 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://cooobird.github.io/datatip/datatip.schema.json",
+    "title": "DataTip Resource File",
+    "description": "Schema for DataTip JSON files under assets/<namespace>/datatip/.",
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "type": "string",
+            "description": "Optional editor-side schema reference. DataTip ignores this field when loading."
+        }
+    },
+    "additionalProperties": false,
+    "patternProperties": {
+        "^_": true,
+        "^(#)?[a-z0-9_.-]+:[a-z0-9_./*-]+$": {
+            "$ref": "#/$defs/entry"
+        }
+    },
+    "$defs": {
+        "entry": {
+            "description": "A DataTip content entry. String and string-array forms are kept for legacy compatibility.",
+            "oneOf": [
+                {
+                    "type": "string"
+                },
+                {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "allOf": [
+                        {
+                            "$ref": "#/$defs/content"
+                        },
+                        {
+                            "type": "object",
+                            "properties": {
+                                "conditions": {
+                                    "$ref": "#/$defs/conditions"
+                                },
+                                "shift": {
+                                    "type": "boolean"
+                                },
+                                "prepend": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "conditions": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+                "dimension": {
+                    "type": "string"
+                },
+                "biome": {
+                    "type": "string"
+                },
+                "holding": {
+                    "type": "string"
+                },
+                "sneaking": {
+                    "type": "boolean"
+                },
+                "creative": {
+                    "type": "boolean"
+                },
+                "survival": {
+                    "type": "boolean"
+                },
+                "health": {
+                    "oneOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "hunger": {
+                    "oneOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "experience": {
+                    "type": "number"
+                },
+                "time": {
+                    "oneOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "weather": {
+                    "type": "string"
+                },
+                "light": {
+                    "oneOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "altitude": {
+                    "oneOf": [
+                        {
+                            "type": "number"
+                        },
+                        {
+                            "type": "string"
+                        }
+                    ]
+                },
+                "enchanted": {
+                    "type": "boolean"
+                },
+                "damage": {
+                    "type": "number"
+                },
+                "count": {
+                    "type": "number"
+                },
+                "component": {
+                    "type": "string"
+                },
+                "custom_data": {
+                    "oneOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": {
+                                "oneOf": [
+                                    {
+                                        "type": "string"
+                                    },
+                                    {
+                                        "type": "number"
+                                    },
+                                    {
+                                        "type": "boolean"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "item_tag": {
+                    "type": "string"
+                }
+            }
+        },
+        "content": {
+            "type": "object",
+            "required": [
+                "type"
+            ],
+            "properties": {
+                "type": {
+                    "enum": [
+                        "text",
+                        "spacer",
+                        "divider",
+                        "item",
+                        "atlas",
+                        "block",
+                        "entity",
+                        "progress",
+                        "vbox",
+                        "hbox",
+                        "carousel",
+                        "typewriter",
+                        "image",
+                        "chart"
+                    ]
+                },
+                "text": {
+                    "oneOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                "lines": {
+                    "oneOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/content"
+                    }
+                },
+                "frames": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/content"
+                    }
+                },
+                "color": {
+                    "type": "string"
+                },
+                "font": {
+                    "type": "string"
+                },
+                "align": {
+                    "enum": [
+                        "left",
+                        "center",
+                        "right"
+                    ]
+                },
+                "bold": {
+                    "type": "boolean"
+                },
+                "italic": {
+                    "type": "boolean"
+                },
+                "underlined": {
+                    "type": "boolean"
+                },
+                "strikethrough": {
+                    "type": "boolean"
+                },
+                "shadow": {
+                    "type": "boolean"
+                },
+                "lineHeight": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "maxWidth": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "gap": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "padding": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "width": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "height": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "item": {
+                    "type": "string"
+                },
+                "block": {
+                    "type": "string"
+                },
+                "entity": {
+                    "type": "string"
+                },
+                "texture": {
+                    "type": "string"
+                },
+                "progress": {
+                    "type": "number"
+                },
+                "chartType": {
+                    "enum": [
+                        "bar",
+                        "pie",
+                        "line"
+                    ]
+                },
+                "entries": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "label",
+                            "color"
+                        ],
+                        "properties": {
+                            "label": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "type": "number"
+                            },
+                            "valueExpr": {
+                                "type": "string"
+                            },
+                            "color": {
+                                "type": "string"
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                }
+            },
+            "additionalProperties": true
+        }
+    }
+}

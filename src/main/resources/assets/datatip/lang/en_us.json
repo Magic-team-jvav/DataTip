@@ -8,9 +8,9 @@
     "datatip.configuration.default_color": "Default Text Color",
     "datatip.configuration.default_color.tooltip": "Default text color (ARGB format).",
     "datatip.configuration.default_line_height": "Default Line Height",
-    "datatip.configuration.default_line_height.tooltip": "Default line height in pixels.",
-    "datatip.configuration.max_width": "Maximum Width",
-    "datatip.configuration.max_width.tooltip": "Maximum tooltip width in pixels.",
+    "datatip.configuration.default_line_height.tooltip": "Default line height in pixels. Set to 0 to use the vanilla font line height.",
+    "datatip.configuration.max_width": "Width Override",
+    "datatip.configuration.max_width.tooltip": "Tooltip width override in pixels. Set to 0 to use the vanilla tooltip width.",
     "datatip.configuration.shift_hint_color": "Shift Hint Color",
     "datatip.configuration.shift_hint_color.tooltip": "Shift hint text color (ARGB format)."
 }
