@@ -40,7 +40,7 @@ final class TipCommonJsonWriter {
         if (item.showCount()) json.addProperty("showCount", true);
         if (item.showDurability()) json.addProperty("showDurability", true);
         if (item.showLabel()) json.addProperty("showLabel", true);
-        if (item.label() != null) json.addProperty("label", item.label().getString());
+        LocalizedTextJsonWriter.add(json, "label", item.label());
         if (item.labelColor() != null)
             json.addProperty("labelColor", DatagenJsonUtils.colorToHex(item.labelColor()));
         if (item.offsetX() != 0) json.addProperty("offsetX", item.offsetX());
@@ -60,8 +60,7 @@ final class TipCommonJsonWriter {
             json.addProperty("style", progress.style().toString().toLowerCase());
         if (progress.showLabel()) {
             json.addProperty("showLabel", true);
-            if (progress.customLabel() != null)
-                json.addProperty("label", progress.customLabel().getString());
+            LocalizedTextJsonWriter.add(json, "label", progress.customLabel());
             if (progress.labelAlign() != ProgressContent.LabelAlign.LEFT)
                 json.addProperty("labelAlign", progress.labelAlign().toString().toLowerCase());
         }
@@ -73,11 +72,38 @@ final class TipCommonJsonWriter {
 
     static void writeTypewriter(JsonObject json, TypewriterContent typewriter) {
         json.addProperty("type", "typewriter");
-        JsonArray lines = new JsonArray();
-        for (String line : typewriter.getLines()) lines.add(line);
-        json.add("lines", lines);
+        if (typewriter.getLangStyledLines() != null && !typewriter.getLangStyledLines().isEmpty()) {
+            JsonObject languages = new JsonObject();
+            typewriter.getLangStyledLines().forEach((language, values) -> {
+                JsonArray lines = new JsonArray();
+                for (BaseTextContent.LangStyle style : values) {
+                    JsonObject value = new JsonObject();
+                    value.addProperty("text", style.text());
+                    value.addProperty("color", DatagenJsonUtils.colorToHex(style.color()));
+                    if (style.bold()) value.addProperty("bold", true);
+                    if (style.italic()) value.addProperty("italic", true);
+                    if (style.underlined()) value.addProperty("underlined", true);
+                    if (style.strikethrough()) value.addProperty("strikethrough", true);
+                    lines.add(value);
+                }
+                languages.add(language, lines);
+            });
+            json.add("lines", languages);
+        } else if (typewriter.getLangLines() != null && !typewriter.getLangLines().isEmpty()) {
+            JsonObject languages = new JsonObject();
+            typewriter.getLangLines().forEach((language, values) -> {
+                JsonArray lines = new JsonArray();
+                values.forEach(lines::add);
+                languages.add(language, lines);
+            });
+            json.add("lines", languages);
+        } else {
+            JsonArray lines = new JsonArray();
+            for (String line : typewriter.getLines()) lines.add(line);
+            json.add("lines", lines);
+        }
         json.addProperty("charsPerSecond", typewriter.getCharsPerSecond());
-        json.addProperty("pauseSeconds", 1);
+        json.addProperty("pauseSeconds", typewriter.getPauseSeconds());
         json.addProperty("loop", typewriter.isLoop());
         if (typewriter.color() != 0xFFFFFF)
             json.addProperty("color", DatagenJsonUtils.colorToHex(typewriter.color()));

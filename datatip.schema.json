@@ -1,348 +1,728 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://cooobird.github.io/datatip/datatip.schema.json",
-    "title": "DataTip Resource File",
-    "description": "Schema for DataTip JSON files under assets/<namespace>/datatip/.",
-    "type": "object",
-    "properties": {
-        "$schema": {
-            "type": "string",
-            "description": "Optional editor-side schema reference. DataTip ignores this field when loading."
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cooobird.github.io/datatip/datatip.schema.json",
+  "title": "DataTip Resource File",
+  "description": "Schema for DataTip JSON files under assets/<namespace>/datatip/.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional editor-side schema reference. DataTip ignores this field when loading."
+    }
+  },
+  "patternProperties": {
+    "^_": true,
+    "^(#)?[a-z0-9_.-]+:[a-z0-9_./*?-]+$": {
+      "$ref": "#/$defs/entry"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "color": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "integer"
         }
+      ]
     },
-    "additionalProperties": false,
-    "patternProperties": {
-        "^_": true,
-        "^(#)?[a-z0-9_.-]+:[a-z0-9_./*-]+$": {
-            "$ref": "#/$defs/entry"
+    "styledText": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "color": {
+          "$ref": "#/$defs/color"
+        },
+        "align": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "bold": {
+          "type": "boolean"
+        },
+        "italic": {
+          "type": "boolean"
+        },
+        "underlined": {
+          "type": "boolean"
+        },
+        "strikethrough": {
+          "type": "boolean"
+        },
+        "shift": {
+          "type": "boolean"
         }
+      },
+      "additionalProperties": false
     },
-    "$defs": {
-        "entry": {
-            "description": "A DataTip content entry. String and string-array forms are kept for legacy compatibility.",
-            "oneOf": [
-                {
-                    "type": "string"
-                },
-                {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                {
-                    "allOf": [
-                        {
-                            "$ref": "#/$defs/content"
-                        },
-                        {
-                            "type": "object",
-                            "properties": {
-                                "conditions": {
-                                    "$ref": "#/$defs/conditions"
-                                },
-                                "shift": {
-                                    "type": "boolean"
-                                },
-                                "prepend": {
-                                    "type": "boolean"
-                                }
-                            }
-                        }
-                    ]
-                }
-            ]
+    "localizedText": {
+      "description": "Language-code map. Each value may be plain text or a styled text object.",
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "$ref": "#/$defs/styledText"
+          }
+        ]
+      }
+    },
+    "translatableText": {
+      "description": "Minecraft or mod translation key.",
+      "type": "object",
+      "properties": {
+        "trans": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "trans"
+      ],
+      "additionalProperties": false
+    },
+    "localizedValue": {
+      "description": "Visible text. Accepts a literal string, a language-code map, or {\"trans\": \"translation.key\"}.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/translatableText"
+        },
+        {
+          "$ref": "#/$defs/localizedText"
+        }
+      ]
+    },
+    "localizedLines": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/$defs/styledText"
+            }
+          ]
+        }
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "properties": {
+        "dimension": {
+          "type": "string"
+        },
+        "biome": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "holding": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "sneaking": {
+          "type": "boolean"
+        },
+        "creative": {
+          "type": "boolean"
+        },
+        "survival": {
+          "type": "boolean"
+        },
+        "health": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "hunger": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "experience": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "level": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "time": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "enum": [
+                "day",
+                "night",
+                "noon",
+                "midnight"
+              ]
+            }
+          ]
+        },
+        "weather": {
+          "enum": [
+            "clear",
+            "rain",
+            "thunder"
+          ]
+        },
+        "light": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "enum": [
+                "dark",
+                "dim",
+                "bright",
+                "full"
+              ]
+            }
+          ]
+        },
+        "altitude": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "enchanted": {
+          "type": "boolean"
+        },
+        "damage": {
+          "type": "number"
+        },
+        "count": {
+          "type": "number"
+        },
+        "component": {
+          "type": "string"
+        },
+        "custom_data": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "item_tag": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "chartEntry": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/localizedValue"
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "valueExpr": {
+          "type": "string"
+        },
+        "color": {
+          "$ref": "#/$defs/color"
+        }
+      },
+      "additionalProperties": false
+    },
+    "content": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "examples": [
+            "text",
+            "spacer",
+            "divider",
+            "item",
+            "atlas",
+            "block",
+            "entity",
+            "progress",
+            "vbox",
+            "hbox",
+            "carousel",
+            "typewriter",
+            "image",
+            "chart"
+          ]
         },
         "conditions": {
-            "type": "object",
-            "additionalProperties": true,
-            "properties": {
-                "dimension": {
-                    "type": "string"
-                },
-                "biome": {
-                    "type": "string"
-                },
-                "holding": {
-                    "type": "string"
-                },
-                "sneaking": {
-                    "type": "boolean"
-                },
-                "creative": {
-                    "type": "boolean"
-                },
-                "survival": {
-                    "type": "boolean"
-                },
-                "health": {
-                    "oneOf": [
-                        {
-                            "type": "number"
-                        },
-                        {
-                            "type": "string"
-                        }
-                    ]
-                },
-                "hunger": {
-                    "oneOf": [
-                        {
-                            "type": "number"
-                        },
-                        {
-                            "type": "string"
-                        }
-                    ]
-                },
-                "experience": {
-                    "type": "number"
-                },
-                "time": {
-                    "oneOf": [
-                        {
-                            "type": "number"
-                        },
-                        {
-                            "type": "string"
-                        }
-                    ]
-                },
-                "weather": {
-                    "type": "string"
-                },
-                "light": {
-                    "oneOf": [
-                        {
-                            "type": "number"
-                        },
-                        {
-                            "type": "string"
-                        }
-                    ]
-                },
-                "altitude": {
-                    "oneOf": [
-                        {
-                            "type": "number"
-                        },
-                        {
-                            "type": "string"
-                        }
-                    ]
-                },
-                "enchanted": {
-                    "type": "boolean"
-                },
-                "damage": {
-                    "type": "number"
-                },
-                "count": {
-                    "type": "number"
-                },
-                "component": {
-                    "type": "string"
-                },
-                "custom_data": {
-                    "oneOf": [
-                        {
-                            "type": "string"
-                        },
-                        {
-                            "type": "object",
-                            "additionalProperties": {
-                                "oneOf": [
-                                    {
-                                        "type": "string"
-                                    },
-                                    {
-                                        "type": "number"
-                                    },
-                                    {
-                                        "type": "boolean"
-                                    },
-                                    {
-                                        "type": "null"
-                                    }
-                                ]
-                            }
-                        }
-                    ]
-                },
-                "item_tag": {
-                    "type": "string"
-                }
-            }
+          "$ref": "#/$defs/conditions"
         },
-        "content": {
-            "type": "object",
-            "required": [
-                "type"
-            ],
-            "properties": {
-                "type": {
-                    "enum": [
-                        "text",
-                        "spacer",
-                        "divider",
-                        "item",
-                        "atlas",
-                        "block",
-                        "entity",
-                        "progress",
-                        "vbox",
-                        "hbox",
-                        "carousel",
-                        "typewriter",
-                        "image",
-                        "chart"
-                    ]
-                },
-                "text": {
-                    "oneOf": [
-                        {
-                            "type": "string"
-                        },
-                        {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    ]
-                },
-                "lines": {
-                    "oneOf": [
-                        {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        },
-                        {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "array",
-                                "items": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    ]
-                },
-                "children": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/$defs/content"
-                    }
-                },
-                "frames": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/$defs/content"
-                    }
-                },
-                "color": {
-                    "type": "string"
-                },
-                "font": {
-                    "type": "string"
-                },
-                "align": {
-                    "enum": [
-                        "left",
-                        "center",
-                        "right"
-                    ]
-                },
-                "bold": {
-                    "type": "boolean"
-                },
-                "italic": {
-                    "type": "boolean"
-                },
-                "underlined": {
-                    "type": "boolean"
-                },
-                "strikethrough": {
-                    "type": "boolean"
-                },
-                "shadow": {
-                    "type": "boolean"
-                },
-                "lineHeight": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "maxWidth": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "gap": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "padding": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "width": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "height": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "item": {
-                    "type": "string"
-                },
-                "block": {
-                    "type": "string"
-                },
-                "entity": {
-                    "type": "string"
-                },
-                "texture": {
-                    "type": "string"
-                },
-                "progress": {
-                    "type": "number"
-                },
-                "chartType": {
-                    "enum": [
-                        "bar",
-                        "pie",
-                        "line"
-                    ]
-                },
-                "entries": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "required": [
-                            "label",
-                            "color"
-                        ],
-                        "properties": {
-                            "label": {
-                                "type": "string"
-                            },
-                            "value": {
-                                "type": "number"
-                            },
-                            "valueExpr": {
-                                "type": "string"
-                            },
-                            "color": {
-                                "type": "string"
-                            }
-                        },
-                        "additionalProperties": false
-                    }
-                }
+        "shift": {
+          "type": "boolean"
+        },
+        "prepend": {
+          "type": "boolean"
+        },
+        "text": {
+          "oneOf": [
+            {
+              "type": "string"
             },
-            "additionalProperties": true
+            {
+              "$ref": "#/$defs/localizedText"
+            }
+          ]
+        },
+        "trans": {
+          "type": "string"
+        },
+        "lines": {
+          "oneOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "#/$defs/localizedLines"
+            }
+          ]
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/content"
+          }
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/content"
+          }
+        },
+        "color": {
+          "$ref": "#/$defs/color"
+        },
+        "font": {
+          "type": "string"
+        },
+        "align": {
+          "enum": [
+            "left",
+            "center",
+            "right",
+            "top",
+            "bottom"
+          ]
+        },
+        "bold": {
+          "type": "boolean"
+        },
+        "italic": {
+          "type": "boolean"
+        },
+        "underlined": {
+          "type": "boolean"
+        },
+        "strikethrough": {
+          "type": "boolean"
+        },
+        "shadow": {
+          "type": "boolean"
+        },
+        "lineHeight": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "maxWidth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "gap": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "padding": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "offsetX": {
+          "type": "integer",
+          "minimum": -4096,
+          "maximum": 4096
+        },
+        "offsetY": {
+          "type": "integer",
+          "minimum": -4096,
+          "maximum": 4096
+        },
+        "item": {
+          "type": "string"
+        },
+        "block": {
+          "type": "string"
+        },
+        "entity": {
+          "type": "string"
+        },
+        "texture": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "showCount": {
+          "type": "boolean"
+        },
+        "showDurability": {
+          "type": "boolean"
+        },
+        "showLabel": {
+          "type": "boolean"
+        },
+        "label": {
+          "$ref": "#/$defs/localizedValue"
+        },
+        "labelColor": {
+          "$ref": "#/$defs/color"
+        },
+        "rotationSpeed": {
+          "type": "number"
+        },
+        "autoRotate": {
+          "type": "boolean"
+        },
+        "progress": {
+          "type": "number"
+        },
+        "colorFg": {
+          "$ref": "#/$defs/color"
+        },
+        "colorBg": {
+          "$ref": "#/$defs/color"
+        },
+        "colorFgLight": {
+          "$ref": "#/$defs/color"
+        },
+        "colorBgDark": {
+          "$ref": "#/$defs/color"
+        },
+        "style": {
+          "enum": [
+            "solid",
+            "dashed",
+            "dotted",
+            "flat",
+            "gradient",
+            "segmented",
+            "animated"
+          ]
+        },
+        "thickness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "marginTop": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "marginBottom": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "widthMode": {
+          "enum": [
+            "fixed",
+            "fill",
+            "centered"
+          ]
+        },
+        "labelAlign": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "animated": {
+          "type": "boolean"
+        },
+        "animSpeed": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "intervalSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "transition": {
+          "enum": [
+            "none",
+            "fade",
+            "slide"
+          ]
+        },
+        "charsPerSecond": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "pauseSeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "loop": {
+          "type": "boolean"
+        },
+        "u": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "v": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "textureWidth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "textureHeight": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "chartType": {
+          "enum": [
+            "bar",
+            "pie",
+            "line"
+          ]
+        },
+        "title": {
+          "$ref": "#/$defs/localizedValue"
+        },
+        "titleColor": {
+          "$ref": "#/$defs/color"
+        },
+        "valueColor": {
+          "$ref": "#/$defs/color"
+        },
+        "zeroLineColor": {
+          "$ref": "#/$defs/color"
+        },
+        "showLabels": {
+          "type": "boolean"
+        },
+        "showValues": {
+          "type": "boolean"
+        },
+        "entries": {
+          "type": "array",
+          "maxItems": 512,
+          "items": {
+            "$ref": "#/$defs/chartEntry"
+          }
         }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "chart"
+              },
+              "chartType": {
+                "const": "pie"
+              }
+            },
+            "required": [
+              "type",
+              "chartType"
+            ]
+          },
+          "then": {
+            "properties": {
+              "width": {
+                "maximum": 128
+              },
+              "height": {
+                "maximum": 128
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "legacyObject": {
+      "type": "object",
+      "not": {
+        "required": [
+          "type"
+        ]
+      },
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "color": {
+          "$ref": "#/$defs/color"
+        },
+        "shift": {
+          "type": "boolean"
+        },
+        "prepend": {
+          "type": "boolean"
+        },
+        "conditions": {
+          "$ref": "#/$defs/conditions"
+        }
+      },
+      "additionalProperties": true
+    },
+    "entry": {
+      "description": "Modern content or a legacy-compatible string, string array, or text object.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        {
+          "$ref": "#/$defs/content"
+        },
+        {
+          "$ref": "#/$defs/legacyObject"
+        }
+      ]
     }
+  }
 }

@@ -3,9 +3,10 @@ package com.cooobird.datatip.event;
 import com.cooobird.datatip.api.TipContentEntry;
 import com.cooobird.datatip.api.TipContentSource;
 import com.cooobird.datatip.config.DatatipConfig;
+import com.cooobird.datatip.internal.input.ClientKeyState;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -39,7 +40,7 @@ public class TipRenderEventHandler {
     /**
      * 设置内容加载器。
      *
-     * @param loader 内容加载器实例
+     * @param source 内容来源实例
      */
     public static void setContentSource(TipContentSource source) {
         contentSource = source;
@@ -84,8 +85,8 @@ public class TipRenderEventHandler {
         TipTooltipElements.appendExtraLines(event, stack);
     }
 
-    private static boolean isShowTipDown() {
-        var window = Minecraft.getInstance().getWindow().getWindow();
-        return InputConstants.isKeyDown(window, SHOW_TIP.getKey().getValue());
+    public static boolean isShowTipDown() {
+        return ClientKeyState.isDown(SHOW_TIP)
+            || (SHOW_TIP.isDefault() && Screen.hasShiftDown());
     }
 }

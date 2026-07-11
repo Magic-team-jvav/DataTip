@@ -23,6 +23,7 @@ public record TipContentEntry(
     boolean prepend
 ) {
     public TipContentEntry {
+        content = java.util.Objects.requireNonNull(content, "content");
         conditions = conditions == null ? List.of() : List.copyOf(conditions);
     }
 

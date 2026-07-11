@@ -3,9 +3,9 @@ package com.cooobird.datatip.api.parser;
 import com.cooobird.datatip.api.ContentParser;
 import com.cooobird.datatip.api.ParseContext;
 import com.cooobird.datatip.api.content.ChartContent;
+import com.cooobird.datatip.api.text.LocalizedText;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.network.chat.Component;
 
 /**
  * ChartContent 解析器。
@@ -90,11 +90,14 @@ public class ChartContentParser implements ContentParser {
 
         // 创建图表
         ChartContent chart = ChartContent.withColors(chartType, width, height, titleColor, labelColor, valueColor, zeroLineColor);
+        chart = chart.displayOptions(
+            context.getBoolean(json, "showLabels", true),
+            context.getBoolean(json, "showValues", true)
+        );
 
         // 设置标题
         if (context.has(json, "title")) {
-            String titleStr = context.getString(json, "title", "");
-            chart = chart.title(Component.literal(titleStr));
+            chart = chart.title(LocalizedTextParser.parse(json, "title", context));
         }
 
         // 解析数据条目
@@ -104,9 +107,11 @@ public class ChartContentParser implements ContentParser {
                 for (var element : entriesArray) {
                     if (element.isJsonObject()) {
                         JsonObject entryObj = element.getAsJsonObject();
-                        String label = context.getString(entryObj, "label", "");
+                        LocalizedText label = LocalizedTextParser.parse(entryObj, "label", context);
                         // 支持字符串格式的 value（可能是数字或变量表达式）
-                        String valueStr = context.getString(entryObj, "value", "0");
+                        String valueStr = context.has(entryObj, "valueExpr")
+                            ? context.getString(entryObj, "valueExpr", "0")
+                            : context.getString(entryObj, "value", "0");
                         int color = context.getColor(entryObj, "color", 0xFFFFFF);
                         chart = chart.addEntry(label, valueStr, color);
                     }

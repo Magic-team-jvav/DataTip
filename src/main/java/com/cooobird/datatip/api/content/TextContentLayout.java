@@ -1,5 +1,6 @@
 package com.cooobird.datatip.api.content;
 
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -19,46 +20,60 @@ final class TextContentLayout {
         if (content.shift && !BaseTextContent.isShowTipDown()) {
             return content.lineHeight;
         }
-        return getHeight(content, Minecraft.getInstance().font, availableWidth);
+        return getHeight(content, new TipLayoutContext(
+            Minecraft.getInstance().font, net.minecraft.world.item.ItemStack.EMPTY, Math.max(0, availableWidth)));
     }
 
     static int getHeight(TextContent content, Font font, int availableWidth) {
-        int effectiveWidth = effectiveWidth(content, availableWidth);
-        FormattedText text = content.formattedText(null);
-        if (text == FormattedText.EMPTY) return 0;
-        if (effectiveWidth <= 0) return content.lineHeight;
+        return getHeight(content, new TipLayoutContext(
+            font, net.minecraft.world.item.ItemStack.EMPTY, Math.max(0, availableWidth)));
+    }
 
-        List<FormattedCharSequence> lines = font.split(text, effectiveWidth);
+    static int getHeight(TextContent content, TipLayoutContext context) {
+        int effectiveWidth = effectiveWidth(content, context);
+        FormattedText text = content.formattedText(context.itemStack());
+        if (text == FormattedText.EMPTY) return 0;
+
+        List<FormattedCharSequence> lines = context.font().split(text, effectiveWidth);
         return Math.max(1, lines.size()) * content.lineHeight;
     }
 
     static boolean hasContent(TextContent content) {
-        return content.formattedText(null) != FormattedText.EMPTY;
+        return content.formattedText((net.minecraft.world.item.ItemStack) null) != FormattedText.EMPTY;
     }
 
     static int getWidth(TextContent content, int availableWidth) {
         if (content.shift && !BaseTextContent.isShowTipDown()) {
             return 0;
         }
-        return getWidth(content, Minecraft.getInstance().font, availableWidth);
+        return getWidth(content, new TipLayoutContext(
+            Minecraft.getInstance().font, net.minecraft.world.item.ItemStack.EMPTY, Math.max(0, availableWidth)));
     }
 
     static int getWidth(TextContent content, Font font, int availableWidth) {
-        int effectiveWidth = effectiveWidth(content, availableWidth);
-        FormattedText text = content.formattedText(null);
-        if (text == FormattedText.EMPTY || effectiveWidth <= 0) return 0;
-        if (content.align == BaseTextContent.TextAlign.CENTER || content.align == BaseTextContent.TextAlign.RIGHT) {
+        return getWidth(content, new TipLayoutContext(
+            font, net.minecraft.world.item.ItemStack.EMPTY, Math.max(0, availableWidth)));
+    }
+
+    static int getWidth(TextContent content, TipLayoutContext context) {
+        int effectiveWidth = effectiveWidth(content, context);
+        FormattedText text = content.formattedText(context.itemStack());
+        if (text == FormattedText.EMPTY) return 0;
+
+        List<FormattedCharSequence> lines = context.font().split(text, effectiveWidth);
+        int measuredWidth = 0;
+        for (FormattedCharSequence line : lines) {
+            measuredWidth = Math.max(measuredWidth, context.font().width(line));
+        }
+        if (content.maxWidth() > 0 && (content.align != BaseTextContent.TextAlign.LEFT || context.font().width(text) > effectiveWidth)) {
             return effectiveWidth;
         }
-        if (content.maxWidth() > 0) return effectiveWidth;
-
-        int textWidth = font.width(text);
-        return Math.min(textWidth, availableWidth);
+        return context.constrainWidth(measuredWidth);
     }
 
     static void render(TextContent content, TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0) return;
-        if (content.formattedText(context) == FormattedText.EMPTY) return;
+        if (content.formattedText(context.itemStack()) == FormattedText.EMPTY) return;
 
         if (content.shift && !BaseTextContent.isShowTipDown()) {
             BaseTextContent.renderShiftHint(context, x, y);
@@ -66,21 +81,21 @@ final class TextContentLayout {
         }
 
         Font font = context.font();
-        int resolvedColor = content.resolveColor(context);
-        if (maxWidth > 0) {
-            renderWrapped(content, context, font, x, y, maxWidth, resolvedColor);
-        } else {
-            renderSingleLine(content, context, font, x, y, maxWidth, resolvedColor);
-        }
+        int resolvedColor = TipRenderContext.applyAlpha(content.resolveColor(context), alpha);
+        int renderWidth = effectiveWidth(content,
+            TipLayoutContext.bounded(font, context.itemStack(), Math.max(1, maxWidth)));
+        renderWrapped(content, context, font, x, y, renderWidth, resolvedColor);
     }
 
-    private static int effectiveWidth(TextContent content, int availableWidth) {
-        int effectiveMaxWidth = (content.maxWidth() > 0) ? content.maxWidth() : availableWidth;
-        return Math.min(effectiveMaxWidth, availableWidth);
+    private static int effectiveWidth(TextContent content, TipLayoutContext context) {
+        if (content.maxWidth() > 0) {
+            return Math.max(1, Math.min(content.maxWidth(), context.availableWidth()));
+        }
+        return Math.max(1, context.availableWidth());
     }
 
     private static void renderWrapped(TextContent content, TipRenderContext context, Font font, int x, int y, int maxWidth, int color) {
-        FormattedText text = content.formattedText(context);
+        FormattedText text = content.formattedText(context.itemStack());
         List<FormattedCharSequence> lines = font.split(text, maxWidth);
 
         for (FormattedCharSequence line : lines) {
@@ -90,13 +105,4 @@ final class TextContentLayout {
         }
     }
 
-    private static void renderSingleLine(TextContent content, TipRenderContext context, Font font, int x, int y, int maxWidth, int color) {
-        FormattedText text = content.formattedText(context);
-        List<FormattedCharSequence> lines = font.split(text, Integer.MAX_VALUE);
-        if (lines.isEmpty()) return;
-
-        FormattedCharSequence visualText = lines.getFirst();
-        int lineX = content.calcLineX(font, visualText, x, maxWidth);
-        context.graphics().drawString(font, visualText, lineX, y, color, content.shadow);
-    }
 }

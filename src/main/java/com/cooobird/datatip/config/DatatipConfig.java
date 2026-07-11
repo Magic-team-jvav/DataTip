@@ -13,9 +13,9 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  * <table border="1">
  *   <tr><th>选项</th><th>类型</th><th>默认值</th><th>说明</th></tr>
  *   <tr><td>enabled</td><td>boolean</td><td>true</td><td>启用/禁用 DataTip</td></tr>
- *   <tr><td>defaultColor</td><td>int</td><td>0xFFAAAAAA</td><td>默认文本颜色（ARGB）</td></tr>
- *   <tr><td>defaultLineHeight</td><td>int</td><td>0</td><td>默认行高（0=使用原版字体行高）</td></tr>
- *   <tr><td>maxWidth</td><td>int</td><td>0</td><td>Tooltip 宽度覆盖值（0=使用原版宽度）</td></tr>
+ *   <tr><td>default_color</td><td>int</td><td>0xFFAAAAAA</td><td>默认文本颜色（ARGB）</td></tr>
+ *   <tr><td>default_line_height</td><td>int</td><td>0</td><td>默认行高（0=使用原版字体行高）</td></tr>
+ *   <tr><td>max_width</td><td>int</td><td>0</td><td>DataTip 内容宽度覆盖值（0=自然宽度）</td></tr>
  * </table>
  *
  * <h3>配置文件示例</h3>
@@ -26,13 +26,13 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  * enabled = true
  *
  * # 默认文本颜色（ARGB 格式）
- * defaultColor = -5592406  # 0xFFAAAAAA
+ * default_color = -5592406  # 0xFFAAAAAA
  *
  * # 默认行高（0=使用原版字体行高）
- * defaultLineHeight = 0
+ * default_line_height = 0
  *
- * # Tooltip 宽度覆盖值（0=使用原版宽度）
- * maxWidth = 0
+ * # Tooltip 宽度覆盖值（0=按内容自然宽度）
+ * max_width = 0  # 0=按内容自然宽度
  * }</pre>
  *
  * @author cooobird
@@ -83,11 +83,11 @@ public class DatatipConfig {
     /**
      * 宽度覆盖值。
      * <p>
-     * Tooltip 的宽度覆盖值（像素）。0 表示使用原版 tooltip 宽度。
+     * Tooltip 的宽度覆盖值（像素）。0 表示按内容自然宽度交给原版定位逻辑处理。
      * </p>
      */
     public static final ModConfigSpec.IntValue MAX_WIDTH = BUILDER
-        .comment("Tooltip width override in pixels. Set to 0 to use vanilla tooltip width.")
+        .comment("Tooltip width override in pixels. Set to 0 to use the content's natural width.")
         .defineInRange("max_width", 0, 0, 10000);
 
     /**

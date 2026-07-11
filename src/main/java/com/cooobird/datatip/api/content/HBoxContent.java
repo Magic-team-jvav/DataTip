@@ -1,6 +1,7 @@
 package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.event.TipRenderEventHandler;
 import net.minecraft.client.Minecraft;
@@ -23,10 +24,10 @@ public record HBoxContent(List<TipContent> children, int gap, int padding,
 
     // 创建水平布局容器
     public HBoxContent(List<TipContent> children, int gap, int padding, VerticalAlign verticalAlign) {
-        this.children = new ArrayList<>(children);
-        this.gap = gap;
-        this.padding = padding;
-        this.verticalAlign = verticalAlign;
+        this.children = new ArrayList<>(List.copyOf(children != null ? children : List.of()));
+        this.gap = ContentBounds.spacing(gap);
+        this.padding = ContentBounds.spacing(padding);
+        this.verticalAlign = verticalAlign != null ? verticalAlign : VerticalAlign.TOP;
     }
 
     // 创建默认水平布局
@@ -56,16 +57,33 @@ public record HBoxContent(List<TipContent> children, int gap, int padding,
 
     @Override
     public void addChild(TipContent child) {
-        children.add(child);
+        children.add(java.util.Objects.requireNonNull(child, "child"));
     }
 
     @Override
     public int getHeight(int maxWidth) {
-        int aw = maxWidth - padding * 2;
+        return getHeight(legacyContext(maxWidth));
+    }
+
+    @Override
+    public int getHeight(TipLayoutContext context) {
+        TipLayoutContext childContext = childContext(context);
+        int availableWidth = context.hasWidthLimit()
+            ? Math.max(0, context.maxWidth() - padding * 2
+            - reservedHintWidth(context.font(), Math.max(0, context.maxWidth() - padding * 2)))
+            : Integer.MAX_VALUE;
+        int[] usedWidth = {0};
         int[] maxH = {0};
         var iter = forEachVisibleContent((child, needsGap) -> {
-            int ch = child.getHeight(aw);
+            if (availableWidth == 0) return;
+            if (needsGap) usedWidth[0] = Math.min(availableWidth, usedWidth[0] + gap);
+            int remainingWidth = Math.max(1, availableWidth - usedWidth[0]);
+            int childWidth = Math.max(1, Math.min(child.getWidth(childContext), remainingWidth));
+            TipLayoutContext slotContext = TipLayoutContext.bounded(
+                context.font(), context.itemStack(), childWidth);
+            int ch = child.getHeight(slotContext);
             if (ch > maxH[0]) maxH[0] = ch;
+            usedWidth[0] = Math.min(availableWidth, usedWidth[0] + childWidth);
         });
         if (iter.hasCollapsed() && maxH[0] == 0) {
             return padding * 2 + HINT_LINE_HEIGHT;
@@ -78,11 +96,16 @@ public record HBoxContent(List<TipContent> children, int gap, int padding,
 
     @Override
     public int getWidth(int maxWidth) {
-        int aw = maxWidth - padding * 2;
+        return getWidth(legacyContext(maxWidth));
+    }
+
+    @Override
+    public int getWidth(TipLayoutContext context) {
+        TipLayoutContext childContext = childContext(context);
         int[] totalW = {padding * 2};
         var iter = forEachVisibleContent((child, needsGap) -> {
             if (needsGap) totalW[0] += gap;
-            totalW[0] += child.getWidth(aw);
+            totalW[0] += child.getWidth(childContext);
         });
         if (iter.hasCollapsed()) {
             Font font = Minecraft.getInstance().font;
@@ -91,7 +114,7 @@ public record HBoxContent(List<TipContent> children, int gap, int padding,
             if (iter.hasNonCollapsed()) totalW[0] += gap;
             totalW[0] += font.width(hint);
         }
-        return Math.min(totalW[0], maxWidth);
+        return context.constrainWidth(totalW[0]);
     }
 
     @Override
@@ -99,30 +122,78 @@ public record HBoxContent(List<TipContent> children, int gap, int padding,
         if (alpha <= 0 || children.isEmpty()) return;
 
         int[] cx = {x + padding};
-        int aw = maxWidth - padding * 2;
-        int ch = getHeight(maxWidth) - padding * 2;
+        int aw = Math.max(1, maxWidth - padding * 2);
+        int childAreaWidth = Math.max(0, aw - reservedHintWidth(context.font(), aw));
+        TipLayoutContext childContext = TipLayoutContext.bounded(
+            context.font(), context.itemStack(), Math.max(1, childAreaWidth));
+        int ch = getHeight(TipLayoutContext.bounded(context.font(), context.itemStack(), maxWidth)) - padding * 2;
         var iter = forEachVisibleContent((child, needsGap) -> {
             if (needsGap) cx[0] += gap;
-            int childH = child.getHeight(aw);
+            int remainingWidth = Math.max(0, x + padding + childAreaWidth - cx[0]);
+            if (remainingWidth == 0) return;
+            int childWidth = Math.min(child.getWidth(childContext), remainingWidth);
+            TipLayoutContext slotContext = TipLayoutContext.bounded(
+                context.font(), context.itemStack(), Math.max(1, childWidth));
+            int childH = child.getHeight(slotContext);
             int cy = switch (verticalAlign) {
                 case TOP -> y + padding;
                 case CENTER -> y + padding + (ch - childH) / 2;
                 case BOTTOM -> y + padding + ch - childH;
             };
-            child.render(context, cx[0], cy, aw, alpha);
-            cx[0] += child.getWidth(aw);
+            child.render(context, cx[0], cy, Math.max(1, childWidth), alpha);
+            cx[0] += childWidth;
         });
         if (iter.hasCollapsed()) {
             int hintY = y + padding;
             if (verticalAlign == VerticalAlign.CENTER) hintY += (ch - HINT_LINE_HEIGHT) / 2;
             else if (verticalAlign == VerticalAlign.BOTTOM) hintY += ch - HINT_LINE_HEIGHT;
             if (iter.hasNonCollapsed()) cx[0] += gap;
-            BaseTextContent.renderShiftHint(context, cx[0], hintY);
+            int remainingWidth = Math.max(0, x + padding + aw - cx[0]);
+            if (remainingWidth > 0) {
+                Component hint = Component.translatable("tooltip.datatip.hold_shift",
+                    TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
+                boolean clipped = ContentBounds.beginHorizontalClip(
+                    context, cx[0], hintY, remainingWidth, HINT_LINE_HEIGHT, context.font().width(hint));
+                try {
+                    BaseTextContent.renderShiftHint(context, cx[0], hintY);
+                } finally {
+                    ContentBounds.endHorizontalClip(context, clipped);
+                }
+            }
         }
     }
 
     // 垂直对齐方式
     public enum VerticalAlign {
         TOP, CENTER, BOTTOM
+    }
+
+    private TipLayoutContext childContext(TipLayoutContext context) {
+        if (!context.hasWidthLimit()) {
+            return TipLayoutContext.unbounded(context.font(), context.itemStack());
+        }
+        return TipLayoutContext.bounded(context.font(), context.itemStack(),
+            Math.max(1, context.maxWidth() - padding * 2));
+    }
+
+    private int reservedHintWidth(Font font, int availableWidth) {
+        if (!anyShiftCollapsed() || availableWidth <= 0) return 0;
+        Component hint = Component.translatable("tooltip.datatip.hold_shift",
+            TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
+        int required = font.width(hint) + (hasVisibleNonCollapsed() ? gap : 0);
+        return Math.min(availableWidth, required);
+    }
+
+    private boolean hasVisibleNonCollapsed() {
+        for (TipContent child : children) {
+            if (child.hasContent() && !child.isShiftCollapsed()) return true;
+        }
+        return false;
+    }
+
+    private static TipLayoutContext legacyContext(int maxWidth) {
+        return maxWidth > 0
+            ? TipLayoutContext.bounded(Minecraft.getInstance().font, net.minecraft.world.item.ItemStack.EMPTY, maxWidth)
+            : TipLayoutContext.unbounded(Minecraft.getInstance().font, net.minecraft.world.item.ItemStack.EMPTY);
     }
 }

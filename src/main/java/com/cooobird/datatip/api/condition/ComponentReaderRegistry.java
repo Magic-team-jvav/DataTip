@@ -1,10 +1,13 @@
 package com.cooobird.datatip.api.condition;
 
+import com.cooobird.datatip.api.util.VariableResolver;
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.Map;
 import java.util.Set;
@@ -17,7 +20,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * </p>
  */
 public final class ComponentReaderRegistry {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final Map<String, ComponentValueReader> READERS = new ConcurrentHashMap<>();
+    private static final Set<String> REPORTED_FAILURES = ConcurrentHashMap.newKeySet();
 
     private ComponentReaderRegistry() {
     }
@@ -27,6 +32,7 @@ public final class ComponentReaderRegistry {
         if (READERS.putIfAbsent(normalizedName, requireReader(reader)) != null) {
             throw new IllegalArgumentException("Component reader already registered: " + normalizedName);
         }
+        invalidateCaches();
     }
 
     public static void register(DataComponentType<?> componentType, ComponentValueReader reader) {
@@ -34,7 +40,10 @@ public final class ComponentReaderRegistry {
     }
 
     public static void registerOrReplace(String componentName, ComponentValueReader reader) {
-        READERS.put(normalizeName(componentName), requireReader(reader));
+        String normalizedName = normalizeName(componentName);
+        READERS.put(normalizedName, requireReader(reader));
+        REPORTED_FAILURES.remove(normalizedName);
+        invalidateCaches();
     }
 
     public static void registerOrReplace(DataComponentType<?> componentType, ComponentValueReader reader) {
@@ -42,7 +51,11 @@ public final class ComponentReaderRegistry {
     }
 
     public static boolean unregister(String componentName) {
-        return READERS.remove(normalizeName(componentName)) != null;
+        String normalizedName = normalizeName(componentName);
+        boolean removed = READERS.remove(normalizedName) != null;
+        REPORTED_FAILURES.remove(normalizedName);
+        if (removed) invalidateCaches();
+        return removed;
     }
 
     public static boolean unregister(DataComponentType<?> componentType) {
@@ -55,12 +68,26 @@ public final class ComponentReaderRegistry {
 
     public static void clear() {
         READERS.clear();
+        REPORTED_FAILURES.clear();
+        invalidateCaches();
     }
 
     @Nullable
     public static String read(ItemStack stack, String componentName) {
-        ComponentValueReader reader = READERS.get(normalizeName(componentName));
-        return reader != null ? reader.read(stack) : null;
+        String normalizedName = normalizeName(componentName);
+        ComponentValueReader reader = READERS.get(normalizedName);
+        if (reader == null) return null;
+        try {
+            String value = reader.read(stack);
+            REPORTED_FAILURES.remove(normalizedName);
+            return value;
+        } catch (RuntimeException e) {
+            if (REPORTED_FAILURES.add(normalizedName)) {
+                LOGGER.warn("Failed to read DataTip component '{}'; repeated failures will be suppressed",
+                    normalizedName, e);
+            }
+            return null;
+        }
     }
 
     public static String normalizeName(String componentName) {
@@ -87,5 +114,10 @@ public final class ComponentReaderRegistry {
             throw new IllegalArgumentException("Component reader must not be null");
         }
         return reader;
+    }
+
+    private static void invalidateCaches() {
+        ConditionChecker.clearCache();
+        VariableResolver.clearCache();
     }
 }

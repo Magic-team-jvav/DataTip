@@ -1,8 +1,9 @@
 package com.cooobird.datatip.api.component;
 
 import com.cooobird.datatip.api.TipContent;
-import com.cooobird.datatip.api.TipEventManager;
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
+import com.cooobird.datatip.config.DatatipConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -23,14 +24,18 @@ import org.joml.Matrix4f;
 public record TipContentTooltipComponent(TipContent content, @Nullable ItemStack itemStack)
     implements TooltipComponent, ClientTooltipComponent {
 
+    public TipContentTooltipComponent {
+        java.util.Objects.requireNonNull(content, "content");
+    }
+
     @Override
     public int getHeight() {
-        return content.getHeight(TipTooltipLayout.availableWidth());
+        return content.getHeight(layoutContext(Minecraft.getInstance().font, normalizedStack()));
     }
 
     @Override
     public int getWidth(Font font) {
-        return content.getWidth(TipTooltipLayout.availableWidth());
+        return content.getWidth(layoutContext(font, normalizedStack()));
     }
 
     @Override
@@ -39,21 +44,30 @@ public record TipContentTooltipComponent(TipContent content, @Nullable ItemStack
 
     @Override
     public void renderImage(Font font, int x, int y, GuiGraphics graphics) {
-        ItemStack stack = itemStack != null ? itemStack : ItemStack.EMPTY;
-
-        TipEventManager.PreRenderEvent preEvent = TipEventManager.firePreRender(stack);
-        if (preEvent.isCanceled()) return;
+        ItemStack renderStack = normalizedStack();
 
         TipRenderContext context = new TipRenderContext(graphics, font,
             Minecraft.getInstance().gui.getGuiTicks(),
             Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true),
-            preEvent.getItemStack());
+            renderStack);
 
         if (content.isAnimated()) {
             content.tick(Minecraft.getInstance().gui.getGuiTicks());
         }
 
-        int maxWidth = TipTooltipLayout.availableWidth();
-        content.render(context, x, y, maxWidth, 1.0f);
+        TipLayoutContext layout = layoutContext(font, renderStack);
+        int contentWidth = Math.max(1, content.getWidth(layout));
+        content.render(context, x, y, contentWidth, 1.0f);
+    }
+
+    private ItemStack normalizedStack() {
+        return itemStack != null ? itemStack : ItemStack.EMPTY;
+    }
+
+    private static TipLayoutContext layoutContext(Font font, ItemStack stack) {
+        int configuredWidth = DatatipConfig.MAX_WIDTH.get();
+        return configuredWidth > 0
+            ? TipLayoutContext.bounded(font, stack, configuredWidth)
+            : TipLayoutContext.unbounded(font, stack);
     }
 }

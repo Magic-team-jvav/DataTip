@@ -4,6 +4,7 @@ import com.cooobird.datatip.api.TipRenderContext;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -40,12 +41,16 @@ final class TypewriterRenderer {
             if (line == null) break;
 
             int lineX = content.calcLineX(font, line.text(), x, maxWidth);
-            context.graphics().drawString(font, Component.literal(line.text()).withStyle(line.style()), lineX, renderY, line.color(), content.shadow);
+            int renderColor = TipRenderContext.applyAlpha(line.color(), alpha);
+            context.graphics().drawString(font, Component.literal(line.text()).withStyle(line.style()),
+                lineX, renderY, renderColor, content.shadow);
             renderY += content.lineHeight;
         }
     }
 
-    private static RenderLine buildLine(TypewriterContent content, TypewriterState state, String sourceText, int lineIndex, int resolvedColor) {
+    @Nullable
+    private static RenderLine buildLine(TypewriterContent content, TypewriterState state, String sourceText,
+                                        int lineIndex, int resolvedColor) {
         if (lineIndex < state.currentLine()) {
             return styledLine(content, sourceText, lineIndex, resolvedColor);
         }
@@ -59,7 +64,7 @@ final class TypewriterRenderer {
         return null;
     }
 
-    private static RenderLine styledLine(TypewriterContent content, String text, int lineIndex, int resolvedColor) {
+    static RenderLine styledLine(TypewriterContent content, String text, int lineIndex, int resolvedColor) {
         int lineColor = resolvedColor;
         boolean lineBold = content.bold;
         boolean lineItalic = content.italic;
@@ -86,6 +91,6 @@ final class TypewriterRenderer {
         return new RenderLine(text, lineColor, style);
     }
 
-    private record RenderLine(String text, int color, Style style) {
+    record RenderLine(String text, int color, Style style) {
     }
 }

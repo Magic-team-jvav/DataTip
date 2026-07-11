@@ -5,6 +5,8 @@ import com.cooobird.datatip.api.content.TextContent;
 import com.cooobird.datatip.api.content.TextContentDefaults;
 import com.google.gson.JsonObject;
 
+import java.util.Map;
+
 /**
  * 文本内容 JSON 写出器。
  */
@@ -14,7 +16,27 @@ final class TipTextJsonWriter {
 
     static void write(JsonObject json, TextContent textContent) {
         json.addProperty("type", "text");
-        if (textContent.text() != null) json.addProperty("text", textContent.text());
+        if (textContent.langStyledText() != null && !textContent.langStyledText().isEmpty()) {
+            JsonObject languages = new JsonObject();
+            for (Map.Entry<String, BaseTextContent.LangStyle> entry : textContent.langStyledText().entrySet()) {
+                BaseTextContent.LangStyle style = entry.getValue();
+                JsonObject value = new JsonObject();
+                value.addProperty("text", style.text());
+                value.addProperty("color", DatagenJsonUtils.colorToHex(style.color()));
+                if (style.bold()) value.addProperty("bold", true);
+                if (style.italic()) value.addProperty("italic", true);
+                if (style.underlined()) value.addProperty("underlined", true);
+                if (style.strikethrough()) value.addProperty("strikethrough", true);
+                languages.add(entry.getKey(), value);
+            }
+            json.add("text", languages);
+        } else if (textContent.langText() != null && !textContent.langText().isEmpty()) {
+            JsonObject languages = new JsonObject();
+            textContent.langText().forEach(languages::addProperty);
+            json.add("text", languages);
+        } else if (textContent.text() != null) {
+            json.addProperty("text", textContent.text());
+        }
         if (textContent.color() != 0xFFFFFF)
             json.addProperty("color", DatagenJsonUtils.colorToHex(textContent.color()));
         if (textContent.font() != null)

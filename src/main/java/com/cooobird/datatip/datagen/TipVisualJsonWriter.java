@@ -2,9 +2,11 @@ package com.cooobird.datatip.datagen;
 
 import com.cooobird.datatip.api.content.BlockContent;
 import com.cooobird.datatip.api.content.EntityContent;
+import com.cooobird.datatip.api.text.LocalizedText;
 import com.google.gson.JsonObject;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 视觉内容 JSON 写出器。
@@ -19,7 +21,7 @@ final class TipVisualJsonWriter {
         json.addProperty("size", entity.size());
         if (entity.rotationSpeed() != 1.0f) json.addProperty("rotationSpeed", entity.rotationSpeed());
         if (!entity.autoRotate()) json.addProperty("autoRotate", false);
-        if (entity.label() != null) json.addProperty("label", entity.label().getString());
+        if (entity.label() != null) LocalizedTextJsonWriter.add(json, "label", entity.label());
         if (entity.offsetX() != 0) json.addProperty("offsetX", entity.offsetX());
         if (entity.offsetY() != 0) json.addProperty("offsetY", entity.offsetY());
     }
@@ -30,7 +32,7 @@ final class TipVisualJsonWriter {
         json.addProperty("size", block.size());
         if (block.rotationSpeed() != 1.0f) json.addProperty("rotationSpeed", block.rotationSpeed());
         if (!block.autoRotate()) json.addProperty("autoRotate", false);
-        if (block.label() != null) json.addProperty("label", block.label().getString());
+        LocalizedTextJsonWriter.add(json, "label", block.label());
         if (block.offsetX() != 0) json.addProperty("offsetX", block.offsetX());
         if (block.offsetY() != 0) json.addProperty("offsetY", block.offsetY());
     }
@@ -40,7 +42,7 @@ final class TipVisualJsonWriter {
         ResourceLocation texturePath,
         int width,
         int height,
-        String label,
+        @Nullable LocalizedText label,
         int x,
         int y
     ) {
@@ -52,7 +54,7 @@ final class TipVisualJsonWriter {
             json.addProperty("width", width);
             json.addProperty("height", height);
         }
-        if (label != null) json.addProperty("label", label);
+        LocalizedTextJsonWriter.add(json, "label", label);
         if (x != 0) json.addProperty("offsetX", x);
         if (y != 0) json.addProperty("offsetY", y);
     }

@@ -6,15 +6,17 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 
 /**
- * 其他模组的 datagen 参照这里的写法，核心就是调 {@link TipContentBuilder}。
- * 默认不生成文件，取消下面注释即可激活示例：
+ * DataTip 客户端资源数据生成入口。
+ * <p>
+ * 示例内容全部通过 {@link TipContentBuilder} 构造，并分别生成完整内容展示与全部条件示例。
+ * </p>
  */
 @EventBusSubscriber(modid = Datatip.MODID)
 public class DatatipDataGen {
     @SubscribeEvent
     static void gatherData(GatherDataEvent event) {
-        // 取消注释来激活示例生成
-        // var output = event.getGenerator().getPackOutput();
-        // event.getGenerator().addProvider(true, new ExampleTooltipProvider(output));
+        var generator = event.getGenerator();
+        var output = generator.getPackOutput();
+        generator.addProvider(event.includeClient(), new ExampleTooltipProvider(output));
     }
 }

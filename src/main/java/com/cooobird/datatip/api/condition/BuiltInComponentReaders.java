@@ -3,8 +3,10 @@ package com.cooobird.datatip.api.condition;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.enchantment.Enchantment;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -46,7 +48,7 @@ final class BuiltInComponentReaders {
             case "lore" -> {
                 var lore = stack.get(DataComponents.LORE);
                 yield lore != null
-                    ? lore.lines().stream().map(Object::toString).collect(Collectors.joining(", "))
+                    ? lore.lines().stream().map(line -> line.getString()).collect(Collectors.joining(", "))
                     : "";
             }
             case "damage" -> String.valueOf(stack.getDamageValue());
@@ -54,7 +56,23 @@ final class BuiltInComponentReaders {
             case "repair_cost" -> String.valueOf(stack.getOrDefault(DataComponents.REPAIR_COST, 0));
             case "enchantments" -> {
                 var enchantments = stack.get(DataComponents.ENCHANTMENTS);
-                yield enchantments != null ? enchantments.toString() : "";
+                yield enchantments != null
+                    ? enchantments.entrySet().stream()
+                    .map(entry -> Enchantment.getFullname(entry.getKey(), entry.getIntValue()).getString())
+                    .collect(Collectors.joining(", "))
+                    : "";
+            }
+            case "unbreakable" -> String.valueOf(stack.has(DataComponents.UNBREAKABLE));
+            case "color" -> {
+                var dyedColor = stack.get(DataComponents.DYED_COLOR);
+                yield dyedColor != null ? String.format(Locale.ROOT, "#%06X", dyedColor.rgb()) : "";
+            }
+            case "trim" -> {
+                var trim = stack.get(DataComponents.TRIM);
+                yield trim != null
+                    ? trim.pattern().value().description().getString() + " / "
+                    + trim.material().value().description().getString()
+                    : "";
             }
             case "custom_data" -> CustomDataPathReader.fullValue(stack);
             default -> null;

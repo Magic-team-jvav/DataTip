@@ -16,6 +16,11 @@ final class TipContentJsonSerializer {
     }
 
     static JsonObject toJson(TipContent content) {
+        if (content instanceof AlignedContent aligned) {
+            JsonObject alignedJson = toJson(aligned.inner());
+            alignedJson.addProperty("align", aligned.align().toString().toLowerCase(java.util.Locale.ROOT));
+            return alignedJson;
+        }
         JsonObject json = new JsonObject();
 
         switch (content) {
@@ -41,9 +46,8 @@ final class TipContentJsonSerializer {
             case CarouselContent carousel -> TipLayoutJsonWriter.writeCarousel(json, carousel);
             case EntityContent entity -> TipVisualJsonWriter.writeEntity(json, entity);
             case BlockContent block -> TipVisualJsonWriter.writeBlock(json, block);
-            case AtlasContent(
-                ResourceLocation texturePath, int width, int height, String label, int x, int y
-            ) -> TipVisualJsonWriter.writeAtlas(json, texturePath, width, height, label, x, y);
+            case AtlasContent atlas -> TipVisualJsonWriter.writeAtlas(
+                json, atlas.texturePath(), atlas.width(), atlas.height(), atlas.labelText(), atlas.offsetX(), atlas.offsetY());
             case ImageContent(
                 ResourceLocation texture, int width, int height, int u, int v, int textureWidth, int textureHeight,
                 float scale, int offsetX, int offsetY

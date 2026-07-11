@@ -73,8 +73,11 @@ final class TipTooltipElements {
     ) {
         int insertIndex = 1;
         for (TipContent content : prependContents) {
-            event.getTooltipElements().add(insertIndex, Either.right(new TipContentTooltipComponent(content, stack)));
-            insertIndex++;
+            TipContentTooltipComponent component = prepareComponent(content, stack);
+            if (component != null) {
+                event.getTooltipElements().add(insertIndex, Either.right(component));
+                insertIndex++;
+            }
         }
     }
 
@@ -84,8 +87,16 @@ final class TipTooltipElements {
         ItemStack stack
     ) {
         for (TipContent content : normalContents) {
-            event.getTooltipElements().add(Either.right(new TipContentTooltipComponent(content, stack)));
+            TipContentTooltipComponent component = prepareComponent(content, stack);
+            if (component != null) event.getTooltipElements().add(Either.right(component));
         }
+    }
+
+    private static TipContentTooltipComponent prepareComponent(TipContent content, ItemStack stack) {
+        TipEventManager.PreRenderEvent event = TipEventManager.firePreRender(stack);
+        if (event.isCanceled()) return null;
+        ItemStack preparedStack = event.getItemStack() != null ? event.getItemStack() : ItemStack.EMPTY;
+        return new TipContentTooltipComponent(content, preparedStack);
     }
 
     static void appendExtraLines(RenderTooltipEvent.GatherComponents event, ItemStack stack) {

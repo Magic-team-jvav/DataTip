@@ -111,13 +111,15 @@ public class ProgressContentParser implements ContentParser {
         boolean showLabel = context.getBoolean(json, "showLabel", false);
         Component customLabel = null;
         if (context.has(json, "label")) {
-            String labelText = context.getString(json, "label", "");
-            customLabel = Component.literal(labelText);
+            customLabel = LocalizedTextParser.parse(json, "label", context);
             showLabel = true;
         }
 
         // 获取动画选项
         boolean animated = context.getBoolean(json, "animated", false);
+        if (style == ProgressContent.ProgressStyle.ANIMATED) {
+            animated = true;
+        }
         int animSpeed = context.getInt(json, "animSpeed", 2);
 
         // 获取标签对齐方式

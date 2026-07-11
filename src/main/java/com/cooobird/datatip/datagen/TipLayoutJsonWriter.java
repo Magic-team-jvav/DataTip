@@ -49,8 +49,7 @@ final class TipLayoutJsonWriter {
     static void writeCarousel(JsonObject json, CarouselContent carousel) {
         json.addProperty("type", "carousel");
         json.addProperty("intervalSeconds", carousel.getIntervalSeconds());
-        if (carousel.getTransition() != CarouselContent.TransitionType.NONE)
-            json.addProperty("transition", carousel.getTransition().toString().toLowerCase());
+        json.addProperty("transition", carousel.getTransition().toString().toLowerCase());
         JsonArray frames = new JsonArray();
         for (TipContent frame : carousel.getFrames()) {
             frames.add(TipContentJsonSerializer.toJson(frame));

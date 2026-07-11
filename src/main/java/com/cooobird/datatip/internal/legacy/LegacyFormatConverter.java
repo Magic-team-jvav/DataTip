@@ -3,8 +3,10 @@ package com.cooobird.datatip.internal.legacy;
 import com.cooobird.datatip.api.TipContent;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.logging.LogUtils;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.Map;
 
@@ -42,6 +44,7 @@ import java.util.Map;
  * @since 1.2.0
  */
 public class LegacyFormatConverter {
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     /**
      * 检测是否为老版本格式。
@@ -72,11 +75,15 @@ public class LegacyFormatConverter {
                 continue;
             }
 
-            TipContent content = convertEntry(key, value);
-            if (content != null) {
-                JsonObject contentJson = convertToJson(content);
-                preserveTopLevelProperties(value, contentJson);
-                result.add(key, contentJson);
+            try {
+                TipContent content = convertEntry(key, value);
+                if (content != null) {
+                    JsonObject contentJson = convertToJson(content);
+                    preserveTopLevelProperties(value, contentJson);
+                    result.add(key, contentJson);
+                }
+            } catch (RuntimeException e) {
+                LOGGER.warn("Skipped invalid legacy DataTip entry '{}'", key, e);
             }
         }
 

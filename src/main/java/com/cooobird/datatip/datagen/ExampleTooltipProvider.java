@@ -1,8 +1,5 @@
 package com.cooobird.datatip.datagen;
 
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
 import net.minecraft.data.PackOutput;
@@ -26,22 +23,17 @@ public class ExampleTooltipProvider implements DataProvider {
 
     @Override
     public CompletableFuture<?> run(CachedOutput cache) {
-        Path path = output.getOutputFolder(PackOutput.Target.RESOURCE_PACK)
-            .resolve("minecraft/datatip/datatip.json");
-
-        JsonObject root = new JsonObject();
-        ExampleTextTooltips.addTo(root);
-        ExampleBasicContentTooltips.addTo(root);
-        ExampleVisualTooltips.addTo(root);
-        ExampleDynamicTooltips.addTo(root);
-        ExampleLayoutTooltips.addTo(root);
-
-        return DataProvider.saveStable(cache,
-            JsonParser.parseString(new GsonBuilder().setPrettyPrinting().create().toJson(root)), path);
+        Path directory = output.getOutputFolder(PackOutput.Target.RESOURCE_PACK)
+            .resolve("minecraft/datatip");
+        CompletableFuture<?> showcase = DataProvider.saveStable(
+            cache, ExampleShowcaseTooltips.create(), directory.resolve("showcase.json"));
+        CompletableFuture<?> conditions = DataProvider.saveStable(
+            cache, ExampleConditionTooltips.create(), directory.resolve("all_conditions.json"));
+        return CompletableFuture.allOf(showcase, conditions);
     }
 
     @Override
     public String getName() {
-        return "Example Tooltips";
+        return "Complete DataTip Examples";
     }
 }

@@ -1,11 +1,9 @@
 package com.cooobird.datatip.internal.loader;
 
-import com.cooobird.datatip.api.ParseContext;
-import com.cooobird.datatip.api.TipContent;
-import com.cooobird.datatip.api.TipContentEntry;
-import com.cooobird.datatip.api.TipContentSource;
+import com.cooobird.datatip.api.*;
 import com.cooobird.datatip.api.condition.ConditionChecker;
 import com.cooobird.datatip.api.util.VariableResolver;
+import com.cooobird.datatip.config.DatatipConfig;
 import com.cooobird.datatip.internal.legacy.LegacyFormatConverter;
 import com.cooobird.datatip.internal.util.ReloadOptimizer;
 import com.google.gson.Gson;
@@ -36,7 +34,7 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener implement
     private final TipContentIndex contentIndex = new TipContentIndex();
     private final TipContentEntryParser entryParser = new TipContentEntryParser();
     private final ReloadOptimizer reloadOptimizer = new ReloadOptimizer();
-    private final Map<ResourceLocation, LoadedDatatipFile> loadedFiles = new HashMap<>();
+    private final Map<ResourceLocation, LoadedDatatipFile> loadedFiles = new TreeMap<>();
 
     public TipContentLoader() {
         super(GSON, "datatip");
@@ -44,7 +42,7 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener implement
 
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> elements, ResourceManager resourceManager, ProfilerFiller profiler) {
-        ReloadOptimizer.ReloadPlan reloadPlan = reloadOptimizer.createPlan(elements);
+        ReloadOptimizer.ReloadPlan reloadPlan = reloadOptimizer.createPlan(elements, parseEnvironmentSignature());
         if (!reloadPlan.requiresReload()) {
             LOGGER.info("Skipped datatip reload: {} unchanged files", reloadPlan.unchangedFiles());
             return;
@@ -61,7 +59,12 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener implement
         for (ReloadOptimizer.ChangedFile changedFile : reloadPlan.changedFiles()) {
             ResourceLocation location = changedFile.location();
             JsonElement element = elements.get(location);
-            loadedFiles.put(location, parseFile(location, element, context));
+            try {
+                loadedFiles.put(location, parseFile(location, element, context));
+            } catch (RuntimeException e) {
+                LOGGER.error("Failed to parse datatip file {}", location, e);
+                loadedFiles.put(location, LoadedDatatipFile.empty());
+            }
         }
 
         rebuildIndex();
@@ -99,21 +102,23 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener implement
                 continue;
             }
 
-            List<ConditionChecker.Condition> conditions = entryParser.parseConditions(itemElement);
-            boolean shift = entryParser.parseBoolean(itemElement, "shift", false);
-            boolean prepend = entryParser.parseBoolean(itemElement, "prepend", false);
+            try {
+                List<ConditionChecker.Condition> conditions = entryParser.parseConditions(itemElement);
+                boolean shift = entryParser.parseBoolean(itemElement, "shift", false);
+                boolean prepend = entryParser.parseBoolean(itemElement, "prepend", false);
 
-            List<TipContent> contents = entryParser.parseItemContent(itemKey, itemElement, context);
-            if (contents.isEmpty()) {
-                continue;
+                List<TipContent> contents = entryParser.parseItemContent(itemKey, itemElement, context);
+                if (contents.isEmpty()) continue;
+
+                List<TipContentEntry> entries = contents.stream()
+                    .map(c -> new TipContentEntry(c, conditions, shift, prepend))
+                    .toList();
+
+                entriesByItemKey.put(itemKey, entries);
+                totalEntries++;
+            } catch (RuntimeException e) {
+                LOGGER.warn("Skipped invalid datatip entry '{}' in {}", itemKey, location, e);
             }
-
-            List<TipContentEntry> entries = contents.stream()
-                .map(c -> new TipContentEntry(c, conditions, shift, prepend))
-                .toList();
-
-            entriesByItemKey.put(itemKey, entries);
-            totalEntries++;
         }
 
         return new LoadedDatatipFile(entriesByItemKey, totalEntries, legacyConverted);
@@ -136,6 +141,10 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener implement
         LOGGER.info("Datatip reload plan: added {}, updated {}, deleted {}, unchanged {}",
             reloadPlan.addedFiles(), reloadPlan.updatedFiles(), reloadPlan.deletedFiles().size(),
             reloadPlan.unchangedFiles());
+
+        if (reloadPlan.environmentChanged()) {
+            LOGGER.info("Reparsed datatip files because parser configuration changed");
+        }
 
         if (context.hasWarnings()) {
             LOGGER.warn("Datatip parse warnings ({}):", context.getWarnings().size());
@@ -178,6 +187,15 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener implement
 
     public Set<String> getExactItemIds() {
         return contentIndex.getExactItemIds();
+    }
+
+    private static String parseEnvironmentSignature() {
+        List<String> parserTypes = new ArrayList<>(TipContentRegistry.getRegisteredTypes());
+        Collections.sort(parserTypes);
+        return "defaultColor=" + DatatipConfig.DEFAULT_COLOR.get()
+            + "|lineHeight=" + DatatipConfig.DEFAULT_LINE_HEIGHT.get()
+            + "|parserRevision=" + TipContentRegistry.getRevision()
+            + "|parsers=" + String.join(",", parserTypes);
     }
 
     private record LoadedDatatipFile(

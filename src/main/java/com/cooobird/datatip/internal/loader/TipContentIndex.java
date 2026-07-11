@@ -3,6 +3,7 @@ package com.cooobird.datatip.internal.loader;
 import com.cooobird.datatip.api.TipContentEntry;
 import com.cooobird.datatip.api.condition.ConditionChecker;
 import com.cooobird.datatip.internal.util.PerformanceOptimizer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.*;
@@ -82,7 +83,19 @@ public final class TipContentIndex {
     }
 
     public static boolean isValidItemKey(String key) {
-        return !key.isEmpty() && key.contains(":");
+        if (key == null || key.isBlank()) return false;
+
+        boolean tag = key.startsWith("#");
+        String rawKey = tag ? key.substring(1) : key;
+        if (rawKey.isEmpty()) return false;
+
+        boolean wildcard = rawKey.indexOf('*') >= 0 || rawKey.indexOf('?') >= 0;
+        if (tag && wildcard) return false;
+
+        String resourceKey = wildcard
+            ? rawKey.replace('*', 'a').replace('?', 'a')
+            : rawKey;
+        return ResourceLocation.tryParse(resourceKey) != null;
     }
 
     private static void addMatchingEntries(

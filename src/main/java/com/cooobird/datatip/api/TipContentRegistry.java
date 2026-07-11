@@ -6,9 +6,12 @@ import com.cooobird.datatip.api.content.VBoxContent;
 import com.google.gson.JsonObject;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 内容类型注册表。
@@ -58,6 +61,7 @@ public class TipContentRegistry {
      * 解析器映射表（类型名称 → 解析器）
      */
     private static final Map<String, ContentParser> parsers = new ConcurrentHashMap<>();
+    private static final AtomicLong REVISION = new AtomicLong();
 
     /**
      * 注册内容解析器。
@@ -67,10 +71,11 @@ public class TipContentRegistry {
      * @throws IllegalArgumentException 如果类型已注册
      */
     public static void registerParser(String type, ContentParser parser) {
-        if (parsers.containsKey(type)) {
-            throw new IllegalArgumentException("Content type already registered: " + type);
+        String normalizedType = normalizeType(type);
+        if (parsers.putIfAbsent(normalizedType, Objects.requireNonNull(parser, "parser")) != null) {
+            throw new IllegalArgumentException("Content type already registered: " + normalizedType);
         }
-        parsers.put(type, parser);
+        REVISION.incrementAndGet();
     }
 
     /**
@@ -80,7 +85,8 @@ public class TipContentRegistry {
      * @param parser 解析器实现
      */
     public static void registerOrReplaceParser(String type, ContentParser parser) {
-        parsers.put(type, parser);
+        parsers.put(normalizeType(type), Objects.requireNonNull(parser, "parser"));
+        REVISION.incrementAndGet();
     }
 
     /**
@@ -91,7 +97,8 @@ public class TipContentRegistry {
      */
     @Nullable
     public static ContentParser getParser(String type) {
-        return parsers.get(type);
+        String normalizedType = normalizeLookupType(type);
+        return normalizedType != null ? parsers.get(normalizedType) : null;
     }
 
     /**
@@ -101,7 +108,8 @@ public class TipContentRegistry {
      * @return true 如果已注册
      */
     public static boolean hasParser(String type) {
-        return parsers.containsKey(type);
+        String normalizedType = normalizeLookupType(type);
+        return normalizedType != null && parsers.containsKey(normalizedType);
     }
 
     /**
@@ -129,7 +137,13 @@ public class TipContentRegistry {
             return null;
         }
 
-        String type = json.get("type").getAsString().toLowerCase();
+        String type;
+        try {
+            type = normalizeType(json.get("type").getAsString());
+        } catch (RuntimeException e) {
+            context.addWarning("Invalid content type: " + e.getMessage());
+            return null;
+        }
         ContentParser parser = parsers.get(type);
 
         if (parser == null) {
@@ -168,13 +182,42 @@ public class TipContentRegistry {
      * @return 类型名称集合
      */
     public static Set<String> getRegisteredTypes() {
-        return parsers.keySet();
+        return Set.copyOf(parsers.keySet());
+    }
+
+    /**
+     * 注销内容解析器。
+     */
+    public static boolean unregisterParser(String type) {
+        String normalizedType = normalizeLookupType(type);
+        boolean removed = normalizedType != null && parsers.remove(normalizedType) != null;
+        if (removed) REVISION.incrementAndGet();
+        return removed;
+    }
+
+    public static long getRevision() {
+        return REVISION.get();
     }
 
     /**
      * 清除所有注册的解析器（用于测试）。
      */
     public static void clear() {
-        parsers.clear();
+        if (!parsers.isEmpty()) {
+            parsers.clear();
+            REVISION.incrementAndGet();
+        }
+    }
+
+    private static String normalizeType(String type) {
+        if (type == null || type.isBlank()) {
+            throw new IllegalArgumentException("Content type must not be blank");
+        }
+        return type.trim().toLowerCase(Locale.ROOT);
+    }
+
+    @Nullable
+    private static String normalizeLookupType(String type) {
+        return type == null || type.isBlank() ? null : type.trim().toLowerCase(Locale.ROOT);
     }
 }

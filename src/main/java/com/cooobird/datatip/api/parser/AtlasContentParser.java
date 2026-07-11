@@ -3,6 +3,7 @@ package com.cooobird.datatip.api.parser;
 import com.cooobird.datatip.api.ContentParser;
 import com.cooobird.datatip.api.ParseContext;
 import com.cooobird.datatip.api.content.AtlasContent;
+import com.cooobird.datatip.api.text.LocalizedText;
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
 
@@ -78,7 +79,9 @@ public class AtlasContentParser implements ContentParser {
         }
 
         // 获取标签
-        String label = context.getStringOrNull(json, "label");
+        LocalizedText label = context.has(json, "label")
+            ? LocalizedTextParser.parse(json, "label", context)
+            : null;
 
         // 获取偏移量
         int offsetX = context.getInt(json, "offsetX", 0);
@@ -96,14 +99,18 @@ public class AtlasContentParser implements ContentParser {
         if (context.has(json, "block")) {
             String blockStr = context.getString(json, "block", "");
             ResourceLocation blockId = ResourceLocation.parse(blockStr);
-            return AtlasContent.fromBlock(blockId, width);
+            ResourceLocation texture = ResourceLocation.fromNamespaceAndPath(
+                blockId.getNamespace(), "textures/block/" + blockId.getPath() + ".png");
+            return new AtlasContent(texture, width, height, label, offsetX, offsetY);
         }
 
         // 3. 从物品 ID 自动转换
         if (context.has(json, "item")) {
             String itemStr = context.getString(json, "item", "");
             ResourceLocation itemId = ResourceLocation.parse(itemStr);
-            return AtlasContent.fromItem(itemId, width);
+            ResourceLocation texture = ResourceLocation.fromNamespaceAndPath(
+                itemId.getNamespace(), "textures/item/" + itemId.getPath() + ".png");
+            return new AtlasContent(texture, width, height, label, offsetX, offsetY);
         }
 
         // 默认返回石头纹理

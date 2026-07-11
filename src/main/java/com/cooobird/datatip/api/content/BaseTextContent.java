@@ -7,7 +7,6 @@ import com.cooobird.datatip.api.util.ColorParser;
 import com.cooobird.datatip.config.DatatipConfig;
 import com.cooobird.datatip.event.TipRenderEventHandler;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
@@ -42,6 +41,11 @@ public abstract class BaseTextContent implements TipContent {
         TextAlign align,
         boolean shift
     ) {
+        public LangStyle {
+            text = text != null ? text : "";
+            align = align != null ? align : TextAlign.LEFT;
+        }
+
         public LangStyle(String text, int color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
             this(text, color, bold, italic, underlined, strikethrough, TextAlign.LEFT, false);
         }
@@ -75,8 +79,8 @@ public abstract class BaseTextContent implements TipContent {
         this.color = color;
         this.colorExpression = colorExpression;
         this.shadow = shadow;
-        this.align = align;
-        this.lineHeight = lineHeight;
+        this.align = align != null ? align : TextAlign.LEFT;
+        this.lineHeight = Math.max(1, Math.min(32, lineHeight));
         this.bold = bold;
         this.italic = italic;
         this.underlined = underlined;
@@ -174,7 +178,7 @@ public abstract class BaseTextContent implements TipContent {
      * 检查 Shift 键是否按下。
      */
     protected static boolean isShowTipDown() {
-        return Screen.hasShiftDown();
+        return TipRenderEventHandler.isShowTipDown();
     }
 
     /**

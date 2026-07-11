@@ -9,6 +9,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
@@ -16,9 +17,9 @@ import java.util.Map;
  * TextContent 的通用样式选项。
  */
 record TextContentStyleOptions(
-    ResourceLocation font,
+    @Nullable ResourceLocation font,
     int color,
-    String colorExpression,
+    @Nullable String colorExpression,
     boolean shadow,
     BaseTextContent.TextAlign align,
     int lineHeight,
@@ -77,16 +78,17 @@ record TextContentStyleOptions(
     }
 
     private TextContent create(
-        String text,
-        Component component,
-        net.minecraft.network.chat.FormattedText formattedText,
-        Map<String, String> langText,
-        Map<String, BaseTextContent.LangStyle> langStyledText
+        @Nullable String text,
+        @Nullable Component component,
+        @Nullable net.minecraft.network.chat.FormattedText formattedText,
+        @Nullable Map<String, String> langText,
+        @Nullable Map<String, BaseTextContent.LangStyle> langStyledText
     ) {
         return new TextContent(text, component, formattedText, langText, langStyledText, font, color, colorExpression,
             shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
     }
 
+    @Nullable
     private static ResourceLocation parseFont(JsonObject json, ParseContext context) {
         if (!context.has(json, "font")) {
             return null;

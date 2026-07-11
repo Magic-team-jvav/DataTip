@@ -32,15 +32,15 @@ public record ProgressContent(
         LEFT, CENTER, RIGHT
     }
 
-    private static int animOffset = 0;
-
     public ProgressContent {
         progress = Float.isFinite(progress) ? progress : 0.0f;
-        width = Math.max(1, width);
-        height = Math.max(1, height);
+        width = ContentBounds.dimension(width);
+        height = ContentBounds.dimension(height);
         style = style != null ? style : ProgressStyle.GRADIENT;
+        if (animated) style = ProgressStyle.ANIMATED;
+        animated = style == ProgressStyle.ANIMATED;
         labelAlign = labelAlign != null ? labelAlign : LabelAlign.LEFT;
-        animSpeed = Math.max(1, animSpeed);
+        animSpeed = ContentBounds.dimension(animSpeed);
     }
 
     public static ProgressContent of(float progress, int width) {
@@ -95,13 +95,6 @@ public record ProgressContent(
     }
 
     @Override
-    public void tick(int tickCount) {
-        if (animated && tickCount % animSpeed == 0) {
-            animOffset = (animOffset + 1) % width;
-        }
-    }
-
-    @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0) return;
 
@@ -139,18 +132,26 @@ public record ProgressContent(
             case ANIMATED -> {
                 context.fill(x, y, x + renderWidth, y + height, colorBg);
                 if (filledWidth > 0) {
-                    for (int i = 0; i < filledWidth; i++) {
-                        int posX = (i + animOffset) % renderWidth;
-                        if (posX < filledWidth) {
-                            context.fill(x + posX, y, x + posX + 1, y + height, colorFg);
-                        }
+                    // 先绘制稳定的实际进度，再让高光在已填充区域内移动，避免动画过程中
+                    // 填充长度变化造成闪烁或误导。
+                    context.fill(x, y, x + filledWidth, y + height, colorFg);
+                    int highlightWidth = Math.min(12, Math.max(2, filledWidth / 4));
+                    int travel = filledWidth + highlightWidth;
+                    int highlightStart = Math.floorMod(context.tickCount() / animSpeed, travel) - highlightWidth;
+                    int clippedStart = Math.max(0, highlightStart);
+                    int clippedEnd = Math.min(filledWidth, highlightStart + highlightWidth);
+                    if (clippedEnd > clippedStart) {
+                        int highlightColor = colorFgLight != null ? colorFgLight : brighten(colorFg);
+                        context.fill(x + clippedStart, y, x + clippedEnd, y + height, highlightColor);
                     }
                 }
             }
         }
 
         if (showLabel) {
-            String labelText = customLabel != null ? customLabel.getString() : (int) (clampedProgress * 100) + "%";
+            Component labelText = customLabel != null
+                ? customLabel
+                : Component.literal((int) (clampedProgress * 100) + "%");
             int labelY = y + height + 2;
             int labelX = switch (labelAlign) {
                 case LEFT -> x;
@@ -165,5 +166,14 @@ public record ProgressContent(
                 context.drawString(labelText, labelX, labelY, 0xFFFFFF);
             }
         }
+    }
+
+    private static int brighten(int color) {
+        int alpha = color >>> 24;
+        if (alpha == 0) alpha = 0xFF;
+        int red = Math.min(255, ((color >>> 16) & 0xFF) + 48);
+        int green = Math.min(255, ((color >>> 8) & 0xFF) + 48);
+        int blue = Math.min(255, (color & 0xFF) + 48);
+        return (alpha << 24) | (red << 16) | (green << 8) | blue;
     }
 }

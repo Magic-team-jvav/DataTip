@@ -19,11 +19,18 @@ public final class ReloadOptimizer {
 
     private final Map<ResourceLocation, String> fileDigests = new HashMap<>();
     private boolean initialized;
+    private String environmentSignature = "";
 
     public ReloadPlan createPlan(Map<ResourceLocation, JsonElement> elements) {
+        return createPlan(elements, "");
+    }
+
+    public ReloadPlan createPlan(Map<ResourceLocation, JsonElement> elements, String newEnvironmentSignature) {
         List<ChangedFile> changedFiles = new ArrayList<>();
         Set<ResourceLocation> currentFiles = elements.keySet();
         int unchangedFiles = 0;
+        String normalizedEnvironment = newEnvironmentSignature != null ? newEnvironmentSignature : "";
+        boolean environmentChanged = initialized && !environmentSignature.equals(normalizedEnvironment);
 
         for (var entry : elements.entrySet()) {
             ResourceLocation location = entry.getKey();
@@ -32,7 +39,7 @@ public final class ReloadOptimizer {
 
             if (oldDigest == null) {
                 changedFiles.add(new ChangedFile(location, ChangeType.ADDED));
-            } else if (!oldDigest.equals(newDigest)) {
+            } else if (environmentChanged || !oldDigest.equals(newDigest)) {
                 changedFiles.add(new ChangedFile(location, ChangeType.UPDATED));
             } else {
                 unchangedFiles++;
@@ -46,7 +53,8 @@ public final class ReloadOptimizer {
             }
         }
 
-        return new ReloadPlan(!initialized, changedFiles, deletedFiles, unchangedFiles, elements.size());
+        return new ReloadPlan(!initialized, environmentChanged, normalizedEnvironment,
+            changedFiles, deletedFiles, unchangedFiles, elements.size());
     }
 
     public void commit(ReloadPlan plan, Map<ResourceLocation, JsonElement> elements) {
@@ -62,6 +70,7 @@ public final class ReloadOptimizer {
         }
 
         initialized = true;
+        environmentSignature = plan.environmentSignature();
     }
 
     private static String contentDigest(JsonElement element) {
@@ -90,12 +99,15 @@ public final class ReloadOptimizer {
 
     public record ReloadPlan(
         boolean firstLoad,
+        boolean environmentChanged,
+        String environmentSignature,
         List<ChangedFile> changedFiles,
         Set<ResourceLocation> deletedFiles,
         int unchangedFiles,
         int totalFiles
     ) {
         public ReloadPlan {
+            environmentSignature = environmentSignature != null ? environmentSignature : "";
             changedFiles = List.copyOf(changedFiles);
             deletedFiles = Set.copyOf(deletedFiles);
         }

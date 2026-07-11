@@ -2,8 +2,10 @@ package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipRenderContext;
+import com.cooobird.datatip.api.text.LocalizedText;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,19 +43,52 @@ public record AtlasContent(
     ResourceLocation texturePath,  // 纹理资源路径
     int width,                     // 渲染宽度
     int height,                    // 渲染高度
-    @Nullable String label,        // 可选的标签文本
+    @Nullable LocalizedText labelText, // 可选的标签文本
     int offsetX,                   // X 轴偏移量
     int offsetY                    // Y 轴偏移量
 ) implements TipContent {
 
+    public AtlasContent {
+        texturePath = java.util.Objects.requireNonNull(texturePath, "texturePath");
+        width = ContentBounds.dimension(width);
+        height = ContentBounds.dimension(height);
+        offsetX = ContentBounds.offset(offsetX);
+        offsetY = ContentBounds.offset(offsetY);
+    }
+
+    public AtlasContent(
+        ResourceLocation texturePath,
+        int width,
+        int height,
+        @Nullable String label,
+        int offsetX,
+        int offsetY
+    ) {
+        this(texturePath, width, height,
+            label != null ? LocalizedText.literal(label) : null, offsetX, offsetY);
+    }
+
+    @Nullable
+    public String label() {
+        return labelText != null ? labelText.getString() : null;
+    }
+
+    /**
+     * 返回当前游戏语言对应的标签组件，并保留其文本样式。
+     */
+    @Nullable
+    public Component labelComponent() {
+        return labelText != null ? labelText.resolve() : null;
+    }
+
     // 创建纹理内容
     public static AtlasContent of(ResourceLocation texturePath, int width, int height) {
-        return new AtlasContent(texturePath, width, height, null, 0, 0);
+        return new AtlasContent(texturePath, width, height, (LocalizedText) null, 0, 0);
     }
 
     // 创建正方形纹理内容
     public static AtlasContent of(ResourceLocation texturePath, int size) {
-        return new AtlasContent(texturePath, size, size, null, 0, 0);
+        return new AtlasContent(texturePath, size, size, (LocalizedText) null, 0, 0);
     }
 
     // 创建带标签的纹理内容
@@ -64,31 +99,33 @@ public record AtlasContent(
     // 从方块 ID 创建，自动转换路径
     public static AtlasContent fromBlock(ResourceLocation blockId, int size) {
         String path = blockId.getNamespace() + ":textures/block/" + blockId.getPath() + ".png";
-        return new AtlasContent(ResourceLocation.parse(path), size, size, null, 0, 0);
+        return new AtlasContent(ResourceLocation.parse(path), size, size, (LocalizedText) null, 0, 0);
     }
 
     // 从物品 ID 创建，自动转换路径
     public static AtlasContent fromItem(ResourceLocation itemId, int size) {
         String path = itemId.getNamespace() + ":textures/item/" + itemId.getPath() + ".png";
-        return new AtlasContent(ResourceLocation.parse(path), size, size, null, 0, 0);
+        return new AtlasContent(ResourceLocation.parse(path), size, size, (LocalizedText) null, 0, 0);
     }
 
     // 创建带偏移的纹理内容
     public static AtlasContent withOffset(ResourceLocation texturePath, int size, int offsetX, int offsetY) {
-        return new AtlasContent(texturePath, size, size, null, offsetX, offsetY);
+        return new AtlasContent(texturePath, size, size, (LocalizedText) null, offsetX, offsetY);
     }
 
     @Override
     public int getHeight(int maxWidth) {
-        return height + (label != null ? 12 : 0);
+        return visualHeight();
     }
 
     @Override
     public int getWidth(int maxWidth) {
-        int spriteWidth = width;
+        int spriteWidth = visualWidth();
+        Component label = labelComponent();
         if (label != null) {
-            Font font = Minecraft.getInstance().font;
-            spriteWidth += 4 + font.width(label);
+            Minecraft minecraft = Minecraft.getInstance();
+            Font font = minecraft != null ? minecraft.font : null;
+            if (font != null) spriteWidth += 4 + font.width(label);
         }
         return Math.min(spriteWidth, maxWidth);
     }
@@ -97,17 +134,31 @@ public record AtlasContent(
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0) return;
 
-        int renderX = x + offsetX;
-        int renderY = y + offsetY;
+        int renderBaseX = x + Math.max(0, -offsetX);
+        int renderBaseY = y + Math.max(0, -offsetY);
+        int renderX = renderBaseX + offsetX;
+        int renderY = renderBaseY + offsetY;
 
-        // 使用 blit 渲染纹理
-        context.blit(texturePath, renderX, renderY, 0, 0, width, height, width, height);
-
-        // 渲染标签
-        if (label != null) {
-            int labelX = renderX + width + 4;
-            int labelY = renderY + (height - 8) / 2;
-            context.drawString(label, labelX, labelY, 0xFFFFFF);
+        boolean clipped = ContentBounds.beginHorizontalClip(
+            context, x, y, maxWidth, visualHeight(), getWidth(Integer.MAX_VALUE));
+        try {
+            context.blit(texturePath, renderX, renderY, 0, 0, width, height, width, height);
+            Component label = labelComponent();
+            if (label != null) {
+                int labelX = x + visualWidth() + 4;
+                int labelY = y + (visualHeight() - 8) / 2;
+                context.drawString(label, labelX, labelY, 0xFFFFFF);
+            }
+        } finally {
+            ContentBounds.endHorizontalClip(context, clipped);
         }
+    }
+
+    private int visualWidth() {
+        return ContentBounds.extent(width, offsetX);
+    }
+
+    private int visualHeight() {
+        return ContentBounds.extent(height, offsetY);
     }
 }

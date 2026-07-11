@@ -10,6 +10,7 @@ import net.minecraft.world.level.Level;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -27,10 +28,6 @@ public class ConditionChecker {
      * 自定义条件注册表。
      */
     private static final Map<String, CustomCondition> CUSTOM_CONDITIONS = new ConcurrentHashMap<>();
-
-    static {
-        BuiltInConditions.registerTo(CUSTOM_CONDITIONS);
-    }
 
     /**
      * 自定义条件接口。
@@ -57,7 +54,18 @@ public class ConditionChecker {
      * @param condition 条件检查实现
      */
     public static void registerCondition(String type, CustomCondition condition) {
-        CUSTOM_CONDITIONS.put(type, condition);
+        String normalizedType = normalizeType(type);
+        CUSTOM_CONDITIONS.put(normalizedType, Objects.requireNonNull(condition, "condition"));
+        clearCache();
+    }
+
+    /**
+     * 注销自定义条件。内置条件不在自定义注册表中，因此不会被此方法移除。
+     */
+    public static boolean unregisterCondition(String type) {
+        boolean removed = CUSTOM_CONDITIONS.remove(normalizeType(type)) != null;
+        if (removed) clearCache();
+        return removed;
     }
 
     /**
@@ -119,5 +127,15 @@ public class ConditionChecker {
      * @param value 条件值
      */
     public record Condition(String type, Object value) {
+        public Condition {
+            type = normalizeType(type);
+        }
+    }
+
+    private static String normalizeType(String type) {
+        if (type == null || type.isBlank()) {
+            throw new IllegalArgumentException("Condition type must not be blank");
+        }
+        return type.trim().toLowerCase(java.util.Locale.ROOT);
     }
 }

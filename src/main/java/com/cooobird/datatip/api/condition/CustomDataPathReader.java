@@ -2,6 +2,7 @@ package com.cooobird.datatip.api.condition;
 
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
@@ -22,13 +23,17 @@ final class CustomDataPathReader {
 
     @Nullable
     static String get(ItemStack stack, String path) {
+        Tag tag = getTag(stack, path);
+        return tag != null ? tag.getAsString() : null;
+    }
+
+    @Nullable
+    private static Tag getTag(ItemStack stack, String path) {
         CustomData customData = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY);
         if (customData.isEmpty()) {
             return null;
         }
-
-        Tag tag = find(customData.copyTag(), path);
-        return tag != null ? tag.getAsString() : null;
+        return find(customData.copyTag(), path);
     }
 
     static String fullValue(ItemStack stack) {
@@ -42,7 +47,7 @@ final class CustomDataPathReader {
         }
 
         for (Map.Entry<String, Object> entry : conditions.entrySet()) {
-            String actual = get(stack, entry.getKey());
+            Tag actual = getTag(stack, entry.getKey());
             if (!matchesValue(actual, entry.getValue())) {
                 return false;
             }
@@ -53,6 +58,9 @@ final class CustomDataPathReader {
 
     @Nullable
     private static Tag find(CompoundTag root, String path) {
+        if (path == null || path.isBlank()) {
+            return null;
+        }
         String[] parts = path.split("\\.");
         CompoundTag current = root;
 
@@ -75,10 +83,16 @@ final class CustomDataPathReader {
         return null;
     }
 
-    private static boolean matchesValue(@Nullable String actual, Object expected) {
+    private static boolean matchesValue(@Nullable Tag actual, Object expected) {
         if (actual == null) {
             return expected == null;
         }
-        return actual.equals(String.valueOf(expected));
+        if (expected instanceof Boolean bool && actual instanceof NumericTag numeric) {
+            return (numeric.getAsDouble() != 0) == bool;
+        }
+        if (expected instanceof Number number && actual instanceof NumericTag numeric) {
+            return Double.compare(numeric.getAsDouble(), number.doubleValue()) == 0;
+        }
+        return actual.getAsString().equals(String.valueOf(expected));
     }
 }

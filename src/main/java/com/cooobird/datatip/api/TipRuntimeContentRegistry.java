@@ -4,10 +4,7 @@ import com.cooobird.datatip.api.condition.ConditionChecker;
 import com.cooobird.datatip.internal.loader.TipContentIndex;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 运行时 Tooltip 内容注册表。
@@ -29,9 +26,13 @@ public final class TipRuntimeContentRegistry {
     }
 
     public static synchronized void register(String itemKey, List<TipContent> contents) {
-        for (TipContent content : contents) {
-            register(itemKey, content);
-        }
+        validateItemKey(itemKey);
+        Objects.requireNonNull(contents, "contents");
+        List<TipContentEntry> entries = contents.stream()
+            .map(TipContentEntry::of)
+            .toList();
+        REGISTERED_BY_KEY.computeIfAbsent(itemKey, key -> new ArrayList<>()).addAll(entries);
+        CONTENT_INDEX.add(itemKey, entries);
     }
 
     public static synchronized void register(
@@ -46,6 +47,7 @@ public final class TipRuntimeContentRegistry {
 
     public static synchronized void register(String itemKey, TipContentEntry entry) {
         validateItemKey(itemKey);
+        Objects.requireNonNull(entry, "entry");
         REGISTERED_BY_KEY.computeIfAbsent(itemKey, key -> new ArrayList<>()).add(entry);
         CONTENT_INDEX.add(itemKey, List.of(entry));
     }
@@ -90,6 +92,7 @@ public final class TipRuntimeContentRegistry {
     }
 
     private static boolean belongsToNamespace(String itemKey, String namespace) {
+        if (namespace == null || namespace.isBlank()) return false;
         String rawKey = itemKey.startsWith("#") ? itemKey.substring(1) : itemKey;
         int separator = rawKey.indexOf(':');
         return separator > 0 && rawKey.substring(0, separator).equals(namespace);

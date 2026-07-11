@@ -72,7 +72,7 @@ final class BuiltInEnvironmentConditions {
                 case "night" -> time >= 12000;
                 case "noon" -> time >= 5500 && time <= 6500;
                 case "midnight" -> time >= 17500 || time <= 500;
-                default -> true;
+                default -> false;
             };
         }
         return false;
@@ -84,7 +84,7 @@ final class BuiltInEnvironmentConditions {
             case "clear" -> !level.isRaining() && !level.isThundering();
             case "rain" -> level.isRaining();
             case "thunder" -> level.isThundering();
-            default -> true;
+            default -> false;
         };
     }
 
@@ -97,7 +97,7 @@ final class BuiltInEnvironmentConditions {
                 case "dim" -> light < 8;
                 case "bright" -> light >= 8;
                 case "full" -> light >= 12;
-                default -> true;
+                default -> false;
             };
         }
         return false;
