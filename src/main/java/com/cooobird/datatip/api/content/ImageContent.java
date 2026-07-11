@@ -20,6 +20,17 @@ public record ImageContent(
     int offsetY                // Y 轴偏移量
 ) implements TipContent {
 
+    public ImageContent {
+        texture = java.util.Objects.requireNonNull(texture, "texture");
+        width = ContentBounds.dimension(width);
+        height = ContentBounds.dimension(height);
+        textureWidth = ContentBounds.dimension(textureWidth);
+        textureHeight = ContentBounds.dimension(textureHeight);
+        scale = Float.isFinite(scale) && scale > 0 ? scale : 1.0f;
+        offsetX = ContentBounds.offset(offsetX);
+        offsetY = ContentBounds.offset(offsetY);
+    }
+
     // 创建图片内容
     public static ImageContent of(ResourceLocation texture, int width, int height) {
         return new ImageContent(texture, width, height, 0, 0, width, height, 1.0f, 0, 0);
@@ -42,25 +53,43 @@ public record ImageContent(
 
     @Override
     public int getHeight(int maxWidth) {
-        return (int) (height * scale);
+        return ContentBounds.extent(renderHeight(), offsetY);
     }
 
     @Override
     public int getWidth(int maxWidth) {
-        return Math.min((int) (width * scale), maxWidth);
+        return Math.min(ContentBounds.extent(renderWidth(), offsetX), maxWidth);
     }
 
     @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0) return;
 
-        int renderWidth = (int) (width * scale);
-        int renderHeight = (int) (height * scale);
+        int renderWidth = renderWidth();
+        int renderHeight = renderHeight();
 
-        int renderX = x + offsetX;
-        int renderY = y + offsetY;
+        int renderBaseX = x + Math.max(0, -offsetX);
+        int renderBaseY = y + Math.max(0, -offsetY);
+        int renderX = renderBaseX + offsetX;
+        int renderY = renderBaseY + offsetY;
 
-        // 渲染纹理
-        context.blit(texture, renderX, renderY, u, v, renderWidth, renderHeight, textureWidth, textureHeight);
+        boolean clipped = ContentBounds.beginHorizontalClip(
+            context, x, y, maxWidth, getHeight(maxWidth), ContentBounds.extent(renderWidth, offsetX));
+        try {
+            // 目标区域使用缩放后的尺寸，源纹理采样区域保持 JSON 声明的原始尺寸。
+            // 如果把 renderWidth/renderHeight 同时用于源区域，scale > 1 时会越界采样并重复纹理。
+            context.blit(texture, renderX, renderY, renderWidth, renderHeight,
+                u, v, width, height, textureWidth, textureHeight);
+        } finally {
+            ContentBounds.endHorizontalClip(context, clipped);
+        }
+    }
+
+    private int renderWidth() {
+        return ContentBounds.scaledDimension(width, scale);
+    }
+
+    private int renderHeight() {
+        return ContentBounds.scaledDimension(height, scale);
     }
 }

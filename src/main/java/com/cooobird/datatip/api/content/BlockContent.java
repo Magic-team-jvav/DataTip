@@ -10,6 +10,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -30,19 +31,20 @@ public class BlockContent implements TipContent {
     private final int offsetX;               // X 轴偏移量
     private final int offsetY;               // Y 轴偏移量
 
-    // 实例级别的旋转状态
     private float currentRotation = 0;
     private int lastTick = -1;
+    private final ItemStack renderStack;
 
     public BlockContent(Block block, int size, float rotationSpeed,
                         boolean autoRotate, @Nullable Component label, int offsetX, int offsetY) {
-        this.block = block;
-        this.size = size;
-        this.rotationSpeed = rotationSpeed;
+        this.block = java.util.Objects.requireNonNull(block, "block");
+        this.size = ContentBounds.dimension(size);
+        this.rotationSpeed = Float.isFinite(rotationSpeed) ? Mth.clamp(rotationSpeed, -360.0f, 360.0f) : 0.0f;
         this.autoRotate = autoRotate;
         this.label = label;
-        this.offsetX = offsetX;
-        this.offsetY = offsetY;
+        this.offsetX = ContentBounds.offset(offsetX);
+        this.offsetY = ContentBounds.offset(offsetY);
+        this.renderStack = new ItemStack(block);
     }
 
     // Getter 方法
@@ -97,15 +99,15 @@ public class BlockContent implements TipContent {
 
     @Override
     public int getHeight(int maxWidth) {
-        return size + (label != null ? 12 : 0);
+        return visualHeight();
     }
 
     @Override
     public int getWidth(int maxWidth) {
-        int width = size;
+        int width = visualWidth();
         if (label != null) {
             Font font = Minecraft.getInstance().font;
-            width += 4 + font.width(label.getString());
+            width += 4 + font.width(label);
         }
         return Math.min(width, maxWidth);
     }
@@ -119,10 +121,7 @@ public class BlockContent implements TipContent {
     public void tick(int tickCount) {
         if (autoRotate && tickCount != lastTick) {
             lastTick = tickCount;
-            currentRotation += rotationSpeed;
-            if (currentRotation >= 360) {
-                currentRotation -= 360;
-            }
+            currentRotation = Mth.wrapDegrees(currentRotation + rotationSpeed);
         }
     }
 
@@ -131,59 +130,65 @@ public class BlockContent implements TipContent {
         if (alpha <= 0) return;
 
         // 应用偏移
-        int renderX = x + offsetX;
-        int renderY = y + offsetY;
+        int renderBaseX = x + Math.max(0, -offsetX);
+        int renderBaseY = y + Math.max(0, -offsetY);
+        int renderX = renderBaseX + offsetX;
+        int renderY = renderBaseY + offsetY;
 
         // 使用 partialTick 进行插值，让旋转更平滑
-        float smoothRotation = currentRotation;
-        if (autoRotate) {
-            smoothRotation += rotationSpeed * context.partialTick();
-        }
+        float smoothRotation = autoRotate
+            ? Mth.wrapDegrees(currentRotation + rotationSpeed * context.partialTick())
+            : currentRotation;
 
-        // 创建物品栈用于渲染
-        ItemStack stack = new ItemStack(block);
-        renderBlockAsItem(context.graphics(), stack, renderX + size / 2, renderY + size / 2, size, smoothRotation);
-
-        // 渲染标签
-        if (label != null) {
-            int labelX = x + size + 4;
-            int labelY = renderY + (size - 8) / 2;
-            context.drawString(label, labelX, labelY, 0xFFFFFF);
+        boolean clipped = ContentBounds.beginHorizontalClip(
+            context, x, y, maxWidth, visualHeight(), getWidth(Integer.MAX_VALUE));
+        try {
+            renderBlockAsItem(context.graphics(), renderStack,
+                renderX + size / 2, renderY + size / 2, size, smoothRotation);
+            if (label != null) {
+                int labelX = x + visualWidth() + 4;
+                int labelY = y + (visualHeight() - 8) / 2;
+                context.drawString(label, labelX, labelY, 0xFFFFFF);
+            }
+        } finally {
+            ContentBounds.endHorizontalClip(context, clipped);
         }
+    }
+
+    private int visualWidth() {
+        return ContentBounds.extent(size, offsetX);
+    }
+
+    private int visualHeight() {
+        return ContentBounds.extent(size, offsetY);
     }
 
     // 使用物品渲染方式渲染方块
     private static void renderBlockAsItem(GuiGraphics graphics, ItemStack stack, int x, int y, int size, float rotation) {
+        // 原版 Tooltip 文字仍可能位于共享缓冲区中，先在默认光照状态下提交。
+        graphics.flush();
         PoseStack poseStack = graphics.pose();
         poseStack.pushPose();
+        try {
+            poseStack.translate(x, y, 100);
+            poseStack.scale((float) size, -(float) size, (float) size);
+            poseStack.mulPose(Axis.YP.rotationDegrees(45 + rotation));
+            poseStack.mulPose(Axis.XP.rotationDegrees(-35));
+            Lighting.setupForFlatItems();
 
-        // 移动到指定位置
-        poseStack.translate(x, y, 100);
-
-        // 根据 size 自动缩放
-        poseStack.scale((float) size, -(float) size, (float) size);
-
-        poseStack.mulPose(Axis.YP.rotationDegrees(45 + rotation));
-        poseStack.mulPose(Axis.XP.rotationDegrees(-35));
-
-        // 设置平面光照
-        Lighting.setupForFlatItems();
-
-        // 使用物品渲染器渲染
-        Minecraft mc = Minecraft.getInstance();
-        mc.getItemRenderer().renderStatic(stack,
-            ItemDisplayContext.GUI,
-            15728880,
-            OverlayTexture.NO_OVERLAY,
-            poseStack,
-            graphics.bufferSource(),
-            mc.level,
-            0);
-        graphics.bufferSource().endBatch();
-
-        // 恢复光照设置
-        Lighting.setupFor3DItems();
-
-        poseStack.popPose();
+            Minecraft mc = Minecraft.getInstance();
+            mc.getItemRenderer().renderStatic(stack,
+                ItemDisplayContext.GUI,
+                15728880,
+                OverlayTexture.NO_OVERLAY,
+                poseStack,
+                graphics.bufferSource(),
+                mc.level,
+                0);
+            graphics.bufferSource().endBatch();
+        } finally {
+            Lighting.setupFor3DItems();
+            poseStack.popPose();
+        }
     }
 }

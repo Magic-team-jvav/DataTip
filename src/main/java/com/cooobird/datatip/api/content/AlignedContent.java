@@ -1,6 +1,7 @@
 package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
 
 /**
@@ -33,8 +34,18 @@ public record AlignedContent(
     }
 
     @Override
+    public int getHeight(TipLayoutContext context) {
+        return inner.getHeight(context);
+    }
+
+    @Override
     public int getWidth(int maxWidth) {
         return inner.getWidth(maxWidth);
+    }
+
+    @Override
+    public int getWidth(TipLayoutContext context) {
+        return inner.getWidth(context);
     }
 
     @Override
@@ -42,7 +53,8 @@ public record AlignedContent(
         if (alpha <= 0) return;
 
         // 获取内容实际宽度
-        int contentWidth = inner.getWidth(maxWidth);
+        TipLayoutContext layout = TipLayoutContext.bounded(context.font(), context.itemStack(), Math.max(1, maxWidth));
+        int contentWidth = inner.getWidth(layout);
 
         // 根据对齐方式计算 X 坐标
         int alignedX = switch (align) {
@@ -52,7 +64,7 @@ public record AlignedContent(
         };
 
         // 渲染内容
-        inner.render(context, alignedX, y, maxWidth, alpha);
+        inner.render(context, alignedX, y, Math.max(1, contentWidth), alpha);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.event.TipRenderEventHandler;
 import net.minecraft.client.Minecraft;
@@ -18,10 +19,10 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
                           HorizontalAlign horizontalAlign) implements ContainerContent {
 
     public VBoxContent(List<TipContent> children, int gap, int padding, HorizontalAlign horizontalAlign) {
-        this.children = new ArrayList<>(children);
-        this.gap = gap;
-        this.padding = padding;
-        this.horizontalAlign = horizontalAlign;
+        this.children = new ArrayList<>(List.copyOf(children != null ? children : List.of()));
+        this.gap = ContentBounds.spacing(gap);
+        this.padding = ContentBounds.spacing(padding);
+        this.horizontalAlign = horizontalAlign != null ? horizontalAlign : HorizontalAlign.LEFT;
     }
 
     // 创建默认垂直布局
@@ -51,16 +52,21 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
 
     @Override
     public void addChild(TipContent child) {
-        children.add(child);
+        children.add(java.util.Objects.requireNonNull(child, "child"));
     }
 
     @Override
     public int getHeight(int maxWidth) {
+        return getHeight(legacyContext(maxWidth));
+    }
+
+    @Override
+    public int getHeight(TipLayoutContext context) {
         int[] totalHeight = {padding * 2};
-        int aw = maxWidth - padding * 2;
+        TipLayoutContext childContext = childContext(context);
         var iter = forEachVisibleContent((child, needsGap) -> {
             if (needsGap) totalHeight[0] += gap;
-            totalHeight[0] += child.getHeight(aw);
+            totalHeight[0] += child.getHeight(childContext);
         });
         if (iter.hasCollapsed()) {
             if (iter.hasNonCollapsed()) totalHeight[0] += gap;
@@ -71,10 +77,15 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
 
     @Override
     public int getWidth(int maxWidth) {
-        int aw = maxWidth - padding * 2;
+        return getWidth(legacyContext(maxWidth));
+    }
+
+    @Override
+    public int getWidth(TipLayoutContext context) {
+        TipLayoutContext childContext = childContext(context);
         int[] maxW = {0};
         var iter = forEachVisibleContent((child, needsGap) -> {
-            int cw = child.getWidth(aw);
+            int cw = child.getWidth(childContext);
             if (cw > maxW[0]) maxW[0] = cw;
         });
         if (iter.hasCollapsed()) {
@@ -84,7 +95,7 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
             int hintWidth = font.width(hint);
             if (hintWidth > maxW[0]) maxW[0] = hintWidth;
         }
-        return maxW[0] + padding * 2;
+        return context.constrainWidth(maxW[0] + padding * 2);
     }
 
     @Override
@@ -92,17 +103,18 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
         if (alpha <= 0 || children.isEmpty()) return;
 
         int[] cy = {y + padding};
-        int aw = maxWidth - padding * 2;
+        int aw = Math.max(1, maxWidth - padding * 2);
+        TipLayoutContext childContext = TipLayoutContext.bounded(context.font(), context.itemStack(), aw);
         var iter = forEachVisibleContent((child, needsGap) -> {
             if (needsGap) cy[0] += gap;
-            int cw = child.getWidth(aw);
+            int cw = child.getWidth(childContext);
             int cx = switch (horizontalAlign) {
                 case LEFT -> x + padding;
                 case CENTER -> x + padding + (aw - cw) / 2;
                 case RIGHT -> x + padding + aw - cw;
             };
             child.render(context, cx, cy[0], aw, alpha);
-            cy[0] += child.getHeight(aw);
+            cy[0] += child.getHeight(childContext);
         });
         if (iter.hasCollapsed()) {
             if (iter.hasNonCollapsed()) cy[0] += gap;
@@ -113,5 +125,19 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
     // 水平对齐方式
     public enum HorizontalAlign {
         LEFT, CENTER, RIGHT
+    }
+
+    private TipLayoutContext childContext(TipLayoutContext context) {
+        if (!context.hasWidthLimit()) {
+            return TipLayoutContext.unbounded(context.font(), context.itemStack());
+        }
+        return TipLayoutContext.bounded(context.font(), context.itemStack(),
+            Math.max(1, context.maxWidth() - padding * 2));
+    }
+
+    private static TipLayoutContext legacyContext(int maxWidth) {
+        return maxWidth > 0
+            ? TipLayoutContext.bounded(Minecraft.getInstance().font, net.minecraft.world.item.ItemStack.EMPTY, maxWidth)
+            : TipLayoutContext.unbounded(Minecraft.getInstance().font, net.minecraft.world.item.ItemStack.EMPTY);
     }
 }

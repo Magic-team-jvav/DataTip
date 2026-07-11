@@ -6,6 +6,9 @@ import com.cooobird.datatip.api.content.CarouselContent;
 import com.cooobird.datatip.api.content.HBoxContent;
 import com.cooobird.datatip.api.content.VBoxContent;
 
+import java.util.Arrays;
+import java.util.Locale;
+
 /**
  * 布局类 TipContent 创建工具。
  */
@@ -29,6 +32,10 @@ final class TipLayoutContentFactory {
         return vbox;
     }
 
+    static VBoxContent vbox(int gap, int padding, String align, TipContent... children) {
+        return new VBoxContent(Arrays.asList(children), gap, padding, parseHorizontalAlign(align));
+    }
+
     static HBoxContent hbox(TipContent... children) {
         HBoxContent hbox = HBoxContent.create();
         for (TipContent child : children) {
@@ -45,12 +52,44 @@ final class TipLayoutContentFactory {
         return hbox;
     }
 
+    static HBoxContent hbox(int gap, int padding, String align, TipContent... children) {
+        return new HBoxContent(Arrays.asList(children), gap, padding, parseVerticalAlign(align));
+    }
+
     static CarouselContent carousel(int intervalSeconds, TipContent... frames) {
         CarouselContent carousel = CarouselContent.withInterval(intervalSeconds);
         for (TipContent frame : frames) {
             carousel.addFrame(frame);
         }
         return carousel;
+    }
+
+    static CarouselContent carousel(int intervalSeconds, String transition, TipContent... frames) {
+        return new CarouselContent(Arrays.asList(frames), intervalSeconds, parseTransition(transition));
+    }
+
+    private static VBoxContent.HorizontalAlign parseHorizontalAlign(String align) {
+        try {
+            return VBoxContent.HorizontalAlign.valueOf(align.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException | NullPointerException ignored) {
+            return VBoxContent.HorizontalAlign.LEFT;
+        }
+    }
+
+    private static HBoxContent.VerticalAlign parseVerticalAlign(String align) {
+        try {
+            return HBoxContent.VerticalAlign.valueOf(align.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException | NullPointerException ignored) {
+            return HBoxContent.VerticalAlign.TOP;
+        }
+    }
+
+    private static CarouselContent.TransitionType parseTransition(String transition) {
+        try {
+            return CarouselContent.TransitionType.valueOf(transition.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException | NullPointerException ignored) {
+            return CarouselContent.TransitionType.FADE;
+        }
     }
 
     static AlignedContent aligned(TipContent content, VBoxContent.HorizontalAlign align) {

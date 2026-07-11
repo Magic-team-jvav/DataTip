@@ -18,8 +18,10 @@ final class TypewriterTextSource {
             return styledTextLines(content);
         }
         if (content.langLines != null && !content.langLines.isEmpty()) {
-            String lang = Minecraft.getInstance().getLanguageManager().getSelected();
+            String lang = currentLanguage();
             List<String> langLinesList = content.langLines.get(lang);
+            if (langLinesList == null) langLinesList = content.langLines.get("en_us");
+            if (langLinesList == null) langLinesList = firstNonNull(content.langLines.values());
             return langLinesList != null ? langLinesList : List.of();
         }
         return content.lines;
@@ -31,25 +33,42 @@ final class TypewriterTextSource {
             return null;
         }
 
-        String lang = Minecraft.getInstance().getLanguageManager().getSelected();
+        String lang = currentLanguage();
         List<BaseTextContent.LangStyle> styledLines = content.langStyledLines.get(lang);
-        if (styledLines != null && lineIndex < styledLines.size()) {
+        if (styledLines == null) styledLines = content.langStyledLines.get("en_us");
+        if (styledLines == null) styledLines = firstNonNull(content.langStyledLines.values());
+        if (styledLines != null && lineIndex >= 0 && lineIndex < styledLines.size()) {
             return styledLines.get(lineIndex);
         }
         return null;
     }
 
     private static List<String> styledTextLines(TypewriterContent content) {
-        String lang = Minecraft.getInstance().getLanguageManager().getSelected();
+        String lang = currentLanguage();
         List<BaseTextContent.LangStyle> styledLines = content.langStyledLines.get(lang);
-        if (styledLines == null) {
-            return List.of();
-        }
+        if (styledLines == null) styledLines = content.langStyledLines.get("en_us");
+        if (styledLines == null) styledLines = firstNonNull(content.langStyledLines.values());
+        if (styledLines == null) return List.of();
 
         List<String> result = new ArrayList<>();
         for (BaseTextContent.LangStyle line : styledLines) {
             result.add(line.text());
         }
         return result;
+    }
+
+    private static String currentLanguage() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft == null || minecraft.getLanguageManager() == null) return "en_us";
+        String selected = minecraft.getLanguageManager().getSelected();
+        return selected != null && !selected.isBlank() ? selected : "en_us";
+    }
+
+    @Nullable
+    private static <T> T firstNonNull(Iterable<T> values) {
+        for (T value : values) {
+            if (value != null) return value;
+        }
+        return null;
     }
 }

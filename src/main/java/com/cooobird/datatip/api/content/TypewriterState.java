@@ -10,45 +10,61 @@ final class TypewriterState {
     private int currentChar;
     private int tickCount;
     private int pauseCounter;
+    private double charAccumulator;
     private boolean completed;
     private boolean wasShiftDown;
-    private int lastTickPc;
+    private int lastGameTick = Integer.MIN_VALUE;
 
     void tick(TypewriterContent content, int tickPc) {
         boolean shiftDown = BaseTextContent.isShowTipDown();
 
         if (content.shift && shiftDown && !wasShiftDown && content.loop) {
-            reset();
+            resetAnimation();
         }
         wasShiftDown = shiftDown;
 
         if (content.shift && !shiftDown) return;
 
-        if (completed && content.loop && tickPc - lastTickPc > 2) {
-            reset();
+        if (tickPc == lastGameTick) return;
+
+        boolean resumedAfterGap = lastGameTick != Integer.MIN_VALUE && tickPc - lastGameTick > 2;
+        if (completed && content.loop && resumedAfterGap) {
+            resetAnimation();
         }
-        lastTickPc = tickPc;
+
+        int elapsedTicks = lastGameTick == Integer.MIN_VALUE || resumedAfterGap
+            ? 1
+            : Math.max(1, tickPc - lastGameTick);
+        lastGameTick = tickPc;
 
         List<String> currentLines = TypewriterTextSource.currentLines(content);
         if (currentLines.isEmpty() || completed) return;
 
-        tickCount++;
+        tickCount += elapsedTicks;
         if (pauseCounter > 0) {
-            pauseCounter--;
-            return;
+            pauseCounter = Math.max(0, pauseCounter - elapsedTicks);
+            if (pauseCounter > 0) return;
         }
 
-        int ticksPerChar = Math.max(1, 20 / content.charsPerSecond);
-        if (tickCount % ticksPerChar == 0) {
+        charAccumulator += content.charsPerSecond * elapsedTicks / 20.0;
+        int charsToAdvance = (int) charAccumulator;
+        charAccumulator -= charsToAdvance;
+        while (charsToAdvance-- > 0 && !completed && pauseCounter == 0) {
             advance(currentLines, content.pauseSeconds);
         }
     }
 
     void reset() {
+        resetAnimation();
+        lastGameTick = Integer.MIN_VALUE;
+    }
+
+    private void resetAnimation() {
         currentLine = 0;
         currentChar = 0;
         tickCount = 0;
         pauseCounter = 0;
+        charAccumulator = 0;
         completed = false;
     }
 
@@ -75,7 +91,7 @@ final class TypewriterState {
 
         String currentLineText = currentLines.get(currentLine);
         if (currentChar < currentLineText.length()) {
-            currentChar++;
+            currentChar = currentLineText.offsetByCodePoints(currentChar, 1);
             return;
         }
 

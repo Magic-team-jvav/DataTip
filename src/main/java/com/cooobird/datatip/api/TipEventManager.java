@@ -1,8 +1,12 @@
 package com.cooobird.datatip.api;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.world.item.ItemStack;
+import org.slf4j.Logger;
 
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
@@ -16,29 +20,43 @@ import java.util.function.Consumer;
  * @since 1.2.0
  */
 public class TipEventManager {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final List<Consumer<PreRenderEvent>> PRE_RENDER_LISTENERS = new CopyOnWriteArrayList<>();
     private static final List<Consumer<VariableResolveEvent>> VARIABLE_RESOLVE_LISTENERS = new CopyOnWriteArrayList<>();
     private static final List<Consumer<AppendLinesEvent>> APPEND_LINES_LISTENERS = new CopyOnWriteArrayList<>();
+    private static final Set<String> REPORTED_LISTENER_FAILURES = ConcurrentHashMap.newKeySet();
 
     /**
      * 注册自定义内容渲染前事件。
      */
     public static void onPreRender(Consumer<PreRenderEvent> listener) {
-        PRE_RENDER_LISTENERS.add(listener);
+        PRE_RENDER_LISTENERS.add(java.util.Objects.requireNonNull(listener, "listener"));
     }
 
     /**
      * 注册变量解析事件。
      */
     public static void onResolveVariable(Consumer<VariableResolveEvent> listener) {
-        VARIABLE_RESOLVE_LISTENERS.add(listener);
+        VARIABLE_RESOLVE_LISTENERS.add(java.util.Objects.requireNonNull(listener, "listener"));
     }
 
     /**
      * 注册 tooltip 额外文本追加事件。
      */
     public static void onAppendLines(Consumer<AppendLinesEvent> listener) {
-        APPEND_LINES_LISTENERS.add(listener);
+        APPEND_LINES_LISTENERS.add(java.util.Objects.requireNonNull(listener, "listener"));
+    }
+
+    public static boolean removePreRenderListener(Consumer<PreRenderEvent> listener) {
+        return PRE_RENDER_LISTENERS.remove(listener);
+    }
+
+    public static boolean removeVariableResolveListener(Consumer<VariableResolveEvent> listener) {
+        return VARIABLE_RESOLVE_LISTENERS.remove(listener);
+    }
+
+    public static boolean removeAppendLinesListener(Consumer<AppendLinesEvent> listener) {
+        return APPEND_LINES_LISTENERS.remove(listener);
     }
 
     /**
@@ -47,7 +65,7 @@ public class TipEventManager {
     public static PreRenderEvent firePreRender(ItemStack stack) {
         PreRenderEvent event = new PreRenderEvent(stack);
         for (Consumer<PreRenderEvent> listener : PRE_RENDER_LISTENERS) {
-            listener.accept(event);
+            invoke(listener, event, "pre-render");
             if (event.isCanceled()) break;
         }
         return event;
@@ -59,7 +77,7 @@ public class TipEventManager {
     public static VariableResolveEvent fireVariableResolve(String variableName, ItemStack stack) {
         VariableResolveEvent event = new VariableResolveEvent(variableName, stack);
         for (Consumer<VariableResolveEvent> listener : VARIABLE_RESOLVE_LISTENERS) {
-            listener.accept(event);
+            invoke(listener, event, "variable-resolve");
             if (event.isResolved()) break;
         }
         return event;
@@ -71,9 +89,20 @@ public class TipEventManager {
     public static AppendLinesEvent fireAppendLines(ItemStack stack) {
         AppendLinesEvent event = new AppendLinesEvent(stack);
         for (Consumer<AppendLinesEvent> listener : APPEND_LINES_LISTENERS) {
-            listener.accept(event);
+            invoke(listener, event, "append-lines");
         }
         return event;
+    }
+
+    private static <T> void invoke(Consumer<T> listener, T event, String eventName) {
+        try {
+            listener.accept(event);
+        } catch (RuntimeException e) {
+            String failureKey = eventName + ':' + listener.getClass().getName();
+            if (REPORTED_LISTENER_FAILURES.add(failureKey)) {
+                LOGGER.warn("DataTip {} listener failed; repeated failures from this listener will be suppressed", eventName, e);
+            }
+        }
     }
 
     /**
@@ -159,7 +188,7 @@ public class TipEventManager {
         }
 
         public void addLine(String line) {
-            lines.add(line);
+            lines.add(java.util.Objects.requireNonNull(line, "line"));
         }
 
         public List<String> getLines() {

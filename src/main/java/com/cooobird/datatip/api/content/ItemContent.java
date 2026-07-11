@@ -27,6 +27,13 @@ public record ItemContent(
     int offsetY                  // Y 轴偏移量
 ) implements TipContent {
 
+    public ItemContent {
+        stack = stack != null ? stack : ItemStack.EMPTY;
+        size = ContentBounds.dimension(size);
+        offsetX = ContentBounds.offset(offsetX);
+        offsetY = ContentBounds.offset(offsetY);
+    }
+
     // 创建物品内容
     public static ItemContent of(ItemStack stack) {
         return new ItemContent(stack, 16, true, true, false, null, null, 0, 0);
@@ -69,19 +76,16 @@ public record ItemContent(
 
     @Override
     public int getHeight(int maxWidth) {
-        int height = size;
-        if (showLabel) {
-            height += 12;  // 标签高度
-        }
-        return height;
+        return visualHeight();
     }
 
     @Override
     public int getWidth(int maxWidth) {
-        int width = size;
-        if (showLabel && label != null) {
+        int width = visualWidth();
+        if (showLabel) {
             Font font = Minecraft.getInstance().font;
-            width += 4 + font.width(label.getString());
+            Component labelText = label != null ? label : stack.getHoverName();
+            width += 4 + font.width(labelText);
         }
         return Math.min(width, maxWidth);
     }
@@ -90,32 +94,38 @@ public record ItemContent(
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0 || stack.isEmpty()) return;
 
-        int renderX = x + offsetX;
-        int renderY = y + offsetY;
+        int renderBaseX = x + Math.max(0, -offsetX);
+        int renderBaseY = y + Math.max(0, -offsetY);
+        int renderX = renderBaseX + offsetX;
+        int renderY = renderBaseY + offsetY;
 
-        // 渲染物品图标
-        if (size == 16) {
-            context.renderItem(stack, renderX, renderY);
-        } else {
-            context.renderItemScaled(stack, renderX, renderY, size);
-        }
+        boolean clipped = ContentBounds.beginHorizontalClip(
+            context, x, y, maxWidth, visualHeight(), getWidth(Integer.MAX_VALUE));
+        try {
+            if (size == 16) context.renderItem(stack, renderX, renderY);
+            else context.renderItemScaled(stack, renderX, renderY, size);
 
-        // 渲染装饰
-        if (showCount || showDurability) {
-            if (size == 16) {
+            if ((showCount || showDurability) && size == 16) {
                 context.renderItemDecorations(stack, renderX, renderY);
             }
-            // 注意：非 16x16 尺寸的装饰渲染需要特殊处理
+            if (showLabel) {
+                Component labelText = label != null ? label : stack.getHoverName();
+                int color = labelColor != null ? labelColor : 0xFFFFFF;
+                int labelX = x + visualWidth() + 4;
+                int labelY = y + (visualHeight() - 8) / 2;
+                context.drawString(labelText, labelX, labelY, color);
+            }
+        } finally {
+            ContentBounds.endHorizontalClip(context, clipped);
         }
+    }
 
-        // 渲染标签
-        if (showLabel) {
-            Component labelText = label != null ? label : stack.getHoverName();
-            int color = labelColor != null ? labelColor : 0xFFFFFF;
-            int labelX = x + size + 4;
-            int labelY = renderY + (size - 8) / 2;  // 垂直居中
-            context.drawString(labelText, labelX, labelY, color);
-        }
+    private int visualWidth() {
+        return ContentBounds.extent(size, offsetX);
+    }
+
+    private int visualHeight() {
+        return ContentBounds.extent(size, offsetY);
     }
 
     /**

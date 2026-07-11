@@ -65,18 +65,15 @@ public class CarouselContentParser implements ContentParser {
             default -> CarouselContent.TransitionType.FADE;
         };
 
-        // 创建轮播容器
-        CarouselContent carousel = CarouselContent.withInterval(intervalSeconds);
-
         // 解析帧内容
+        List<TipContent> frames = List.of();
         if (context.has(json, "frames")) {
             JsonArray framesArray = context.getArray(json, "frames");
             if (framesArray != null) {
-                List<TipContent> frames = context.parseContentArray(framesArray);
-                frames.forEach(carousel::addFrame);
+                frames = context.parseContentArray(framesArray);
             }
         }
 
-        return carousel;
+        return new CarouselContent(frames, intervalSeconds, transition);
     }
 }

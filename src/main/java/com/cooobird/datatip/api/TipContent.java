@@ -49,6 +49,24 @@ package com.cooobird.datatip.api;
 public interface TipContent {
 
     /**
+     * 使用完整布局上下文获取内容高度。
+     * <p>
+     * 默认实现委派给旧宽度接口，现有第三方内容无需修改即可继续工作。需要按物品变量或字体
+     * 精确测量的内容可以覆盖此方法。
+     * </p>
+     */
+    default int getHeight(TipLayoutContext context) {
+        return Math.max(0, getHeight(context.compatibilityWidth()));
+    }
+
+    /**
+     * 使用完整布局上下文获取内容宽度。
+     */
+    default int getWidth(TipLayoutContext context) {
+        return context.constrainWidth(getWidth(context.compatibilityWidth()));
+    }
+
+    /**
      * 获取此内容的高度（像素）。
      *
      * @param maxWidth 可用最大宽度（像素）
@@ -90,6 +108,10 @@ public interface TipContent {
 
     /**
      * 在当前语言环境下是否有可显示的内容。
+     * <p>
+     * 多语言文本若当前语言无对应翻译则返回 false。
+     * 容器在判断折叠合并时应跳过无内容的子元素。
+     * </p>
      *
      * @return true 表示当前语言有可显示内容
      */

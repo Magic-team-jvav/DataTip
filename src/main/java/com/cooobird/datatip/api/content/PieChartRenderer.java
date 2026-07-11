@@ -21,7 +21,7 @@ final class PieChartRenderer {
         if (total == 0) return;
 
         int renderWidth = Math.max(1, Math.min(chart.width(), maxWidth));
-        int renderHeight = Math.max(1, Math.min(chart.height(), maxWidth));
+        int renderHeight = chart.height();
 
         int centerX = x + renderWidth / 2;
         int centerY = y + renderHeight / 2;
@@ -38,8 +38,8 @@ final class PieChartRenderer {
 
             ChartRenderUtils.drawPieSlice(context, centerX, centerY, radius, startAngle, endAngle, entry.color());
 
-            if (chart.showLabels()) {
-                context.drawString(entry.label(), x, labelY, entry.color());
+            if (chart.showLabels() || chart.showValues()) {
+                context.drawString(chart.legendText(entry, context), x, labelY, entry.color());
                 labelY += 10;
             }
 

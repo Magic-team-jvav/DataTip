@@ -82,8 +82,7 @@ public class EntityContentParser implements ContentParser {
         // 获取标签（可选）
         Component label = null;
         if (context.has(json, "label")) {
-            String labelText = context.getString(json, "label", "");
-            label = Component.literal(labelText);
+            label = LocalizedTextParser.parse(json, "label", context);
         }
 
         return new EntityContent(entityType, size, rotationSpeed, autoRotate, offsetX, offsetY, label);

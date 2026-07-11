@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 /**
@@ -38,13 +39,19 @@ final class LegacyConvertedJsonWriter {
             }
 
             File outputFile = new File(namespaceDir, location.getPath() + ".json");
+            File parent = outputFile.getParentFile();
+            if (parent != null && !parent.exists() && !parent.mkdirs()) {
+                LOGGER.error("Failed to create converted output directory: {}", parent.getAbsolutePath());
+                return;
+            }
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             String convertedJson = gson.toJson(json);
-            if (outputFile.exists() && Files.readString(outputFile.toPath()).equals(convertedJson)) {
+            if (outputFile.exists()
+                && Files.readString(outputFile.toPath(), StandardCharsets.UTF_8).equals(convertedJson)) {
                 return;
             }
 
-            Files.writeString(outputFile.toPath(), convertedJson);
+            Files.writeString(outputFile.toPath(), convertedJson, StandardCharsets.UTF_8);
 
             LOGGER.info("Converted legacy format saved to: {}", outputFile.getAbsolutePath());
         } catch (Exception e) {

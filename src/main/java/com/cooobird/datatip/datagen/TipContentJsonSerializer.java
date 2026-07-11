@@ -12,6 +12,11 @@ final class TipContentJsonSerializer {
     }
 
     static JsonObject toJson(TipContent content) {
+        if (content instanceof AlignedContent aligned) {
+            JsonObject alignedJson = toJson(aligned.inner());
+            alignedJson.addProperty("align", aligned.align().toString().toLowerCase(java.util.Locale.ROOT));
+            return alignedJson;
+        }
         JsonObject json = new JsonObject();
 
         if (content instanceof TextContent textContent) {
@@ -40,14 +45,14 @@ final class TipContentJsonSerializer {
             TipVisualJsonWriter.writeBlock(json, block);
         } else if (content instanceof AtlasContent atlas) {
             TipVisualJsonWriter.writeAtlas(json, atlas.texturePath(), atlas.width(), atlas.height(),
-                atlas.label(), atlas.offsetX(), atlas.offsetY());
+                atlas.labelText(), atlas.offsetX(), atlas.offsetY());
         } else if (content instanceof ImageContent image) {
             TipVisualJsonWriter.writeImage(json, image.texture(), image.width(), image.height(), image.u(), image.v(),
                 image.textureWidth(), image.textureHeight(), image.scale(), image.offsetX(), image.offsetY());
         } else if (content instanceof ChartContent chart) {
-            TipChartJsonWriter.write(json, chart.type(), chart.entries(), chart.width(), chart.height(),
-                chart.title(), chart.showLabels(), chart.showValues(), chart.titleColor(), chart.labelColor(),
-                chart.valueColor(), chart.zeroLineColor());
+            TipChartJsonWriter.write(json, chart.type(), chart.entries(), chart.width(), chart.height(), chart.title(),
+                chart.showLabels(), chart.showValues(), chart.titleColor(), chart.labelColor(), chart.valueColor(),
+                chart.zeroLineColor());
         }
 
         return json;

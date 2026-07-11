@@ -1,12 +1,17 @@
 package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
 
 /**
  * 间距内容，用于在内容之间添加空白间距。
  */
 public record SpacerContent(int height) implements TipContent {
+
+    public SpacerContent {
+        height = ContentBounds.spacing(height);
+    }
 
     // 创建默认间距
     public static SpacerContent create() {
@@ -41,6 +46,11 @@ public record SpacerContent(int height) implements TipContent {
     @Override
     public int getWidth(int maxWidth) {
         return maxWidth;
+    }
+
+    @Override
+    public int getWidth(TipLayoutContext context) {
+        return context.hasWidthLimit() ? context.maxWidth() : 0;
     }
 
     @Override

@@ -3,16 +3,18 @@ package com.cooobird.datatip.internal.variable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 /**
  * 变量注册表。
  * 存放内置变量和外部注册的自定义变量。
  */
 public final class VariableRegistry {
-    private static final Map<String, Function<ItemStack, String>> VARIABLES = new HashMap<>();
+    private static final Pattern VARIABLE_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
+    private static final Map<String, Function<ItemStack, String>> VARIABLES = new ConcurrentHashMap<>();
 
     static {
         registerItemVariables();
@@ -25,11 +27,15 @@ public final class VariableRegistry {
     }
 
     public static Map<String, Function<ItemStack, String>> variables() {
-        return VARIABLES;
+        return Map.copyOf(VARIABLES);
     }
 
     public static void register(String name, Function<ItemStack, String> resolver) {
-        VARIABLES.put(name, resolver);
+        if (name == null || !VARIABLE_NAME.matcher(name).matches()) {
+            throw new IllegalArgumentException("Invalid variable name: " + name);
+        }
+        VARIABLES.put(name, java.util.Objects.requireNonNull(resolver, "resolver"));
+        VariableCache.clear();
     }
 
     private static void registerItemVariables() {

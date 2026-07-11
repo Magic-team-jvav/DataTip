@@ -26,6 +26,19 @@ import org.jetbrains.annotations.Nullable;
 public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, float partialTick, ItemStack itemStack) {
 
     /**
+     * 仅合成当前内容颜色的透明度，不修改全局 Shader 状态。
+     */
+    public static int applyAlpha(int color, float alpha) {
+        float normalizedAlpha = Math.max(0.0f, Math.min(1.0f, alpha));
+        int sourceAlpha = color >>> 24;
+        if (sourceAlpha == 0) sourceAlpha = 0xFF;
+        int resultAlpha = normalizedAlpha > 0.0f
+            ? Math.max(1, Math.round(sourceAlpha * normalizedAlpha))
+            : 0;
+        return (resultAlpha << 24) | (color & 0x00FFFFFF);
+    }
+
+    /**
      * 创建不绑定物品栈的渲染上下文。
      */
     public TipRenderContext(GuiGraphics graphics, Font font, int tickCount, float partialTick) {
@@ -59,6 +72,11 @@ public record TipRenderContext(GuiGraphics graphics, Font font, int tickCount, f
     }
 
     public void drawRightAlignedString(String text, int x, int y, int color) {
+        int width = font.width(text);
+        graphics.drawString(font, text, x - width, y, color, true);
+    }
+
+    public void drawRightAlignedString(Component text, int x, int y, int color) {
         int width = font.width(text);
         graphics.drawString(font, text, x - width, y, color, true);
     }

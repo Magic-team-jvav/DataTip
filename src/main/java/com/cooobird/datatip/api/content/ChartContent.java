@@ -1,12 +1,16 @@
 package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
+import com.cooobird.datatip.api.text.LocalizedText;
+import com.cooobird.datatip.api.util.VariableResolver;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 图表内容。
@@ -42,16 +46,38 @@ public record ChartContent(
     // 图表条目，支持静态值和变量表达式
     public ChartContent {
         type = type != null ? type : ChartType.BAR;
-        entries = entries != null ? new ArrayList<>(entries) : new ArrayList<>();
-        width = Math.max(1, width);
-        height = Math.max(1, height);
+        entries = entries != null
+            ? entries.stream()
+            .filter(Objects::nonNull)
+            .limit(ContentBounds.MAX_CHART_ENTRIES)
+            .collect(java.util.stream.Collectors.toCollection(ArrayList::new))
+            : new ArrayList<>();
+        width = type == ChartType.PIE ? ContentBounds.pieDimension(width) : ContentBounds.dimension(width);
+        height = type == ChartType.PIE ? ContentBounds.pieDimension(height) : ContentBounds.dimension(height);
     }
 
     public record ChartEntry(
-        String label,      // 标签
+        LocalizedText labelText, // 标签
         String valueExpr,  // 值表达式
         int color          // 颜色
     ) {
+        public ChartEntry {
+            labelText = labelText != null ? labelText : LocalizedText.empty();
+            valueExpr = valueExpr != null ? valueExpr : "0";
+        }
+
+        public ChartEntry(@Nullable String label, @Nullable String valueExpr, int color) {
+            this(LocalizedText.literal(label), valueExpr, color);
+        }
+
+        public String label() {
+            return labelText.getString();
+        }
+
+        public Component labelComponent() {
+            return labelText.resolve();
+        }
+
         // 获取解析后的数值
         public double resolveValue(TipRenderContext context) {
             try {
@@ -60,6 +86,7 @@ public record ChartContent(
             } catch (NumberFormatException e) {
                 // 不是数字，尝试解析变量
                 String resolved = context.resolveVariables(valueExpr);
+                if (resolved == null || resolved.isBlank()) return 0;
                 try {
                     return Double.parseDouble(resolved);
                 } catch (NumberFormatException e2) {
@@ -95,19 +122,29 @@ public record ChartContent(
     }
 
     // 添加数据条目
-    public ChartContent addEntry(String label, String valueExpr, int color) {
-        entries.add(new ChartEntry(label, valueExpr, color));
+    public ChartContent addEntry(@Nullable String label, @Nullable String valueExpr, int color) {
+        return addEntry(LocalizedText.literal(label), valueExpr, color);
+    }
+
+    public ChartContent addEntry(@Nullable LocalizedText label, @Nullable String valueExpr, int color) {
+        if (entries.size() < ContentBounds.MAX_CHART_ENTRIES) {
+            entries.add(new ChartEntry(label, valueExpr, color));
+        }
         return this;
     }
 
     // 添加数据条目
     public ChartContent addEntry(String label, double value, int color) {
-        entries.add(new ChartEntry(label, String.valueOf(value), color));
-        return this;
+        return addEntry(LocalizedText.literal(label), String.valueOf(value), color);
     }
 
     // 设置标题
-    public ChartContent title(Component title) {
+    public ChartContent title(@Nullable Component title) {
+        return new ChartContent(type, entries, width, height, title, showLabels, showValues,
+            titleColor, labelColor, valueColor, zeroLineColor);
+    }
+
+    public ChartContent displayOptions(boolean showLabels, boolean showValues) {
         return new ChartContent(type, entries, width, height, title, showLabels, showValues,
             titleColor, labelColor, valueColor, zeroLineColor);
     }
@@ -116,8 +153,8 @@ public record ChartContent(
     public int getHeight(int maxWidth) {
         int h = height;
         if (title != null) h += TITLE_HEIGHT;
-        if (type == ChartType.BAR && showValues) h += VALUE_LABEL_HEIGHT;
-        if (showLabels) {
+        if ((type == ChartType.BAR || type == ChartType.LINE) && showValues) h += VALUE_LABEL_HEIGHT;
+        if (showLabels || (type == ChartType.PIE && showValues)) {
             // 根据图表类型计算标签高度
             switch (type) {
                 case BAR, LINE -> h += AXIS_LABEL_HEIGHT; // 柱状图和折线图只有一行标签
@@ -133,24 +170,80 @@ public record ChartContent(
     }
 
     @Override
+    public int getWidth(TipLayoutContext context) {
+        int measuredWidth = width;
+        if (title != null) measuredWidth = Math.max(measuredWidth, context.font().width(title));
+        if (type == ChartType.PIE && (showLabels || showValues)) {
+            for (ChartEntry entry : entries) {
+                Component labelText = showLabels ? entry.labelComponent() : Component.empty();
+                String valueText = showValues
+                    ? displayValueForLayout(entry, context)
+                    : "";
+                Component legend = composeLegend(labelText, valueText);
+                measuredWidth = Math.max(measuredWidth, context.font().width(legend));
+            }
+        }
+        return context.constrainWidth(measuredWidth);
+    }
+
+    @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0 || entries.isEmpty()) return;
 
         // 限制标题宽度
         int renderWidth = Math.max(1, Math.min(width, maxWidth));
+        int renderX = type == ChartType.PIE
+            ? x
+            : x + Math.max(0, (maxWidth - renderWidth) / 2);
 
         // 渲染标题
         if (title != null) {
-            context.drawCenteredString(title, x + renderWidth / 2, y, titleColor);
+            var titleLines = context.font().split(title, maxWidth);
+            if (!titleLines.isEmpty()) {
+                var visibleTitle = titleLines.get(0);
+                int titleX = x + (maxWidth - context.font().width(visibleTitle)) / 2;
+                context.drawString(visibleTitle, titleX, y, titleColor);
+            }
             y += TITLE_HEIGHT;
         }
 
-        if (type == ChartType.BAR && showValues) {
+        if ((type == ChartType.BAR || type == ChartType.LINE) && showValues) {
             y += VALUE_LABEL_HEIGHT;
         }
 
         switch (type) {
-            case BAR, PIE, LINE -> ChartRenderers.render(this, context, x, y, maxWidth);
+            case BAR, PIE, LINE -> ChartRenderers.render(this, context, renderX, y, renderWidth);
+        }
+    }
+
+    Component legendText(ChartEntry entry, @Nullable TipRenderContext context) {
+        Component labelText = showLabels ? entry.labelComponent() : Component.empty();
+        String valueText = showValues
+            ? formatValue(context != null ? entry.resolveValue(context) : 0)
+            : "";
+        return composeLegend(labelText, valueText);
+    }
+
+    private static Component composeLegend(Component label, String value) {
+        label = label != null ? label : Component.empty();
+        value = value != null ? value : "";
+        if (!label.getString().isEmpty() && !value.isEmpty()) {
+            return Component.empty().append(label).append(": ").append(value);
+        }
+        return !label.getString().isEmpty() ? label : Component.literal(value);
+    }
+
+    static String formatValue(double value) {
+        return String.format(java.util.Locale.ROOT, "%.0f", value);
+    }
+
+    private static String displayValueForLayout(ChartEntry entry, TipLayoutContext context) {
+        String resolved = VariableResolver.resolve(entry.valueExpr(), context.itemStack());
+        if (resolved == null || resolved.isBlank()) return "";
+        try {
+            return formatValue(Double.parseDouble(resolved));
+        } catch (NumberFormatException ignored) {
+            return resolved;
         }
     }
 }

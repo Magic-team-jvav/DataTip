@@ -5,6 +5,7 @@ import com.cooobird.datatip.api.ParseContext;
 import com.cooobird.datatip.api.content.TextContent;
 import com.google.gson.JsonObject;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * TextContent 解析器。
@@ -38,6 +39,7 @@ public class TextContentParser implements ContentParser {
         return TextContent.of("");
     }
 
+    @Nullable
     private static Component parseComponent(JsonObject json, ParseContext context) {
         if (!context.has(json, "trans")) {
             return null;

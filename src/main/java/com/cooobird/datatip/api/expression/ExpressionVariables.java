@@ -1,6 +1,8 @@
 package com.cooobird.datatip.api.expression;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 表达式变量替换工具。
@@ -29,8 +31,8 @@ final class ExpressionVariables {
             }
 
             // 只替换完整单词，避免部分匹配。
-            String regex = "\\b" + varName + "\\b";
-            result = result.replaceAll(regex, value);
+            String regex = "\\b" + Pattern.quote(varName) + "\\b";
+            result = result.replaceAll(regex, Matcher.quoteReplacement(value));
         }
         return result;
     }

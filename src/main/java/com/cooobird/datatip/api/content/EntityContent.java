@@ -11,8 +11,10 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -33,15 +35,19 @@ public class EntityContent implements TipContent {
 
     private float currentRotation = 0;
     private int lastTick = -1;
+    @Nullable
+    private Entity cachedEntity;
+    @Nullable
+    private Level cachedLevel;
 
     public EntityContent(EntityType<?> entityType, int size, float rotationSpeed,
                          boolean autoRotate, int offsetX, int offsetY, @Nullable Component label) {
-        this.entityType = entityType;
-        this.size = size;
-        this.rotationSpeed = rotationSpeed;
+        this.entityType = java.util.Objects.requireNonNull(entityType, "entityType");
+        this.size = ContentBounds.dimension(size);
+        this.rotationSpeed = Float.isFinite(rotationSpeed) ? Mth.clamp(rotationSpeed, -360.0f, 360.0f) : 0.0f;
         this.autoRotate = autoRotate;
-        this.offsetX = offsetX;
-        this.offsetY = offsetY;
+        this.offsetX = ContentBounds.offset(offsetX);
+        this.offsetY = ContentBounds.offset(offsetY);
         this.label = label;
     }
 
@@ -97,7 +103,7 @@ public class EntityContent implements TipContent {
 
     @Override
     public int getHeight(int maxWidth) {
-        return visualHeight() + (label != null ? 12 : 0);
+        return visualHeight();
     }
 
     @Override
@@ -105,7 +111,7 @@ public class EntityContent implements TipContent {
         int width = visualWidth();
         if (label != null) {
             Font font = Minecraft.getInstance().font;
-            width += 4 + font.width(label.getString());
+            width += 4 + font.width(label);
         }
         return width;
     }
@@ -119,10 +125,7 @@ public class EntityContent implements TipContent {
     public void tick(int tickCount) {
         if (autoRotate && tickCount != lastTick) {
             lastTick = tickCount;
-            currentRotation += rotationSpeed;
-            if (currentRotation >= 360) {
-                currentRotation -= 360;
-            }
+            currentRotation = Mth.wrapDegrees(currentRotation + rotationSpeed);
         }
     }
 
@@ -133,71 +136,68 @@ public class EntityContent implements TipContent {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
-        // 创建实体实例
-        Entity entity = entityType.create(mc.level);
+        Entity entity = getOrCreateEntity(mc.level);
         if (entity == null) return;
 
         // 获取旋转角度，使用 partialTick 进行插值让旋转更平滑
-        float rotation = autoRotate ? currentRotation + rotationSpeed * context.partialTick() : 0;
+        float rotation = autoRotate
+            ? Mth.wrapDegrees(currentRotation + rotationSpeed * context.partialTick())
+            : 0;
 
         int renderBaseX = x + Math.max(0, -offsetX);
         int renderBaseY = y + Math.max(0, -offsetY);
 
-        // 渲染实体
-        renderEntity(
-            context.graphics(),
-            entity,
-            renderBaseX + size / 2 + offsetX,
-            renderBaseY + size + offsetY,
-            size,
-            rotation
-        );
-
-        // 渲染标签
-        if (label != null) {
-            int labelX = x + visualWidth() + 4;
-            int labelY = y + (visualHeight() - 8) / 2;
-            context.drawString(label, labelX, labelY, 0xFFFFFF);
+        boolean clipped = ContentBounds.beginHorizontalClip(
+            context, x, y, maxWidth, visualHeight(), getWidth(Integer.MAX_VALUE));
+        try {
+            renderEntity(
+                context.graphics(), entity,
+                renderBaseX + size / 2 + offsetX,
+                renderBaseY + size + offsetY,
+                size, rotation
+            );
+            if (label != null) {
+                int labelX = x + visualWidth() + 4;
+                int labelY = y + (visualHeight() - 8) / 2;
+                context.drawString(label, labelX, labelY, 0xFFFFFF);
+            }
+        } finally {
+            ContentBounds.endHorizontalClip(context, clipped);
         }
     }
 
     private int visualWidth() {
-        return size + Math.abs(offsetX);
+        return ContentBounds.extent(size, offsetX);
     }
 
     private int visualHeight() {
-        return size + Math.abs(offsetY);
+        return ContentBounds.extent(size, offsetY);
     }
 
     // 渲染实体到 GUI
     private static void renderEntity(GuiGraphics graphics, Entity entity, int x, int y, int size, float rotation) {
+        // 在修改实体阴影和 GUI 光照前提交原版 Tooltip 缓冲，避免共享状态交叉影响。
+        graphics.flush();
         PoseStack poseStack = graphics.pose();
         poseStack.pushPose();
-
-        // 移动到指定位置
-        poseStack.translate(x, y, 100);
-        float scale = calculateEntityScale(entity, size);
-        poseStack.scale(scale, -scale, scale);
-
-        // 绕 Y 轴旋转
-        poseStack.mulPose(Axis.YP.rotationDegrees(rotation));
-
-        // 渲染实体
         EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
-        dispatcher.setRenderShadow(false);
+        try {
+            poseStack.translate(x, y, 100);
+            float scale = calculateEntityScale(entity, size);
+            poseStack.scale(scale, -scale, scale);
+            poseStack.mulPose(Axis.YP.rotationDegrees(rotation));
 
-        // 设置全局光照，无阴影
-        Lighting.setupForFlatItems();
+            dispatcher.setRenderShadow(false);
+            Lighting.setupForFlatItems();
 
-        MultiBufferSource.BufferSource bufferSource = graphics.bufferSource();
-        dispatcher.render(entity, 0, 0, 0, 0, 1.0f, poseStack, bufferSource, 15728880);
-        bufferSource.endBatch();
-
-        // 恢复设置
-        dispatcher.setRenderShadow(true);
-        Lighting.setupFor3DItems();
-
-        poseStack.popPose();
+            MultiBufferSource.BufferSource bufferSource = graphics.bufferSource();
+            dispatcher.render(entity, 0, 0, 0, 0, 1.0f, poseStack, bufferSource, 15728880);
+            bufferSource.endBatch();
+        } finally {
+            dispatcher.setRenderShadow(true);
+            Lighting.setupFor3DItems();
+            poseStack.popPose();
+        }
     }
 
     private static float calculateEntityScale(Entity entity, int size) {
@@ -206,5 +206,14 @@ public class EntityContent implements TipContent {
         float rotatedWidth = width * 1.4142136f;
         float maxDimension = Math.max(rotatedWidth, height);
         return size * ENTITY_BOX_PADDING / maxDimension;
+    }
+
+    @Nullable
+    private Entity getOrCreateEntity(Level level) {
+        if (cachedEntity == null || cachedLevel != level || cachedEntity.isRemoved()) {
+            cachedEntity = entityType.create(level);
+            cachedLevel = level;
+        }
+        return cachedEntity;
     }
 }

@@ -1,5 +1,6 @@
 package com.cooobird.datatip.api.content;
 
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
@@ -8,6 +9,7 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -46,9 +48,9 @@ public class TextContent extends BaseTextContent {
         this.text = text;
         this.component = component;
         this.formattedText = formattedText;
-        this.langText = langText;
-        this.langStyledText = langStyledText;
-        this.maxWidth = maxWidth;
+        this.langText = copyNonNullMap(langText);
+        this.langStyledText = copyNonNullMap(langStyledText);
+        this.maxWidth = ContentBounds.spacing(maxWidth);
     }
 
     public @Nullable String text() {
@@ -73,6 +75,16 @@ public class TextContent extends BaseTextContent {
 
     public int maxWidth() {
         return maxWidth;
+    }
+
+    @Nullable
+    private static <T> Map<String, T> copyNonNullMap(@Nullable Map<String, T> source) {
+        if (source == null) return null;
+        Map<String, T> copy = new LinkedHashMap<>();
+        source.forEach((language, value) -> {
+            if (language != null && value != null) copy.put(language, value);
+        });
+        return Map.copyOf(copy);
     }
 
     public static TextContent of(String text) {
@@ -179,17 +191,22 @@ public class TextContent extends BaseTextContent {
             color, null, true, TextAlign.LEFT, TextContentDefaults.lineHeight(), 0, false, false, false, false, false);
     }
 
-    FormattedText formattedText(@Nullable TipRenderContext context) {
-        return TextFormattedTextResolver.resolve(this, context);
+    FormattedText formattedText(@Nullable net.minecraft.world.item.ItemStack stack) {
+        return TextFormattedTextResolver.resolve(this, stack);
     }
 
     private FormattedText getFormattedText() {
-        return formattedText(null);
+        return formattedText((net.minecraft.world.item.ItemStack) null);
     }
 
     @Override
     public int getHeight(int availableWidth) {
         return TextContentLayout.getHeight(this, availableWidth);
+    }
+
+    @Override
+    public int getHeight(TipLayoutContext context) {
+        return TextContentLayout.getHeight(this, context);
     }
 
     public int getHeight(Font font, int availableWidth) {
@@ -204,6 +221,11 @@ public class TextContent extends BaseTextContent {
     @Override
     public int getWidth(int availableWidth) {
         return TextContentLayout.getWidth(this, availableWidth);
+    }
+
+    @Override
+    public int getWidth(TipLayoutContext context) {
+        return TextContentLayout.getWidth(this, context);
     }
 
     public int getWidth(Font font, int availableWidth) {

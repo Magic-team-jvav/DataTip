@@ -75,7 +75,7 @@ final class LegacyContentConverter {
     private static void convertTextArray(JsonArray array, VBoxContent vbox, LegacyTextStyle topStyle) {
         for (JsonElement item : array) {
             if (item.isJsonPrimitive()) {
-                vbox.addChild(TextContent.of(item.getAsString(), topStyle.color()));
+                vbox.addChild(topStyle.toTextContent(item.getAsString()));
             } else if (item.isJsonObject()) {
                 vbox.addChild(convertStyledLine(item.getAsJsonObject(), topStyle));
             }
@@ -89,8 +89,12 @@ final class LegacyContentConverter {
         }
 
         for (Map.Entry<String, JsonElement> langEntry : textObj.entrySet()) {
-            JsonArray lines = langEntry.getValue().getAsJsonArray();
-            convertTextArray(lines, vbox, topStyle);
+            JsonElement value = langEntry.getValue();
+            if (value.isJsonArray()) {
+                convertTextArray(value.getAsJsonArray(), vbox, topStyle);
+            } else if (value.isJsonPrimitive()) {
+                vbox.addChild(topStyle.toTextContent(value.getAsString()));
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 package com.cooobird.datatip.api.content;
 
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -37,18 +38,18 @@ public class TypewriterContent extends BaseTextContent {
         this(lines, null, null, charsPerSecond, pauseSeconds, loop, color, null, font, false, false, false, false, TextAlign.LEFT, true, TextContentDefaults.lineHeight(), false);
     }
 
-    public TypewriterContent(List<String> lines, @Nullable Map<String, List<String>> langLines,
+    public TypewriterContent(@Nullable List<String> lines, @Nullable Map<String, List<String>> langLines,
                              @Nullable Map<String, List<LangStyle>> langStyledLines,
                              int charsPerSecond, int pauseSeconds, boolean loop, int color,
                              @Nullable String colorExpression, @Nullable ResourceLocation font,
                              boolean bold, boolean italic, boolean underlined, boolean strikethrough,
                              TextAlign align, boolean shadow, int lineHeight, boolean shift) {
         super(font, color, colorExpression, shadow, align, lineHeight, bold, italic, underlined, strikethrough, shift);
-        this.lines = new ArrayList<>(lines);
-        this.langLines = langLines != null ? new HashMap<>(langLines) : null;
-        this.langStyledLines = langStyledLines != null ? new HashMap<>(langStyledLines) : null;
-        this.charsPerSecond = Math.max(1, charsPerSecond);
-        this.pauseSeconds = Math.max(0, pauseSeconds);
+        this.lines = copyLines(lines);
+        this.langLines = copyLineMap(langLines);
+        this.langStyledLines = copyLineMap(langStyledLines);
+        this.charsPerSecond = ContentBounds.dimension(charsPerSecond);
+        this.pauseSeconds = ContentBounds.spacing(pauseSeconds);
         this.loop = loop;
         this.state = new TypewriterState();
     }
@@ -62,15 +63,29 @@ public class TypewriterContent extends BaseTextContent {
     }
 
     public static TypewriterContent of(int color, String... lines) {
-        return new TypewriterContent(List.of(lines), 2, 20, false, color);
+        return new TypewriterContent(List.of(lines), 2, 1, false, color);
     }
 
     public List<String> getLines() {
-        return lines;
+        return List.copyOf(lines);
     }
 
     public int getCharsPerSecond() {
         return charsPerSecond;
+    }
+
+    public int getPauseSeconds() {
+        return pauseSeconds;
+    }
+
+    @Nullable
+    public Map<String, List<String>> getLangLines() {
+        return langLines;
+    }
+
+    @Nullable
+    public Map<String, List<LangStyle>> getLangStyledLines() {
+        return langStyledLines;
     }
 
     public boolean isLoop() {
@@ -83,6 +98,11 @@ public class TypewriterContent extends BaseTextContent {
     }
 
     @Override
+    public int getHeight(TipLayoutContext context) {
+        return TypewriterLayout.getHeight(this);
+    }
+
+    @Override
     public boolean hasContent() {
         return TypewriterLayout.hasContent(this);
     }
@@ -90,6 +110,11 @@ public class TypewriterContent extends BaseTextContent {
     @Override
     public int getWidth(int maxWidth) {
         return TypewriterLayout.getWidth(this, maxWidth);
+    }
+
+    @Override
+    public int getWidth(TipLayoutContext context) {
+        return TypewriterLayout.getWidth(this, context);
     }
 
     @Override
@@ -109,5 +134,24 @@ public class TypewriterContent extends BaseTextContent {
     @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         TypewriterRenderer.render(this, state, context, x, y, maxWidth, alpha);
+    }
+
+    @Nullable
+    private static <T> Map<String, List<T>> copyLineMap(@Nullable Map<String, List<T>> source) {
+        if (source == null) return null;
+        Map<String, List<T>> copy = new HashMap<>();
+        source.forEach((language, values) -> {
+            if (language == null || values == null) return;
+            List<T> cleanValues = values.stream().filter(java.util.Objects::nonNull).toList();
+            copy.put(language, cleanValues);
+        });
+        return Map.copyOf(copy);
+    }
+
+    private static List<String> copyLines(@Nullable List<String> source) {
+        if (source == null) return List.of();
+        List<String> copy = new ArrayList<>();
+        source.stream().filter(java.util.Objects::nonNull).forEach(copy::add);
+        return List.copyOf(copy);
     }
 }

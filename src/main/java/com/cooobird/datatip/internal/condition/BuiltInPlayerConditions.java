@@ -1,6 +1,8 @@
 package com.cooobird.datatip.internal.condition;
 
 import com.cooobird.datatip.api.condition.ConditionChecker;
+import com.cooobird.datatip.internal.input.ClientKeyState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -19,9 +21,10 @@ final class BuiltInPlayerConditions {
 
     static void registerTo(Map<String, ConditionChecker.CustomCondition> conditions) {
         conditions.put("holding", (value, stack, player, level) -> checkHolding(value, player));
-        conditions.put("sneaking", (value, stack, player, level) -> player.isShiftKeyDown());
-        conditions.put("creative", (value, stack, player, level) -> player.isCreative());
-        conditions.put("survival", (value, stack, player, level) -> !player.isCreative() && !player.isSpectator());
+        conditions.put("sneaking", (value, stack, player, level) -> checkBoolean(value, isSneaking(player)));
+        conditions.put("creative", (value, stack, player, level) -> checkBoolean(value, player.isCreative()));
+        conditions.put("survival", (value, stack, player, level) ->
+            checkBoolean(value, !player.isCreative() && !player.isSpectator()));
         conditions.put("health", (value, stack, player, level) -> checkHealth(value, player));
         conditions.put("hunger", (value, stack, player, level) -> checkHunger(value, player));
         conditions.put("experience", (value, stack, player, level) -> checkExperience(value, player));
@@ -31,9 +34,9 @@ final class BuiltInPlayerConditions {
     static Boolean check(ConditionChecker.Condition condition, Player player) {
         return switch (condition.type()) {
             case "holding" -> checkHolding(condition.value(), player);
-            case "sneaking" -> player.isShiftKeyDown();
-            case "creative" -> player.isCreative();
-            case "survival" -> !player.isCreative() && !player.isSpectator();
+            case "sneaking" -> checkBoolean(condition.value(), isSneaking(player));
+            case "creative" -> checkBoolean(condition.value(), player.isCreative());
+            case "survival" -> checkBoolean(condition.value(), !player.isCreative() && !player.isSpectator());
             case "health" -> checkHealth(condition.value(), player);
             case "hunger" -> checkHunger(condition.value(), player);
             case "experience", "level" -> checkExperience(condition.value(), player);
@@ -53,6 +56,11 @@ final class BuiltInPlayerConditions {
             }
         }
         return false;
+    }
+
+    private static boolean isSneaking(Player player) {
+        return player.isShiftKeyDown()
+            || ClientKeyState.isDown(Minecraft.getInstance().options.keyShift);
     }
 
     private static boolean isHeld(String itemStr, ItemStack mainHand, ItemStack offHand) {
@@ -99,5 +107,9 @@ final class BuiltInPlayerConditions {
             return threshold != null && level >= threshold;
         }
         return false;
+    }
+
+    private static boolean checkBoolean(Object value, boolean actual) {
+        return value instanceof Boolean expected ? actual == expected : actual;
     }
 }

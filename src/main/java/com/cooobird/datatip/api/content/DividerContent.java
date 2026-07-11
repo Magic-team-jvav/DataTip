@@ -1,6 +1,7 @@
 package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
 
 /**
@@ -15,6 +16,15 @@ public record DividerContent(
     DividerStyle style, // 样式
     WidthMode widthMode // 宽度模式
 ) implements TipContent {
+
+    public DividerContent {
+        thickness = ContentBounds.dimension(thickness);
+        width = ContentBounds.spacing(width);
+        marginTop = ContentBounds.spacing(marginTop);
+        marginBottom = ContentBounds.spacing(marginBottom);
+        style = style != null ? style : DividerStyle.SOLID;
+        widthMode = widthMode != null ? widthMode : WidthMode.FILL;
+    }
 
     public enum DividerStyle {SOLID, DASHED, DOTTED}
 
@@ -63,6 +73,14 @@ public record DividerContent(
     }
 
     @Override
+    public int getWidth(TipLayoutContext context) {
+        if (widthMode == WidthMode.FILL) {
+            return context.hasWidthLimit() ? context.maxWidth() : (width > 0 ? width : 100);
+        }
+        return context.constrainWidth(width);
+    }
+
+    @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0) return;
 
@@ -72,21 +90,22 @@ public record DividerContent(
             case CENTERED -> x + (maxWidth - lineWidth) / 2;
         };
         int lineY = y + marginTop;
+        int renderColor = TipRenderContext.applyAlpha(color, alpha);
 
         switch (style) {
-            case SOLID -> context.fill(lineX, lineY, lineX + lineWidth, lineY + thickness, color);
+            case SOLID -> context.fill(lineX, lineY, lineX + lineWidth, lineY + thickness, renderColor);
             case DASHED -> {
                 int segLen = 8, gap = 4, curX = lineX;
                 while (curX < lineX + lineWidth) {
                     int endX = Math.min(curX + segLen, lineX + lineWidth);
-                    context.fill(curX, lineY, endX, lineY + thickness, color);
+                    context.fill(curX, lineY, endX, lineY + thickness, renderColor);
                     curX += segLen + gap;
                 }
             }
             case DOTTED -> {
                 int dotSize = 2, dotGap = 4, curX = lineX;
                 while (curX < lineX + lineWidth) {
-                    context.fill(curX, lineY, curX + dotSize, lineY + thickness, color);
+                    context.fill(curX, lineY, curX + dotSize, lineY + thickness, renderColor);
                     curX += dotSize + dotGap;
                 }
             }

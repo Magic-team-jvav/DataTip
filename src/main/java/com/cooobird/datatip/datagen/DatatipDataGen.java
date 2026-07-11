@@ -6,15 +6,17 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * 数据生成。
- * 默认不生成文件，取消下面注释即可激活示例。
+ * DataTip 客户端资源数据生成入口。
+ * <p>
+ * 示例内容全部通过 {@link TipContentBuilder} 构造，并分别生成完整内容展示与全部条件示例。
+ * </p>
  */
 @Mod.EventBusSubscriber(modid = Datatip.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class DatatipDataGen {
     @SubscribeEvent
     static void gatherData(GatherDataEvent event) {
-        // 取消注释来激活示例生成
-        // var output = event.getGenerator().getPackOutput();
-        // event.getGenerator().addProvider(true, new ExampleTooltipProvider(output));
+        var generator = event.getGenerator();
+        var output = generator.getPackOutput();
+        generator.addProvider(event.includeClient(), new ExampleTooltipProvider(output));
     }
 }

@@ -4,6 +4,7 @@ import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.content.*;
 import com.google.gson.JsonObject;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -93,6 +94,11 @@ public class TipContentBuilder {
         return TipCommonContentFactory.divider(color, style);
     }
 
+    public static DividerContent divider(String color, int thickness, int width, int marginTop, int marginBottom,
+                                         String style, String widthMode) {
+        return TipCommonContentFactory.divider(color, thickness, width, marginTop, marginBottom, style, widthMode);
+    }
+
     public static ItemContent item(String itemId) {
         return TipCommonContentFactory.item(itemId);
     }
@@ -101,12 +107,26 @@ public class TipContentBuilder {
         return TipCommonContentFactory.item(itemId, label);
     }
 
+    public static ItemContent item(String itemId, int count, int size, boolean showCount, boolean showDurability,
+                                   boolean showLabel, Map<String, String> label, String labelColor,
+                                   int offsetX, int offsetY) {
+        return TipCommonContentFactory.item(itemId, count, size, showCount, showDurability, showLabel,
+            label, labelColor, offsetX, offsetY);
+    }
+
     public static ProgressContent progress(float progress, int width) {
         return TipCommonContentFactory.progress(progress, width);
     }
 
     public static ProgressContent progress(float progress, int width, String label) {
         return TipCommonContentFactory.progress(progress, width, label);
+    }
+
+    public static ProgressContent progress(float progress, int width, int height, String colorFg, String colorBg,
+                                           String colorFgLight, String colorBgDark, String style,
+                                           Map<String, String> label, String labelAlign, int animSpeed) {
+        return TipCommonContentFactory.progress(progress, width, height, colorFg, colorBg, colorFgLight,
+            colorBgDark, style, label, labelAlign, animSpeed);
     }
 
     public static TypewriterContent typewriter(String... lines) {
@@ -129,6 +149,14 @@ public class TipContentBuilder {
         return TipCommonContentFactory.typewriter(color, charsPerSecond, pauseSeconds, loop, shift, lines);
     }
 
+    public static TypewriterContent typewriter(Map<String, List<String>> lines, int charsPerSecond, int pauseSeconds,
+                                               boolean loop, String color, String font, boolean bold,
+                                               boolean italic, boolean underlined, boolean strikethrough,
+                                               String align, boolean shadow, int lineHeight, boolean shift) {
+        return TipCommonContentFactory.typewriter(lines, charsPerSecond, pauseSeconds, loop, color, font, bold,
+            italic, underlined, strikethrough, align, shadow, lineHeight, shift);
+    }
+
     // 布局内容
     public static VBoxContent vbox(TipContent... children) {
         return TipLayoutContentFactory.vbox(children);
@@ -136,6 +164,10 @@ public class TipContentBuilder {
 
     public static VBoxContent vbox(int gap, TipContent... children) {
         return TipLayoutContentFactory.vbox(gap, children);
+    }
+
+    public static VBoxContent vbox(int gap, int padding, String align, TipContent... children) {
+        return TipLayoutContentFactory.vbox(gap, padding, align, children);
     }
 
     public static HBoxContent hbox(TipContent... children) {
@@ -146,8 +178,16 @@ public class TipContentBuilder {
         return TipLayoutContentFactory.hbox(gap, children);
     }
 
+    public static HBoxContent hbox(int gap, int padding, String align, TipContent... children) {
+        return TipLayoutContentFactory.hbox(gap, padding, align, children);
+    }
+
     public static CarouselContent carousel(int intervalSeconds, TipContent... frames) {
         return TipLayoutContentFactory.carousel(intervalSeconds, frames);
+    }
+
+    public static CarouselContent carousel(int intervalSeconds, String transition, TipContent... frames) {
+        return TipLayoutContentFactory.carousel(intervalSeconds, transition, frames);
     }
 
     public static AlignedContent aligned(TipContent content, VBoxContent.HorizontalAlign align) {
@@ -171,12 +211,22 @@ public class TipContentBuilder {
         return TipVisualContentFactory.entity(entityId, size, offsetX, offsetY);
     }
 
+    public static EntityContent entity(String entityId, int size, float rotationSpeed, boolean autoRotate,
+                                       Map<String, String> label, int offsetX, int offsetY) {
+        return TipVisualContentFactory.entity(entityId, size, rotationSpeed, autoRotate, label, offsetX, offsetY);
+    }
+
     public static BlockContent block(String blockId, int size) {
         return TipVisualContentFactory.block(blockId, size);
     }
 
     public static BlockContent block(String blockId, int size, int offsetX, int offsetY) {
         return TipVisualContentFactory.block(blockId, size, offsetX, offsetY);
+    }
+
+    public static BlockContent block(String blockId, int size, float rotationSpeed, boolean autoRotate,
+                                     Map<String, String> label, int offsetX, int offsetY) {
+        return TipVisualContentFactory.block(blockId, size, rotationSpeed, autoRotate, label, offsetX, offsetY);
     }
 
     public static AtlasContent atlas(String itemId, int size) {
@@ -187,12 +237,22 @@ public class TipContentBuilder {
         return TipVisualContentFactory.atlas(itemId, size, offsetX, offsetY);
     }
 
+    public static AtlasContent atlas(String itemId, int size, Map<String, String> label, int offsetX, int offsetY) {
+        return TipVisualContentFactory.atlas(itemId, size, label, offsetX, offsetY);
+    }
+
     public static ImageContent image(String texture, int width, int height) {
         return TipVisualContentFactory.image(texture, width, height);
     }
 
     public static ImageContent image(String texture, int width, int height, int offsetX, int offsetY) {
         return TipVisualContentFactory.image(texture, width, height, offsetX, offsetY);
+    }
+
+    public static ImageContent image(String texture, int width, int height, int u, int v,
+                                     int textureWidth, int textureHeight, float scale, int offsetX, int offsetY) {
+        return TipVisualContentFactory.image(texture, width, height, u, v, textureWidth, textureHeight,
+            scale, offsetX, offsetY);
     }
 
     // 图表内容
@@ -204,6 +264,14 @@ public class TipContentBuilder {
         return TipChartContentFactory.chart(chartType, width, height, title, entries);
     }
 
+    public static ChartContent chart(String chartType, int width, int height, Map<String, String> title,
+                                     boolean showLabels, boolean showValues, String titleColor,
+                                     String labelColor, String valueColor, String zeroLineColor,
+                                     ChartContent.ChartEntry... entries) {
+        return TipChartContentFactory.chart(chartType, width, height, title, showLabels, showValues,
+            titleColor, labelColor, valueColor, zeroLineColor, entries);
+    }
+
     public static ChartContent.ChartEntry chartEntry(String label, double value, String color) {
         return TipChartContentFactory.chartEntry(label, value, color);
     }
@@ -212,10 +280,36 @@ public class TipContentBuilder {
         return TipChartContentFactory.chartEntry(label, valueExpr, color);
     }
 
+    public static ChartContent.ChartEntry chartEntry(Map<String, String> label, String valueExpr, String color) {
+        return TipChartContentFactory.chartEntry(label, valueExpr, color);
+    }
+
+    public static Map<String, String> languages(String zhCn, String enUs) {
+        return Map.of("zh_cn", zhCn, "en_us", enUs);
+    }
+
+    public static Map<String, List<String>> languageLines(List<String> zhCn, List<String> enUs) {
+        return Map.of("zh_cn", List.copyOf(zhCn), "en_us", List.copyOf(enUs));
+    }
+
     /**
      * 将 TipContent 转换为 JSON（完整序列化所有属性）。
      */
     public static JsonObject toJson(TipContent content) {
         return TipContentJsonSerializer.toJson(content);
+    }
+
+    public static JsonObject entry(TipContent content, Map<String, ?> conditions) {
+        return entry(content, conditions, false, false);
+    }
+
+    public static JsonObject entry(TipContent content, Map<String, ?> conditions, boolean shift, boolean prepend) {
+        JsonObject json = toJson(content);
+        if (conditions != null && !conditions.isEmpty()) {
+            json.add("conditions", new com.google.gson.Gson().toJsonTree(conditions));
+        }
+        if (shift) json.addProperty("shift", true);
+        if (prepend) json.addProperty("prepend", true);
+        return json;
     }
 }
