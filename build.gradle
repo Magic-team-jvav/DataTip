@@ -5,6 +5,14 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.141'
 }
 
+tasks.named('jar', Jar) {
+    manifest {
+        attributes(
+                'Automatic-Module-Name': 'datatip'
+        )
+    }
+}
+
 version = mod_version
 group = mod_group_id
 
