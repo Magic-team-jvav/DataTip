@@ -15,7 +15,8 @@ import java.util.List;
  * @author cooobird
  * @since 1.2.0
  */
-public interface ContainerContent extends TipContent {
+public interface ContainerContent
+    extends com.cooobird.datatip.api.layout.PreparedContent {
 
     /**
      * 折叠提示行高度
@@ -75,17 +76,12 @@ public interface ContainerContent extends TipContent {
 
     @Override
     default boolean isAnimated() {
-        for (TipContent c : children()) {
-            if (c.hasContent() && c.isAnimated()) return true;
-        }
-        return false;
+        return TipAnimationTraversal.isAnimated(this);
     }
 
     @Override
     default void tick(int tickCount) {
-        for (TipContent c : children()) {
-            if (c.hasContent()) c.tick(tickCount);
-        }
+        TipAnimationTraversal.tick(this, tickCount);
     }
 
 }

@@ -9,7 +9,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * 示例 Tooltip 数据生成器。
- * 展示所有内容类型的所有组合。
+ * 展示所有内容类型与具有代表性的布局、动画和修饰符组合。
  *
  * @author cooobird
  * @since 1.2.0
@@ -26,9 +26,9 @@ public class ExampleTooltipProvider implements DataProvider {
         Path directory = output.getOutputFolder(PackOutput.Target.RESOURCE_PACK)
             .resolve("minecraft/datatip");
         CompletableFuture<?> showcase = DataProvider.saveStable(
-            cache, ExampleShowcaseTooltips.create(), directory.resolve("00_showcase.json"));
+            cache, ExampleShowcaseTooltips.create(), directory.resolve("showcase.json"));
         CompletableFuture<?> conditions = DataProvider.saveStable(
-            cache, ExampleConditionTooltips.create(), directory.resolve("10_all_conditions.json"));
+            cache, ExampleConditionTooltips.create(), directory.resolve("all_conditions.json"));
         return CompletableFuture.allOf(showcase, conditions);
     }
 

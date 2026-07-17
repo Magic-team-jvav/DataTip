@@ -1,1418 +1,697 @@
 # DataTip
 
-JSON-driven custom item tooltips for Minecraft. Put content under `assets/<namespace>/datatip/` in a
-resource pack. Every `.json` file in that directory and its subdirectories is loaded, so filenames are
-arbitrary and content can be split across multiple files by item or purpose.
+[简体中文](README_zh.md)
 
-## Quick Start
+DataTip is a JSON-driven custom item tooltip system for Minecraft 1.20.1 and Forge 47.4.20. Resource packs can combine
+text, item icons, textures, rotating blocks and entities, progress bars, charts, animation, and nested layouts without
+writing Java code.
+
+Current project version: `1.2.5-forge`.
+
+## Resource-pack setup
+
+DataTip loads every JSON file below:
+
+```text
+assets/<namespace>/datatip/
+```
+
+The namespace belongs immediately below `assets`; `datatip` is the reload-listener directory. Filenames and
+subdirectories are arbitrary. For example, both of these are valid:
+
+```text
+assets/example/datatip/items.json
+assets/example/datatip/equipment/weapons.json
+```
+
+`datatip.json` is only an example filename. It is not required.
+
+Each file is a JSON object whose keys select items:
+
+| Selector      | Example             | Meaning                                                |
+|---------------|---------------------|--------------------------------------------------------|
+| Exact item ID | `minecraft:diamond` | Matches one item                                       |
+| Item tag      | `#minecraft:swords` | Matches every item in the tag                          |
+| Wildcard      | `minecraft:*_sword` | `*` matches any sequence and `?` matches one character |
+
+Tags cannot contain wildcards. Top-level keys beginning with `_`, and `$schema`, are treated as metadata and ignored.
+
+### Minimal example
+
+Save this as `assets/example/datatip/getting_started.json`:
 
 ```json
 {
   "minecraft:diamond": {
-    "type": "text",
-    "text": "A shiny diamond",
-    "color": "#55FFFF"
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {
+        "type": "text",
+        "translate": "example.tooltip.diamond",
+        "color": "aqua",
+        "bold": true
+      },
+      {
+        "type": "progress",
+        "progress": 0.75,
+        "width": 100,
+        "label": "75%",
+        "labelAlign": "right"
+      }
+    ]
   }
 }
 ```
 
-Save this as any JSON file in the resource pack, for example
-`assets/minecraft/datatip/getting_started.json`, then hover a diamond in-game. `datatip.json` is only an
-example filename, not a required name.
+Add the translation outside the DataTip JSON, for example in `assets/example/lang/en_us.json`:
 
-## Content Types
+```json
+{
+  "example.tooltip.diamond": "A shiny diamond"
+}
+```
 
-| Type         | Description        | Example                                                       |
-|--------------|--------------------|---------------------------------------------------------------|
-| `text`       | Text content       | `{"type": "text", "text": "Hello", "color": "white"}`         |
-| `item`       | Item icon          | `{"type": "item", "item": "minecraft:diamond", "size": 32}`   |
-| `block`      | 3D block           | `{"type": "block", "block": "minecraft:stone", "size": 48}`   |
-| `entity`     | 3D entity          | `{"type": "entity", "entity": "minecraft:wolf", "size": 48}`  |
-| `progress`   | Progress bar       | `{"type": "progress", "progress": 0.75, "width": 100}`        |
-| `carousel`   | Carousel container | `{"type": "carousel", "intervalSeconds": 3, "frames": [...]}` |
-| `typewriter` | Typewriter effect  | `{"type": "typewriter", "lines": ["Typing..."]}`              |
-| `atlas`      | Texture rendering  | `{"type": "atlas", "item": "minecraft:apple", "size": 32}`    |
-| `image`      | Image              | `{"type": "image", "texture": "mymod:gui/icon.png"}`          |
-| `chart`      | Chart              | `{"type": "chart", "chartType": "bar", "entries": [...]}`     |
-| `vbox`       | Vertical layout    | `{"type": "vbox", "gap": 4, "children": [...]}`               |
-| `hbox`       | Horizontal layout  | `{"type": "hbox", "gap": 8, "children": [...]}`               |
-| `divider`    | Divider line       | `{"type": "divider", "color": "#555555"}`                     |
-| `spacer`     | Spacing            | `{"type": "spacer", "height": 8}`                             |
+Reload resource packs with `F3 + T` after editing files.
 
-### Content Type Details
+## Vanilla tooltip integration
 
-#### text
-Text content with rich styling options.
+DataTip participates in the Minecraft/Forge tooltip pipeline instead of replacing it:
+
+- Minecraft collects tooltip components, wraps ordinary text, chooses the mouse-side position, and draws the background
+  and border.
+- DataTip measures its prepared content using the same available width that rendering uses.
+- `max_width > 0` is forwarded to the tooltip gather event, so vanilla lines and DataTip content share the configured
+  width.
+- `max_width = 0` keeps the content's natural width until Minecraft's screen-fit rule constrains it. Text is then
+  measured and wrapped again at the actual available width.
+- Height is limited to the physical screen viewport, including the vanilla tooltip margins and the height used by
+  ordinary tooltip components.
+- Content taller than the viewport keeps its semantic layout and scrolls inside the visible DataTip region. It does not
+  enlarge the background beyond the screen.
+- The vanilla background and all four border edges are drawn for the final visible tooltip bounds.
+
+Block and entity nodes render directly through the prepared DataTip draw-command path with scoped render state and
+physical scissoring. Text and other 2D nodes use the same measured layout, so measuring, clipping, and drawing agree.
+
+### Controls
+
+Both controls are registered in Minecraft's Controls screen under the DataTip category and can be remapped:
+
+| Action                 | Default    | Use                                                                   |
+|------------------------|------------|-----------------------------------------------------------------------|
+| Show Detailed Tooltip  | Left Shift | Reveals nodes with `"shift": true`                                    |
+| Scroll Tooltip Content | Left Ctrl  | Hold it and use the mouse wheel when the tooltip exceeds the viewport |
+
+The scroll hint substitutes `%s` with the current mapped key name; it is not hard-coded to Ctrl. DataTip shows one
+merged Shift hint for a tooltip even when several nodes are folded. Changing Shift visibility preserves the current
+scroll session instead of jumping back to the top.
+
+## Entry properties
+
+The object selected by an item key is both the root content node and the entry definition.
+
+| Property     | Default                  | Description                                                                      |
+|--------------|--------------------------|----------------------------------------------------------------------------------|
+| `type`       | required for modern JSON | Root content type                                                                |
+| `prepend`    | `false`                  | Inserts the entry after the item name and before the remaining vanilla lines     |
+| `shift`      | `false`                  | Folds only this node and its subtree until the Show Detailed Tooltip key is held |
+| `conditions` | `{}`                     | AND-combined conditions for this node                                            |
+
+`shift` and `conditions` are common modifiers, so they also work on any nested node—not only the root.
+
+## Common modifiers
+
+Every built-in content type supports the same modifier set.
+
+| Property                                                 | Default   | Description                                                                                                    |
+|----------------------------------------------------------|-----------|----------------------------------------------------------------------------------------------------------------|
+| `offsetX`, `offsetY`                                     | `0`       | Signed 64-bit translation after layout                                                                         |
+| `offsetZ`                                                | `0`       | Signed 64-bit sibling layer order                                                                              |
+| `selfAlignX`                                             | `inherit` | `inherit`, `left`, `center`, `right`; `selfAlign` is an alias                                                  |
+| `selfAlignY`                                             | `inherit` | `inherit`, `top`, `center`, `bottom`                                                                           |
+| `margin`                                                 | `0`       | Sets all four margins                                                                                          |
+| `marginTop`, `marginRight`, `marginBottom`, `marginLeft` | `margin`  | Per-side signed 64-bit margins                                                                                 |
+| `constraints`                                            | none      | Object containing `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`; values are non-negative |
+| `scale`                                                  | `1`       | Uniform scale shorthand                                                                                        |
+| `scaleX`, `scaleY`                                       | `scale`   | Axis-specific positive scale                                                                                   |
+| `rotation`                                               | `0`       | Finite rotation in degrees                                                                                     |
+| `pivotX`, `pivotY`                                       | `0.5`     | Transform pivot from `0` to `1`                                                                                |
+| `opacity`                                                | `1`       | Opacity from `0` to `1`                                                                                        |
+| `visible`                                                | `true`    | Hides the current node when `false`                                                                            |
+| `overflow`                                               | `none`    | `none`, `wrap`, `scale_down` (`scale-down` alias), or `clip`                                                   |
+| `shift`                                                  | `false`   | Shows the node only while the configured detail key is held                                                    |
+| `conditions`                                             | `{}`      | Conditions that must all pass                                                                                  |
+
+Use the explicit `constraints` object when a content type already owns `width` or `height`:
+
 ```json
 {
   "type": "text",
-  "text": "Hello World",
-  "color": "#55FFFF",
-  "bold": true,
-  "align": "center"
+  "text": "Movable and transformable",
+  "offsetX": 8,
+  "offsetY": -3,
+  "offsetZ": 20,
+  "selfAlignX": "center",
+  "margin": 2,
+  "constraints": {"minWidth": 80, "maxWidth": 160},
+  "scaleX": 1.1,
+  "scaleY": 1.1,
+  "rotation": -4,
+  "pivotX": 0.5,
+  "pivotY": 0.5,
+  "opacity": 0.9,
+  "overflow": "wrap"
 }
 ```
 
-#### item
-Render item icon in tooltip.
+The effective order is: natural measurement → constraints → parent alignment → margins → pivot/scale/rotation → XY
+translation → local Z order → overflow and viewport clipping.
+
+### Z order and real overlap
+
+`offsetZ` orders siblings inside their current parent. Smaller values draw first; larger values draw later. Equal values
+preserve JSON source order. A child cannot escape an ancestor's command group, and `offsetZ` does not write to the
+Minecraft world depth buffer.
+
+Use `stack` when nodes must share the same XY area. Z order only changes content that actually overlaps:
+
 ```json
 {
-  "type": "item",
-  "item": "minecraft:diamond",
-  "size": 32,
-  "offsetY": 4
+  "type": "stack",
+  "padding": 2,
+  "horizontalAlign": "center",
+  "verticalAlign": "center",
+  "children": [
+    {"type": "entity", "entity": "minecraft:pig", "size": 68, "offsetZ": -10},
+    {"type": "text", "text": "Text above the pig", "color": "gold", "bold": true, "offsetZ": 10}
+  ]
 }
 ```
 
-#### block
-Render 3D block model with auto-rotation.
+## Built-in content types
+
+| Type         | Purpose                                              |
+|--------------|------------------------------------------------------|
+| `text`       | Literal, language-map, or translation-key text       |
+| `spacer`     | Empty vertical space                                 |
+| `divider`    | Solid, dashed, or dotted line                        |
+| `item`       | Item stack icon                                      |
+| `atlas`      | Flat texture selected from a texture, block, or item |
+| `block`      | Rotating 3D block model                              |
+| `entity`     | Rotating 3D entity model                             |
+| `progress`   | Styled progress bar                                  |
+| `vbox`       | Vertical child layout                                |
+| `hbox`       | Horizontal child layout                              |
+| `stack`      | Shared-XY overlay layout                             |
+| `carousel`   | Timed frame container                                |
+| `typewriter` | Animated text reveal                                 |
+| `image`      | UV region from a texture                             |
+| `chart`      | Bar, line, or pie chart                              |
+
+### Text and localization
+
+A `text` node must provide exactly one of `text` or `translate`:
+
 ```json
 {
-  "type": "block",
-  "block": "minecraft:chest",
-  "size": 48,
-  "autoRotate": true
+    "type": "text",
+    "text": "Literal text"
 }
 ```
 
-#### entity
-Render 3D entity model with auto-rotation.
 ```json
 {
-  "type": "entity",
-  "entity": "minecraft:wolf",
-  "size": 48,
-  "autoRotate": true,
-  "offsetY": 8
+  "type": "text",
+  "text": {
+    "zh_cn": "中文内容",
+    "en_us": "English content"
+  }
 }
 ```
 
-#### progress
-Progress bar with multiple styles.
 ```json
 {
-  "type": "progress",
-  "progress": 0.75,
-  "width": 100,
-  "height": 8,
-  "style": "gradient",
-  "showLabel": true,
-  "label": "75%",
-  "labelAlign": "right"
+    "type": "text",
+    "translate": "example.tooltip.key"
 }
 ```
 
-#### carousel
-Auto-switching multi-frame display.
+Language maps resolve the active language, then `en_us`, then the first entry. Translation keys use the ordinary
+Minecraft language files and can therefore be added without editing the DataTip JSON. The old `trans` property is not
+accepted by the modern parser; the legacy converter rewrites it to `translate`.
+
+| Text property                                   | Default        | Description                                              |
+|-------------------------------------------------|----------------|----------------------------------------------------------|
+| `color`                                         | config default | Named color or `#RRGGBB`                                 |
+| `font`                                          | vanilla font   | Resource location of a font                              |
+| `shadow`                                        | `true`         | Font shadow                                              |
+| `align`                                         | `left`         | `left`, `center`, `right` within the measured text width |
+| `lineHeight`                                    | config/vanilla | Line height; config value `0` means vanilla font height  |
+| `maxWidth`                                      | `0`            | Optional node-local wrap width                           |
+| `bold`, `italic`, `underlined`, `strikethrough` | `false`        | Text styles                                              |
+
+Visible `label` and `title` properties accept a literal string, a language map, styled language entries, or
+`{"translate": "key"}`. Variables are resolved before measurement, so wrapped size and rendering use the same final
+text.
+
+### Layout containers
+
+| Type    | Properties                                                  | Defaults                                    |
+|---------|-------------------------------------------------------------|---------------------------------------------|
+| `vbox`  | `children`, `gap`, `padding`, `align` (`left/center/right`) | `gap: 0`, `padding: 0`, `align: left`       |
+| `hbox`  | `children`, `gap`, `padding`, `align` (`top/center/bottom`) | `gap: 0`, `padding: 0`, `align: top`        |
+| `stack` | `children`, `padding`, `horizontalAlign`, `verticalAlign`   | `padding: 0`, both alignments at `left/top` |
+
+Container size is derived from the measured children, gaps, padding, margins, constraints, and transforms. Offsets move
+the visual result but remain part of the prepared bounds used by the viewport.
+
+### Visual nodes
+
+| Type     | Type-specific properties and defaults                                                                                                                                                                  |
+|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `item`   | `item: minecraft:air`, `count: 1`, `size: 16`, `showCount: true`, `showDurability: true`, `showLabel: false`, optional `label`, `labelColor: #FFFFFF`                                                  |
+| `atlas`  | source priority `texture` → `block` → `item`; `width: 16`, `height: width`, optional `size` overriding both, optional `label`                                                                          |
+| `block`  | `block: minecraft:stone`, `size: 32`, `rotationSpeed: 0.5`, `autoRotate: true`, optional `label`                                                                                                       |
+| `entity` | `entity: minecraft:pig`, `size: 48`, `rotationSpeed: 1.0`, `autoRotate: true`, optional `label`                                                                                                        |
+| `image`  | `texture: minecraft:textures/gui/icons.png`, `width: 64`, `height: 64`, `u: 0`, `v: 0`, `textureWidth: width`, `textureHeight: height`; use the common transforms for placement and final-node scaling |
+
+`block` and `entity` reserve their declared square layout size, include the rotating model's visual bounds, and remain
+clipped to the final physical tooltip viewport rather than to an unrelated intermediate box.
+
+### Divider, spacer, and progress
+
+| Type       | Properties and defaults                                                                                                                                                                                                                                                      |
+|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `spacer`   | `height: 4`                                                                                                                                                                                                                                                                  |
+| `divider`  | `color: #555555`, `thickness: 1`, `width: 0`, `marginTop: 2`, `marginBottom: 2`, `style: solid` (`solid/dashed/dotted`), `widthMode: fill` (`fill/fixed/centered`)                                                                                                           |
+| `progress` | `progress: 0`, `width: 100`, `height: 8`, `colorFg: #55FF55`, `colorBg: #333333`, optional `colorFgLight`/`colorBgDark`, `style: gradient` (`flat/gradient/segmented/animated`), `showLabel: false`, optional `label`, `animated: false`, `animSpeed: 2`, `labelAlign: left` |
+
+### Carousel and typewriter
+
 ```json
 {
   "type": "carousel",
   "intervalSeconds": 3,
+  "transition": "slide",
   "frames": [
-    {"type": "text", "text": "Frame 1"},
-    {"type": "text", "text": "Frame 2"}
+    {"type": "text", "text": "First"},
+    {"type": "item", "item": "minecraft:diamond", "size": 24}
   ]
 }
 ```
 
-#### typewriter
-Animated text reveal effect.
-```json
-{
-  "type": "typewriter",
-  "lines": ["Hello", "World"],
-  "charsPerSecond": 10,
-  "pauseSeconds": 1,
-  "loop": false
-}
-```
+`carousel` defaults to `intervalSeconds: 3` and `transition: fade`; transitions are `none`, `fade`, and `slide`.
 
-Multi-language typewriter:
-```json
-{
-  "type": "typewriter",
-  "lines": {
-    "zh_cn": ["你好", "世界"],
-    "en_us": ["Hello", "World"]
-  },
-  "bold": true,
-  "color": "gold"
-}
-```
+`typewriter` accepts `lines` as a plain array or as a language-code object whose values are arrays. Individual language
+lines may be styled objects. Defaults are `charsPerSecond: 2`, `pauseSeconds: 1`, `loop: false`, `shadow: true`, and
+`align: left`; it also supports the text color, font, line-height, and style properties.
 
-#### atlas
-Render texture from atlas (item/block ID auto-converts).
-```json
-{
-  "type": "atlas",
-  "item": "minecraft:apple",
-  "size": 32
-}
-```
+### Charts
 
-#### image
-Render custom texture image.
-```json
-{
-  "type": "image",
-  "texture": "mymod:textures/gui/icon.png",
-  "width": 32,
-  "height": 32
-}
-```
-
-#### chart
-Bar, pie, or line chart with variable support.
 ```json
 {
   "type": "chart",
   "chartType": "bar",
-  "width": 100,
-  "height": 60,
+  "width": 140,
+  "height": 70,
+  "title": {"translate": "example.chart.title"},
+  "showLabels": true,
+  "showValues": true,
   "entries": [
-    {"label": "X", "value": "{player_x}", "color": "#FF5555"},
-    {"label": "Y", "value": "{player_y}", "color": "#55FF55"}
+    {"label": "Damage", "value": 8, "color": "red"},
+    {"label": "Health", "valueExpr": "{player_health}", "color": "green"}
   ]
 }
 ```
 
-#### vbox / hbox
-Vertical/horizontal layout containers.
-```json
-{
-  "type": "vbox",
-  "gap": 4,
-  "children": [...]
-}
+`chartType` is `bar`, `line`, or `pie`. Defaults: `width: 100`, `height: 60`, `titleColor: #FFFFFF`,
+`labelColor: #AAAAAA`, `valueColor: #FFFFFF`, `zeroLineColor: #888888`, `showLabels: true`, and `showValues: true`.
+Entry values accept numbers, numeric strings, variables, and expressions.
+
+## Variables and expressions
+
+Use variables in visible text and numeric expressions with braces, for example
+`"Durability: {durability}/{max_durability}"`.
+
+| Group     | Variables                                                                                                                                                                                         |
+|-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Item      | `durability`, `max_durability`, `damage`, `count`, `item_name`, `item_id`, `durability_percent`, `enchantment_count`, `is_enchanted`, `rarity`, `max_stack_size`, `is_stackable`, `is_damageable` |
+| Player    | `player_health`, `player_max_health`, `player_hunger`, `player_experience`, `player_x`, `player_y`, `player_z`                                                                                    |
+| World     | `game_time`, `is_day`, `is_raining`, `is_thundering`                                                                                                                                              |
+| Formatted | `durability_bar`, `health_bar`                                                                                                                                                                    |
+| NBT       | `{nbt:path}` reads a dot-separated item NBT path; list indexes use forms such as `display.Lore[0]`                                                                                                |
+
+Synthetic paths `Damage`, `Count`, and `RepairCost` are always available. Other paths read the current stack tag, for
+example `{nbt:display.Name}` or `{nbt:display.Lore[0]}`.
+
+Expressions support arithmetic, comparisons, boolean logic, parentheses, and the ternary operator. Examples:
+
+```text
+{durability_percent} < 20
+{player_health} / {player_max_health} * 100
+{is_raining} && {count} >= 16
+{is_enchanted} ? 1 : 0
 ```
-
-#### divider
-Divider line with multiple styles.
-```json
-{
-  "type": "divider",
-  "color": "#555555",
-  "style": "dashed"
-}
-```
-
-#### spacer
-Empty spacing between content.
-```json
-{
-  "type": "spacer",
-  "height": 8
-}
-```
-
-## Text Properties
-
-| Property        | Type          | Default | Description                                             |
-|-----------------|---------------|---------|---------------------------------------------------------|
-| `text`          | String/Object | -       | Text content (supports multi-language object)           |
-| `color`         | String        | "white" | Color (named or hex, supports expressions)              |
-| `font`          | String        | -       | Custom font (e.g. `minecraft:alt`, `minecraft:uniform`) |
-| `align`         | String        | "left"  | Alignment: `left`, `center`, `right`                    |
-| `bold`          | boolean       | false   | Bold text                                               |
-| `italic`        | boolean       | false   | Italic text                                             |
-| `underlined`    | boolean       | false   | Underlined text                                         |
-| `strikethrough` | boolean       | false   | Strikethrough text                                      |
-| `shift`         | boolean       | false   | Only show when holding Shift                            |
-| `maxWidth`      | int           | 0       | Maximum width (0=no wrap)                               |
-
-By default, DataTip does not impose a global line width. Text is measured at its natural resolved width,
-while Minecraft's tooltip renderer controls final positioning and background bounds. DataTip only wraps
-when a text entry sets `maxWidth` or `max_width` is greater than zero. Variables are resolved before
-measurement, so long item names and NBT values use their real rendered size.
-
-## Progress Bar Properties
-
-| Property     | Type          | Default    | Description                                        |
-|--------------|---------------|------------|----------------------------------------------------|
-| `progress`   | float         | 0.0        | Progress value (0.0-1.0)                           |
-| `width`      | int           | 100        | Width                                              |
-| `height`     | int           | 8          | Height                                             |
-| `colorFg`    | String        | "#55FF55"  | Foreground color                                   |
-| `colorBg`    | String        | "#333333"  | Background color                                   |
-| `style`      | String        | "gradient" | Style: `flat`, `gradient`, `segmented`, `animated` |
-| `showLabel`  | boolean       | false      | Show label                                         |
-| `label`      | String/Object | -          | Custom label text (supports localization)          |
-| `labelAlign` | String        | "left"     | Label alignment: `left`, `center`, `right`         |
-
-## Divider Properties
-
-| Property    | Type   | Default   | Description                        |
-|-------------|--------|-----------|------------------------------------|
-| `color`     | String | "#555555" | Color                              |
-| `style`     | String | "solid"   | Style: `solid`, `dashed`, `dotted` |
-| `width`     | int    | 0         | Width (0=fill)                     |
-| `widthMode` | String | "fill"    | Mode: `fill`, `fixed`, `centered`  |
-
-## Carousel Properties
-
-| Property          | Type   | Default | Description                         |
-|-------------------|--------|---------|-------------------------------------|
-| `frames`          | Array  | -       | Content frames array                |
-| `intervalSeconds` | int    | 3       | Frame switch interval (max 86400s)  |
-| `transition`      | String | "fade"  | Transition: `none`, `fade`, `slide` |
-
-## Typewriter Properties
-
-| Property         | Type         | Default | Description                                                                           |
-|------------------|--------------|---------|---------------------------------------------------------------------------------------|
-| `lines`          | Array/Object | -       | Text lines array (supports multi-language object)                                     |
-| `charsPerSecond` | int          | 2       | Characters per second                                                                 |
-| `pauseSeconds`   | int          | 1       | Pause between lines (seconds)                                                         |
-| `loop`           | boolean      | false   | Replay on re-hover/expand (`true` = replay from start each time, `false` = play once) |
-| `color`          | String       | "white" | Text color                                                                            |
-| `font`           | String       | -       | Custom font                                                                           |
-| `bold`           | boolean      | false   | Bold text                                                                             |
-| `italic`         | boolean      | false   | Italic text                                                                           |
-| `underlined`     | boolean      | false   | Underlined text                                                                       |
-| `strikethrough`  | boolean      | false   | Strikethrough text                                                                    |
-| `align`          | String       | "left"  | Alignment: `left`, `center`, `right`                                                  |
-| `shadow`         | boolean      | true    | Text shadow                                                                           |
-| `lineHeight`     | int          | 9       | Line height in pixels, defaulting to the vanilla font line height                     |
-| `shift`          | boolean      | false   | Only show when holding Shift                                                          |
-
-## Chart Properties
-
-| Property        | Type          | Default   | Description                             |
-|-----------------|---------------|-----------|-----------------------------------------|
-| `chartType`     | String        | "bar"     | Chart type: `bar`, `pie`, `line`        |
-| `width`         | int           | 100       | Width (pie charts: max 128)             |
-| `height`        | int           | 60        | Height (pie charts: max 128)            |
-| `title`         | String/Object | -         | Title (supports localization)           |
-| `entries`       | Array         | -         | Data entries array                      |
-| `titleColor`    | String        | "#FFFFFF" | Title color                             |
-| `labelColor`    | String        | "#AAAAAA" | Label color                             |
-| `valueColor`    | String        | "#FFFFFF" | Value color                             |
-| `zeroLineColor` | String        | "#888888" | Zero line color (for positive/negative) |
-| `showLabels`    | boolean       | true      | Show data labels                        |
-| `showValues`    | boolean       | true      | Show chart values                       |
-
-Chart entry `value` accepts a number, numeric string, or variable expression. `valueExpr` is an equivalent
-explicit field. Entry `label` accepts the same localized value as `title`. Labels that cannot fit their slot
-are hidden, while chart geometry remains inside its width.
-
-## Entity/Item/Block/Atlas/Image Common Properties
-
-| Property  | Type          | Default | Description                                   |
-|-----------|---------------|---------|-----------------------------------------------|
-| `label`   | String/Object | -       | Optional localized label (except `image`)     |
-| `offsetX` | int           | 0       | X-axis offset (positive=right, negative=left) |
-| `offsetY` | int           | 0       | Y-axis offset (positive=down, negative=up)    |
-
-## Variables
-
-| Variable               | Description                                     |
-|------------------------|-------------------------------------------------|
-| `{durability}`         | Current durability                              |
-| `{max_durability}`     | Maximum durability                              |
-| `{damage}`             | Damage value                                    |
-| `{durability_percent}` | Durability percentage                           |
-| `{durability_bar}`     | Durability bar (visual)                         |
-| `{count}`              | Item count                                      |
-| `{item_name}`          | Item name                                       |
-| `{item_id}`            | Item ID                                         |
-| `{enchantment_count}`  | Enchantment count                               |
-| `{is_enchanted}`       | Is enchanted                                    |
-| `{rarity}`             | Rarity                                          |
-| `{max_stack_size}`     | Max stack size                                  |
-| `{is_stackable}`       | Is stackable                                    |
-| `{is_damageable}`      | Is damageable                                   |
-| `{player_health}`      | Player health                                   |
-| `{player_max_health}`  | Player max health                               |
-| `{player_hunger}`      | Player hunger                                   |
-| `{player_experience}`  | Player experience level                         |
-| `{player_x}`           | Player X coordinate                             |
-| `{player_y}`           | Player Y coordinate                             |
-| `{player_z}`           | Player Z coordinate                             |
-| `{game_time}`          | Game time                                       |
-| `{is_day}`             | Is daytime                                      |
-| `{is_raining}`         | Is raining                                      |
-| `{is_thundering}`      | Is thundering                                   |
-| `{health_bar}`         | Health bar (visual)                             |
-| `{nbt:path}`           | Item NBT value (see NBT Variable section below) |
-
-### NBT Variable
-
-Forge 1.20.1 stores item custom data in NBT. Use `{nbt:path}` to read a dot-separated NBT path from the
-current item stack.
-
-```json
-{
-  "type": "text",
-  "text": "Name: {nbt:display.Name}",
-  "color": "white"
-}
-```
-
-**Supported paths:**
-- `display.Name` - Custom item name
-- `display.Lore[0]` - First lore line
-- `Damage` - Damage value
-- `RepairCost` - Repair cost
-- `Enchantments[0].id` - First enchantment id
-- `Count` - Item stack count (synthetic value)
 
 ## Conditions
 
-| Condition    | Description                     | Example                                           |
-|--------------|---------------------------------|---------------------------------------------------|
-| `dimension`  | Dimension                       | `"dimension": "minecraft:the_nether"`             |
-| `biome`      | Biome                           | `"biome": "minecraft:desert"`                     |
-| `holding`    | Held item                       | `"holding": "minecraft:diamond_sword"`            |
-| `sneaking`   | Is sneaking                     | `"sneaking": true`                                |
-| `creative`   | Creative mode                   | `"creative": true`                                |
-| `survival`   | Survival mode                   | `"survival": true`                                |
-| `health`     | Health                          | `"health": "50%"` or `"health": 10`               |
-| `hunger`     | Hunger                          | `"hunger": 15`                                    |
-| `experience` | Experience level                | `"experience": 30`                                |
-| `time`       | Time                            | `"time": "day"` or `"time": 6000`                 |
-| `weather`    | Weather                         | `"weather": "rain"`                               |
-| `light`      | Light level                     | `"light": "dark"` or `"light": 8`                 |
-| `altitude`   | Altitude                        | `"altitude": ">=64"`                              |
-| `enchanted`  | Is enchanted                    | `"enchanted": true`                               |
-| `damage`     | Damage value                    | `"damage": 100`                                   |
-| `count`      | Item count                      | `"count": 16`                                     |
-| `nbt`        | NBT path exists or values match | `"nbt": "display.Name"` or `"nbt": {"Damage": 0}` |
-| `item_tag`   | Item tag                        | `"item_tag": "minecraft:swords"`                  |
+All properties inside `conditions` are AND-combined. Conditions can be placed on the root or any nested node.
 
-Boolean conditions support both `true` and `false`. Unknown `time`, `weather`, and `light` values fail
-closed so a typo cannot accidentally enable content.
-
-### NBT Condition
-
-Check if an item has an NBT path, or if a set of NBT paths matches expected values.
-
-```json
-{
-  "conditions": {
-    "nbt": "display.Name"
-  }
-}
-```
-
-```json
-{
-  "conditions": {
-    "nbt": {
-      "Damage": 0,
-      "RepairCost": 0
-    }
-  }
-}
-```
-
-### Item Tag Condition
-
-Check if item belongs to a specific tag.
-```json
-{
-  "conditions": {
-    "item_tag": "minecraft:swords"
-  }
-}
-```
-
-## Expressions
-
-Supports expressions in text and color:
+| Condition                          | Accepted value                                                      |
+|------------------------------------|---------------------------------------------------------------------|
+| `dimension`                        | Dimension ID                                                        |
+| `biome`                            | Biome ID or array of IDs                                            |
+| `holding`                          | Item ID or array; checks main hand and offhand                      |
+| `sneaking`, `creative`, `survival` | Boolean                                                             |
+| `health`                           | Number, comparison string, or percent string                        |
+| `hunger`, `experience`, `level`    | Number or comparison string                                         |
+| `time`                             | Number, or `day`, `night`, `noon`, `midnight`                       |
+| `weather`                          | `clear`, `rain`, `thunder`                                          |
+| `light`                            | Number/comparison, or `dark`, `dim`, `bright`, `full`               |
+| `altitude`                         | Number or comparison using `>`, `>=`, `<`, `<=`                     |
+| `enchanted`                        | Boolean                                                             |
+| `damage`                           | Maximum accepted current item damage                                |
+| `count`                            | Minimum accepted stack count                                        |
+| `nbt`                              | NBT path that must exist, or an object of paths and expected values |
+| `item_tag`                         | Item tag ID                                                         |
 
 ```json
 {
   "type": "text",
-  "text": "Status: {durability > 100 ? 'Good' : 'Needs repair'}",
-  "color": "{durability > 100 ? 'green' : 'red'}"
+  "text": "Only while damaged, in survival, and below Y=64",
+  "conditions": {
+    "survival": true,
+    "damage": 100,
+    "altitude": "<64"
+  }
 }
 ```
 
-Supported operators:
-- Comparison: `>`, `<`, `==`, `!=`, `>=`, `<=`
-- Logic: `&&`, `||`, `!`
-- Arithmetic: `+`, `-`, `*`, `/`
-- Ternary: `condition ? true_value : false_value`
-
-## Multi-language
-
-All player-visible JSON text supports localization: `text.text`, `typewriter.lines`, `progress.label`,
-`chart.title`, `chart.entries[].label`, and the `label` field of `item`, `block`, `entity`, and `atlas`.
-Containers and carousel frames inherit this behavior from their child content.
-
-Use a language-code map when the wording is owned by the resource pack:
-
-```json
-{
-    "type": "progress",
-    "progress": 0.75,
-    "showLabel": true,
-    "label": {
-        "zh_cn": "资源完整度 75%",
-        "en_us": "Resource integrity 75%"
-    }
-}
-```
-
-Single-value `label`/`title` fields may also use styled language entries, or reference a translation key supplied
-by Minecraft or a mod:
-
-```json
-{
-    "type": "chart",
-    "title": {
-        "zh_cn": {
-            "text": "村民交易指数",
-            "color": "gold",
-            "bold": true
-        },
-        "en_us": {
-            "text": "Villager Trade Index",
-            "color": "gold",
-            "bold": true
-        }
-  },
-    "entries": [
-        {
-            "label": {
-                "trans": "entity.minecraft.villager"
-            },
-            "value": 12
-        }
-    ]
-}
-```
-
-Language selection follows the active Minecraft language. If an exact entry is absent, DataTip falls back to
-`en_us`, then to the first language entry, so localized content does not disappear after a language switch.
-
-## Special Properties
-
-| Property     | Description                                                                                    |
-|--------------|------------------------------------------------------------------------------------------------|
-| `align`      | Alignment: `left`, `center`, `right` (works on all content types)                              |
-| `shift`      | Only show when holding Shift. Multiple `shift: true` items in a container merge into one hint. |
-| `prepend`    | Show after item name (before original content)                                                 |
-| `conditions` | Conditions configuration                                                                       |
+Invalid or unknown condition values fail closed instead of exposing the node.
 
 ## Colors
 
-### Named Colors
+Colors accept `#RRGGBB` or named values: `black`, `dark_blue`, `dark_green`, `dark_aqua`, `dark_red`, `dark_purple`,
+`gold`, `gray`, `dark_gray`, `blue`, `green`, `aqua`, `red`, `light_purple`, `yellow`, `white`, `pink`, `cyan`,
+`magenta`, `lime`, and `brown`. The aliases `orange`, `grey`, `dark_grey`, `light_blue`, `light_green`, and `light_red`
+are also accepted.
 
-| Color               | Hex       |
-|---------------------|-----------|
-| black               | #000000   |
-| dark_blue           | #0000AA   |
-| dark_green          | #00AA00   |
-| dark_aqua           | #00AAAA   |
-| dark_red            | #AA0000   |
-| dark_purple         | #AA00AA   |
-| gold                | #FFAA00   |
-| gray/grey           | #AAAAAA   |
-| dark_gray/dark_grey | #555555   |
-| blue                | #5555FF   |
-| green               | #55FF55   |
-| aqua                | #55FFFF   |
-| red                 | #FF5555   |
-| light_purple        | #FF55FF   |
-| yellow              | #FFFF55   |
-| white               | #FFFFFF   |
-
-### Hex Colors
-
-Any 6-digit hex with `#` prefix: `"#FF6600"`, `"#AABBCC"`, `"#00FF00"`
-
-## JSON Schema
-
-`datatip.schema.json` is an editor helper for DataTip resource-pack JSON files. It provides completion,
-type hints, and basic validation in editors such as IntelliJ IDEA or VS Code. It is not required at
-runtime, and changing it does not change how DataTip loads tooltips in-game.
-
-DataTip automatically exports the schema on client startup. The schema is synchronized with the runtime
-parser and covers modern entries, legacy-compatible forms, wildcards, styled localized text, conditions,
-and every built-in content field:
-
-```text
-.minecraft/datatip.schema.json
-```
-
-Recommended IntelliJ IDEA setup:
-
-1. Start the game once so DataTip exports `.minecraft/datatip.schema.json`.
-2. Open `Settings | Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings`.
-3. Add a new mapping and select `.minecraft/datatip.schema.json`.
-4. Map it to the whole DataTip directory, for example `assets/*/datatip/`, including JSON files below it.
-
-With this setup, resource-pack authors do not need to edit every JSON file or open the mod jar.
-
-Optional per-resource-pack setup:
-
-```text
-MyResourcePack/
-  datatip.schema.json
-  assets/
-    minecraft/
-      datatip/
-        showcase.json
-        equipment/
-          weapons.json
-```
-
-If you copy `.minecraft/datatip.schema.json` to the resource-pack root, you can add this to
-any DataTip JSON file, for example `assets/<namespace>/datatip/showcase.json`:
-
-```json
-{
-  "$schema": "../../../datatip.schema.json",
-  "minecraft:diamond": {
-    "type": "text",
-      "text": "Schema enabled"
-  }
-}
-```
-
-For mod development files under `src/main/resources/assets/<namespace>/datatip/`, either use the IDEA
-mapping above or adjust the `$schema` path to your project layout.
+Configuration colors use signed integer ARGB values.
 
 ## Configuration
 
-File: `config/datatip-common.toml`
+The common configuration file is `config/datatip-common.toml`.
 
-| Option                | Type    | Default    | Description                                      |
-|-----------------------|---------|------------|--------------------------------------------------|
-| `enabled`             | boolean | true       | Enable/disable DataTip                           |
-| `default_color`       | int     | 0xFFAAAAAA | Default text color                               |
-| `default_line_height` | int     | 0          | Default line height (0=vanilla font line height) |
-| `max_width`           | int     | 0          | DataTip width override (0=natural content width) |
-| `shift_hint_color`    | int     | 0xFF888888 | Shift hint text color (ARGB format)              |
+| Option                | Default      | Description                                                                                  |
+|-----------------------|--------------|----------------------------------------------------------------------------------------------|
+| `enabled`             | `true`       | Enables DataTip content                                                                      |
+| `default_color`       | `0xFFAAAAAA` | Default text color as integer ARGB                                                           |
+| `default_line_height` | `0`          | Default line height; `0` uses vanilla font height                                            |
+| `max_width`           | `0`          | Tooltip width override in pixels; `0` uses natural width plus vanilla screen-fit constraints |
+| `shift_hint_color`    | `0xFF888888` | Color of the merged Shift hint                                                               |
 
-## Legacy Format Support
+`max_width` is a width override, not permission to exceed the screen. The final width, wrapping, height viewport,
+position, background, and border still follow the vanilla tooltip pipeline.
 
-Old format is automatically converted to new format. The converted JSON is saved to `.minecraft/datatip_converted/` directory.
+## JSON Schema
 
-**Supported old format:**
+DataTip exports `.minecraft/datatip.schema.json` on startup. Map it in your editor to:
 
-```json
-{
-  "minecraft:diamond": ["Line 1", "Line 2"],
-  "minecraft:diamond_sword": {
-    "text": {"zh_cn": ["Sharp"], "en_us": ["Sharp"]},
-    "color": "gold",
-    "shift": true
-  }
-}
+```text
+assets/*/datatip/**/*.json
 ```
 
-**Converted output:**
-```
-.minecraft/datatip_converted/
-  └── confluence/
-      └── datatip.json
+The schema provides completion and validation for built-in content types, common modifiers, conditions, localization
+shapes, and item selectors. A top-level `$schema` property is allowed and ignored by the runtime. If the schema is
+copied to the resource-pack root, a file under `assets/<namespace>/datatip/` can reference it with the appropriate
+relative path.
+
+The repository also keeps [datatip.schema.json](datatip.schema.json) for development.
+
+## Legacy conversion
+
+The loader detects legacy entries such as objects without `type`, primitive/array forms, and old nested `trans`
+properties. It converts them first and then sends the converted output through the normal modern parser.
+
+- `trans` is normalized to `translate` in converted output.
+- `shift`, `prepend`, and `conditions` are preserved.
+- Modern JSON should use `translate`; `trans` is not a supported modern alias.
+- Converted files are written under `.minecraft/datatip_converted/<resource-namespace>/<resource-path>.json` for
+  inspection.
+
+For example, the resource `example:equipment/weapons` is exported as:
+
+```text
+.minecraft/datatip_converted/example/equipment/weapons.json
 ```
 
-## Complete Example
+## Generated examples
+
+The data generator is the authoritative full-coverage sample. Run:
+
+```powershell
+.\gradlew.bat runData
+```
+
+On Unix-like systems:
+
+```bash
+./gradlew runData
+```
+
+It generates:
+
+```text
+src/generated/resources/assets/minecraft/datatip/showcase.json
+src/generated/resources/assets/minecraft/datatip/all_conditions.json
+```
+
+`showcase.json` covers every built-in content type plus layouts, localization, animation, stacking, translation keys,
+Shift folding, common transforms, constraints, overflow, and viewport stress cases. `all_conditions.json` covers all
+built-in conditions and their common value forms.
+
+## Java API
+
+### Register a content type
+
+```java
+TipContentRegistry.registerParser("my_type",(json, context) ->{
+String value = context.getString(json, "value", "");
+    return new
+
+MyTipContent(value);
+});
+```
+
+### Add or clear runtime content
+
+```java
+TipRuntimeContentRegistry.register(
+    "example:my_item",
+        new TipContentEntry(myContent, List.of(), false,false)
+    );
+
+    TipRuntimeContentRegistry.
+
+clearNamespace("example");
+```
+
+### Register variables, conditions, and named compatibility readers
+
+```java
+VariableResolver.registerVariable("my_value",stack ->"42");
+
+    ConditionChecker.
+
+registerCondition(
+    "my_condition",
+        (value, stack, player, level) ->Boolean.TRUE.
+
+equals(value)
+);
+
+    ComponentReaderRegistry.
+
+register("my_component",reader);
+```
+
+On Forge 1.20.1, registered compatibility readers are referenced as `{component:my_component}`. Built-in item data
+should use `{nbt:path}`.
+
+`TipEventManager` also exposes reload, pre-render, and post-render hooks for mod integrations. Use the data-generation
+builders under `com.cooobird.datatip.datagen` when generating JSON from Java.
+
+## Complete JSON example
+
+The following file is directly usable as `assets/example/datatip/readme_showcase.json`. It covers all 15 built-in
+content types as well as translation keys, common modifiers, Stack/Z ordering, and independent Shift folding:
 
 ```json
 {
   "minecraft:diamond": {
     "type": "vbox",
-    "gap": 4,
+    "gap": 3,
+    "padding": 2,
+    "align": "center",
     "children": [
-      {"type": "text", "text": "Diamond", "color": "#55FFFF", "align": "center"},
-      {"type": "divider", "color": "#555555", "widthMode": "centered", "width": 80},
-      {"type": "text", "text": "A precious gem", "color": "gray", "align": "center"},
-      {"type": "spacer", "height": 4},
-      {"type": "text", "text": "Left aligned", "color": "white", "align": "left"},
-      {"type": "text", "text": "Centered", "color": "gold", "align": "center"},
-      {"type": "text", "text": "Right aligned", "color": "aqua", "align": "right"}
+      {
+        "type": "text",
+        "translate": "example.tooltip.title",
+        "color": "aqua",
+        "bold": true,
+        "selfAlignX": "center"
+      },
+      {
+        "type": "divider",
+        "style": "dashed",
+        "widthMode": "fixed",
+        "width": 150,
+        "color": "dark_aqua"
+      },
+      {
+        "type": "hbox",
+        "gap": 6,
+        "align": "center",
+        "children": [
+          {
+            "type": "item",
+            "item": "minecraft:diamond",
+            "count": 8,
+            "size": 24,
+            "showCount": true
+          },
+          {
+            "type": "progress",
+            "progress": 0.75,
+            "width": 110,
+            "height": 8,
+            "style": "gradient",
+            "label": "75%",
+            "labelAlign": "right"
+          }
+        ]
+      },
+      {
+        "type": "stack",
+        "padding": 3,
+        "horizontalAlign": "center",
+        "verticalAlign": "center",
+        "children": [
+          {
+            "type": "block",
+            "block": "minecraft:diamond_block",
+            "size": 56,
+            "rotationSpeed": 0.6,
+            "offsetZ": -10
+          },
+          {
+            "type": "text",
+            "translate": "example.tooltip.foreground",
+            "color": "yellow",
+            "bold": true,
+            "shadow": true,
+            "offsetX": 4,
+            "offsetY": -2,
+            "offsetZ": 10
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "translate": "example.tooltip.shift_detail",
+        "color": "light_purple",
+        "shift": true
+      }
     ]
   },
-
-  "minecraft:diamond_sword": {
-    "type": "hbox",
-    "gap": 8,
+  "minecraft:carrot_on_a_stick": {
+    "type": "stack",
+    "padding": 4,
+    "horizontalAlign": "center",
+    "verticalAlign": "bottom",
     "children": [
-      {"type": "item", "item": "minecraft:diamond_sword", "size": 32},
-      {"type": "vbox", "gap": 2, "children": [
-        {"type": "text", "text": "Diamond Sword", "color": "aqua", "align": "center"},
-        {"type": "text", "text": "Durability: {durability}/{max_durability}", "color": "gray"},
-        {"type": "text", "text": "Percent: {durability_percent}%", "color": "gold"}
-      ]}
+      {
+        "type": "entity",
+        "entity": "minecraft:pig",
+        "size": 72,
+        "rotationSpeed": 1.0,
+        "autoRotate": true,
+        "offsetZ": -5
+      },
+      {
+        "type": "text",
+        "text": {
+          "zh_cn": "文字位于完整猪模型之上",
+          "en_us": "Text above the complete pig model"
+        },
+        "color": "gold",
+        "bold": true,
+        "offsetY": -4,
+        "offsetZ": 5
+      }
     ]
   },
-
-  "minecraft:diamond_pickaxe": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Diamond Pickaxe", "color": "aqua", "align": "center"},
-      {"type": "progress", "progress": 0.75, "width": 100, "height": 6, "colorFg": "#55FF55", "showLabel": true, "label": "75%", "labelAlign": "right"},
-      {"type": "progress", "progress": 0.5, "width": 100, "height": 8, "style": "segmented"},
-      {"type": "progress", "progress": 0.9, "width": 100, "height": 6, "colorFg": "#FFD700", "animated": true, "animSpeed": 3}
-    ]
-  },
-
-  "minecraft:golden_apple": {
-    "type": "carousel",
-    "intervalSeconds": 10,
-    "frames": [
-      {"type": "vbox", "gap": 2, "children": [
-        {"type": "text", "text": "Golden Apple", "color": "gold", "align": "center"},
-        {"type": "text", "text": "Restores health", "color": "red"}
-      ]},
-      {"type": "vbox", "gap": 2, "children": [
-        {"type": "text", "text": "Golden Apple", "color": "gold", "align": "center"},
-        {"type": "text", "text": "Restores health", "color": "red"}
-      ]},
-      {"type": "vbox", "gap": 2, "children": [
-        {"type": "text", "text": "Golden Apple", "color": "gold", "align": "center"},
-        {"type": "text", "text": "Restores health", "color": "red"}
-      ]}
-    ]
-  },
-
-  "minecraft:nether_star": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Nether Star", "color": "light_purple", "align": "center"},
-      {"type": "typewriter", "lines": ["Boss drop", "Used for beacon", "Rare item"], "charsPerSecond": 10, "pauseSeconds": 1, "color": "gray"}
-    ]
-  },
-
-  "minecraft:stone": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Stone", "color": "gray"},
-      {"type": "divider", "color": "#555555", "style": "solid"},
-      {"type": "text", "text": "Above solid line", "color": "white"},
-      {"type": "divider", "color": "#555555", "style": "dashed"},
-      {"type": "text", "text": "Above dashed line", "color": "white"},
-      {"type": "divider", "color": "#555555", "style": "dotted"},
-      {"type": "text", "text": "Above dotted line", "color": "white"}
-    ]
-  },
-
-  "minecraft:bow": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Durability: {durability}/{max_durability}", "color": "gray"},
-      {"type": "text", "text": "Percent: {durability_percent}%", "color": "gold"},
-      {"type": "text", "text": "Durability bar: {durability_bar}", "color": "green"},
-      {"type": "text", "text": "Health bar: {health_bar}", "color": "red"}
-    ]
-  },
-
-  "minecraft:iron_ingot": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Iron Ingot", "color": "white", "align": "center"},
-      {"type": "divider", "color": "#555555", "widthMode": "centered", "width": 60},
-      {"type": "text", "text": "Health: {player_health}/{player_max_health}", "color": "red"},
-      {"type": "text", "text": "Hunger: {player_hunger}", "color": "gold"},
-      {"type": "text", "text": "Experience: {player_experience}", "color": "green"}
-    ]
-  },
-
   "minecraft:clock": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Time: {game_time}", "color": "gold"},
-      {"type": "text", "text": "Daytime: {is_day}", "color": "yellow"},
-      {"type": "text", "text": "Raining: {is_raining}", "color": "aqua"},
-      {"type": "text", "text": "Thundering: {is_thundering}", "color": "red"}
-    ]
-  },
-
-  "#minecraft:swords": {
-    "type": "text",
-    "text": "All swords", "color": "yellow"
-  },
-
-  "minecraft:diamond_block": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Diamond Block", "color": "aqua", "align": "center"},
-      {"type": "text", "text": "Only in Nether", "color": "dark_red"}
-    ],
-    "conditions": {
-      "dimension": "minecraft:the_nether"
-    }
-  },
-
-  "minecraft:emerald_block": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Emerald Block", "color": "green"},
-      {"type": "text", "text": "Hold Shift to see this", "color": "gray", "shift": true}
-    ]
-  },
-
-  "minecraft:gold_block": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Gold Block", "color": "gold"},
-      {"type": "text", "text": "Hold Shift for full tooltip", "color": "gray"},
-      {"type": "text", "text": "All content will be folded", "color": "yellow"}
-    ],
-    "shift": true
-  },
-
-  "minecraft:iron_block": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Iron Block", "color": "white"},
-      {"type": "text", "text": "This shows after item name", "color": "gray"}
-    ],
-    "prepend": true
-  },
-
-  "minecraft:enchanted_golden_apple": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Enchanted Golden Apple", "color": "gold", "bold": true, "align": "center"},
-      {"type": "divider", "color": "#FFD700", "widthMode": "centered", "width": 80},
-      {"type": "hbox", "gap": 8, "children": [
-        {"type": "item", "item": "minecraft:enchanted_golden_apple", "size": 32},
-        {"type": "vbox", "gap": 2, "children": [
-          {"type": "text", "text": "Rare food", "color": "light_purple"},
-          {"type": "progress", "progress": 1.0, "width": 80, "height": 6, "colorFg": "#FFD700", "showLabel": true, "label": "Full", "labelAlign": "left"}
-        ]}
-      ]},
-      {"type": "text", "text": "Durability bar: {durability_bar}", "color": "gray"},
-      {"type": "text", "text": "Health bar: {health_bar}", "color": "red"}
-    ]
-  },
-
-  "minecraft:wolf_spawn_egg": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Wolf Spawn Egg", "color": "white", "align": "center"},
-      {"type": "entity", "entity": "minecraft:wolf", "size": 48, "rotationSpeed": 1.0, "autoRotate": true},
-      {"type": "text", "text": "Can be tamed", "color": "gray"}
-    ]
-  },
-
-  "minecraft:crafting_table": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Crafting Table", "color": "white", "align": "center"},
-      {"type": "block", "block": "minecraft:crafting_table", "size": 48, "rotationSpeed": 0.5, "autoRotate": true},
-      {"type": "text", "text": "Used for crafting", "color": "gray"}
-    ]
-  },
-
-  "minecraft:apple": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Apple", "color": "red", "align": "center"},
-      {"type": "atlas", "item": "minecraft:apple", "size": 32},
-      {"type": "text", "text": "Restores hunger", "color": "gray"}
-    ]
-  },
-
-  "minecraft:red_concrete": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Red Concrete", "color": "red", "align": "center"},
-      {"type": "atlas", "block": "minecraft:red_concrete", "size": 32},
-      {"type": "text", "text": "Decorative block", "color": "gray"}
-    ]
-  },
-
-  "minecraft:iron_sword": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Iron Sword", "color": "white", "align": "center"},
-      {"type": "text", "text": "Status: {durability > 100 ? 'Good' : 'Needs repair'}", "color": "{durability > 100 ? 'green' : 'red'}"},
-      {"type": "text", "text": "Durability: {durability}/{max_durability} ({durability_percent}%)", "color": "gray"}
-    ]
-  },
-
-  "minecraft:ender_pearl": {
-    "type": "text",
-    "text": {
-      "zh_cn": "末影珍珠 - 可用于传送",
-      "en_us": "Ender Pearl - Can be used for teleportation"
-    },
-    "color": "#00AAAA"
-  },
-
-  "minecraft:coal": {
-    "type": "vbox",
-    "gap": 0,
-    "children": [
-      {"type": "text", "text": "Coal", "color": "gray"},
-      {"type": "spacer", "height": 8},
-      {"type": "text", "text": "8px spacer above", "color": "white"}
-    ]
-  },
-
-  "minecraft:emerald": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Bold text", "color": "green", "bold": true},
-      {"type": "text", "text": "Italic text", "color": "green", "italic": true},
-      {"type": "text", "text": "Underlined text", "color": "green", "underlined": true},
-      {"type": "text", "text": "Strikethrough text", "color": "green", "strikethrough": true}
-    ]
-  },
-
-  "minecraft:compass": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Compass", "color": "#FF5555", "bold": true},
-      {"type": "text", "text": "Position: {player_x}, {player_y}, {player_z}", "color": "white"},
-      {"type": "chart", "chartType": "bar", "width": 100, "height": 60,
-       "entries": [
-         {"label": "X", "value": "{player_x}", "color": "#FF5555"},
-         {"label": "Y", "value": "{player_y}", "color": "#55FF55"},
-         {"label": "Z", "value": "{player_z}", "color": "#5555FF"}
-       ]
-      }
-    ]
-  },
-
-  "minecraft:redstone": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Redstone", "color": "#FF0000", "bold": true},
-      {"type": "chart", "chartType": "pie", "width": 80,
-       "entries": [
-         {"label": "Redstone Dust", "value": 60, "color": "#FF0000"},
-         {"label": "Redstone Torch", "value": 25, "color": "#FF5555"},
-         {"label": "Redstone Repeater", "value": 15, "color": "#FFAAAA"}
-       ]
-      }
-    ]
-  },
-
-  "minecraft:wheat_seeds": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Wheat Seeds", "color": "#55AA55", "bold": true},
-      {"type": "chart", "chartType": "line", "width": 100, "height": 60,
-       "entries": [
-         {"label": "1", "value": 10, "color": "#55AA55"},
-         {"label": "2", "value": 25, "color": "#55AA55"},
-         {"label": "3", "value": 45, "color": "#55AA55"},
-         {"label": "4", "value": 40, "color": "#55AA55"},
-         {"label": "5", "value": 60, "color": "#55AA55"}
-       ]
-      }
-    ]
-  },
-
-  "minecraft:painting": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "Painting", "color": "#AAAAAA", "bold": true},
-      {"type": "entity", "entity": "minecraft:painting", "size": 48, "autoRotate": false, "offsetY": 8},
-      {"type": "text", "text": "Decorative item", "color": "gray"}
-    ]
-  },
-    "minecraft:emerald_ore": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Multiple shift items merge into one hint", "color": "green"},
-      {"type": "text", "text": "Hold Shift to reveal", "color": "gray", "shift": true},
-      {"type": "text", "text": "All folded into one line", "color": "gray", "shift": true},
-      {"type": "text", "text": "No more duplicate hints", "color": "gray", "shift": true}
-    ]
-  },
-
-  "minecraft:enchanted_book": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Typewriter + loop replay on hover", "color": "light_purple", "bold": true},
-      {"type": "typewriter", "lines": [
-        "Plays from start on each hover",
-        "loop:true with gap detection",
-        "Try unhovering and re-hovering"
-      ], "charsPerSecond": 6, "pauseSeconds": 1, "loop": true, "color": "gray"}
-    ]
-  },
-    "minecraft:netherite_upgrade_smithing_template": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "Typewriter + shift replay on expand", "color": "white", "bold": true},
-      {"type": "typewriter", "lines": [
-        "Hold Shift to reveal",
-        "Replays from start each time",
-        "Try releasing and re-pressing Shift"
-      ], "charsPerSecond": 8, "pauseSeconds": 1, "loop": true, "color": "gray", "shift": true}
-    ]
-    },
-    "minecraft:amethyst_shard": {
-        "type": "vbox",
-        "gap": 3,
-        "children": [
-            {
-                "type": "progress",
-                "progress": 0.25,
-                "width": 150,
-                "height": 6,
-                "style": "flat",
-                "label": "Flat · Left",
-                "showLabel": true,
-                "labelAlign": "left"
-            },
-            {
-                "type": "progress",
-                "progress": 0.5,
-                "width": 150,
-                "height": 6,
-                "style": "gradient",
-                "label": {
-                    "zh_cn": "渐变 · 居中",
-                    "en_us": "Gradient · Center"
-                },
-                "showLabel": true,
-                "labelAlign": "center"
-            },
-            {
-                "type": "progress",
-                "progress": 0.75,
-                "width": 150,
-                "height": 6,
-                "style": "segmented",
-                "label": "Segmented · Right",
-                "showLabel": true,
-                "labelAlign": "right"
-            },
-            {
-                "type": "progress",
-                "progress": 0.9,
-                "width": 150,
-                "height": 6,
-                "style": "animated",
-                "animated": true,
-                "animSpeed": 2,
-                "label": "Animated",
-                "showLabel": true,
-                "labelAlign": "center"
-            }
-        ]
-    },
-    "minecraft:copper_ingot": {
-        "type": "carousel",
-        "intervalSeconds": 4,
-        "transition": "fade",
-        "frames": [
-            {
-                "type": "text",
-                "text": {
-                    "zh_cn": "淡入淡出",
-                    "en_us": "Fade"
-                }
-            },
-            {
-                "type": "item",
-                "item": "minecraft:copper_ingot",
-                "size": 28
-            },
-            {
-                "type": "block",
-                "block": "minecraft:copper_block",
-                "size": 34,
-                "autoRotate": true
-            }
-        ]
-    },
-    "minecraft:echo_shard": {
-        "type": "carousel",
-        "intervalSeconds": 4,
-        "transition": "slide",
-        "frames": [
-            {
-                "type": "entity",
-                "entity": "minecraft:pig",
-                "size": 38,
-                "autoRotate": true
-            },
-            {
-                "type": "atlas",
-                "item": "minecraft:echo_shard",
-                "size": 32
-            }
-        ]
-    },
-    "minecraft:recovery_compass": {
-        "type": "carousel",
-        "intervalSeconds": 4,
-        "transition": "none",
-        "frames": [
-            {
-                "type": "text",
-                "text": "Frame A"
-            },
-            {
-                "type": "text",
-                "text": "Frame B"
-            }
-        ]
-    },
-    "minecraft:filled_map": {
+    "type": "carousel",
+    "intervalSeconds": 3,
+    "transition": "slide",
+    "frames": [
+      {
+        "type": "atlas",
+        "item": "minecraft:clock",
+        "size": 32,
+        "label": {"translate": "item.minecraft.clock"}
+      },
+      {
         "type": "image",
-        "texture": "minecraft:textures/map/map_background.png",
-        "width": 64,
-        "height": 64,
-        "u": 0,
-        "v": 0,
-        "textureWidth": 128,
-        "textureHeight": 128,
-        "scale": 0.75,
-        "offsetX": 2,
-        "offsetY": 2
-    },
-    "minecraft:name_tag": {
-        "type": "vbox",
-        "gap": 2,
-        "prepend": true,
-        "children": [
-            {
-                "type": "text",
-                "text": "Name: {nbt:display.Name}",
-                "color": "white"
-            },
-            {
-                "type": "text",
-                "text": "Damage: {nbt:Damage}/{max_durability}",
-                "color": "gray"
-            },
-            {
-                "type": "text",
-                "text": "RepairCost: {nbt:RepairCost}",
-                "color": "gold"
-            }
+        "texture": "minecraft:textures/item/clock_00.png",
+        "width": 32,
+        "height": 32,
+        "textureWidth": 32,
+        "textureHeight": 32
+      },
+      {
+        "type": "typewriter",
+        "lines": {
+          "zh_cn": ["轮播第三帧", "打字机文本"],
+          "en_us": ["Carousel frame three", "Typewriter text"]
+        },
+        "charsPerSecond": 16,
+        "pauseSeconds": 1,
+        "loop": true,
+        "color": "white",
+        "align": "center"
+      }
+    ]
+  },
+  "minecraft:slime_ball": {
+    "type": "vbox",
+    "gap": 3,
+    "children": [
+      {"type": "spacer", "height": 4},
+      {
+        "type": "chart",
+        "chartType": "bar",
+        "width": 150,
+        "height": 60,
+        "title": {"translate": "example.tooltip.chart"},
+        "showLabels": true,
+        "showValues": true,
+        "entries": [
+          {"label": "A", "value": 3, "color": "red"},
+          {"label": "B", "value": 7, "color": "green"},
+          {"label": "C", "valueExpr": "{count}", "color": "blue"}
         ]
+      }
+    ]
   }
 }
 ```
 
-Datagen also writes `10_all_conditions.json`, covering every 1.20.1 condition and its common value forms:
-
-```json
-{
-    "minecraft:grass_block": {
-        "type": "text",
-        "text": "dimension",
-        "conditions": {
-            "dimension": "minecraft:overworld"
-        }
-    },
-    "minecraft:oak_sapling": {
-        "type": "text",
-        "text": "biome array",
-        "conditions": {
-            "biome": [
-                "minecraft:plains",
-                "minecraft:forest"
-            ]
-        }
-    },
-    "minecraft:map": {
-        "type": "text",
-        "text": "holding array",
-        "conditions": {
-            "holding": [
-                "minecraft:compass",
-                "minecraft:recovery_compass"
-            ]
-        }
-    },
-    "minecraft:feather": {
-        "type": "text",
-        "text": "sneaking true",
-        "conditions": {
-            "sneaking": true
-        }
-    },
-    "minecraft:flint": {
-        "type": "text",
-        "text": "sneaking false",
-        "conditions": {
-            "sneaking": false
-        }
-    },
-    "minecraft:command_block": {
-        "type": "text",
-        "text": "creative",
-        "conditions": {
-            "creative": true
-        }
-    },
-    "minecraft:wooden_sword": {
-        "type": "text",
-        "text": "survival",
-        "conditions": {
-            "survival": true
-        }
-    },
-    "minecraft:golden_apple": {
-        "type": "text",
-        "text": "health",
-        "conditions": {
-            "health": "50%"
-        }
-    },
-    "minecraft:bread": {
-        "type": "text",
-        "text": "hunger",
-        "conditions": {
-            "hunger": 15
-        }
-    },
-    "minecraft:experience_bottle": {
-        "type": "text",
-        "text": "experience",
-        "conditions": {
-            "experience": 5
-        }
-    },
-    "minecraft:bookshelf": {
-        "type": "text",
-        "text": "level",
-        "conditions": {
-            "level": 5
-        }
-    },
-    "minecraft:sunflower": {
-        "type": "text",
-        "text": "time",
-        "conditions": {
-            "time": "day"
-        }
-    },
-    "minecraft:clock": {
-        "type": "text",
-        "text": "time number",
-        "conditions": {
-            "time": 6000
-        }
-    },
-    "minecraft:lightning_rod": {
-        "type": "text",
-        "text": "weather",
-        "conditions": {
-            "weather": "clear"
-        }
-    },
-    "minecraft:torch": {
-        "type": "text",
-        "text": "light",
-        "conditions": {
-            "light": "bright"
-        }
-    },
-    "minecraft:glowstone": {
-        "type": "text",
-        "text": "light number",
-        "conditions": {
-            "light": 8
-        }
-    },
-    "minecraft:scaffolding": {
-        "type": "text",
-        "text": "altitude",
-        "conditions": {
-            "altitude": ">=64"
-        }
-    },
-    "minecraft:stick": {
-        "type": "text",
-        "text": "enchanted",
-        "conditions": {
-            "enchanted": false
-        }
-    },
-    "minecraft:diamond_pickaxe": {
-        "type": "text",
-        "text": "damage",
-        "conditions": {
-            "damage": 100
-        }
-    },
-    "minecraft:cobblestone": {
-        "type": "text",
-        "text": "count",
-        "conditions": {
-            "count": 16
-        }
-    },
-    "minecraft:name_tag": {
-        "type": "text",
-        "text": "nbt path",
-        "conditions": {
-            "nbt": "display.Name"
-        }
-    },
-    "minecraft:paper": {
-        "type": "text",
-        "text": "nbt values",
-        "conditions": {
-            "nbt": {
-                "Damage": 0,
-                "RepairCost": 0
-            }
-        }
-    },
-    "minecraft:iron_sword": {
-        "type": "text",
-        "text": "item_tag",
-        "conditions": {
-            "item_tag": "minecraft:swords"
-        }
-    },
-    "minecraft:diamond_block": {
-        "type": "text",
-        "text": "combined",
-        "conditions": {
-            "dimension": "minecraft:overworld",
-            "creative": false,
-            "health": 1,
-            "count": 1
-        }
-    }
-}
-```
-
-## For Mod Developers
-
-### Datagen and TipContentBuilder
-
-Running client datagen makes `DatatipDataGen` register `ExampleTooltipProvider`, which generates `00_showcase.json` for
-every content,
-layout, localization, and animation combination, plus `10_all_conditions.json` for every 1.20.1 condition.
-All example content is constructed through `TipContentBuilder`:
-
-```java
-import static com.cooobird.datatip.datagen.TipContentBuilder.*;
-
-root.add("minecraft:clock",toJson(carousel(4, "fade",
-         langText(languages("淡入淡出文本", "Fade text"), "gold"),
-
-item("minecraft:clock",1,28,false,false,true,
-     languages("物品帧", "Item frame"), "#FFAA00",0,0),
-
-image("minecraft:textures/item/clock_00.png",16,16,
-          0,0,16,16,1.5f,0,0)
-)));
-
-    root.
-
-add("minecraft:name_tag",entry(
-    text("Requires custom-name NBT", "yellow"),
-    Map.
-
-of("nbt","display.Name"), false,true
-    ));
-```
-
-See `ExampleShowcaseTooltips` and `ExampleConditionTooltips` for complete Builder coverage.
-
-### Register Runtime Tooltip Content
-
-Runtime content is not written to resource packs, but it is displayed together with JSON-loaded DataTip content.
-
-```java
-TipRuntimeContentRegistry.register(
-    "minecraft:diamond",
-    TextContent.of("DataTip registered from code")
-);
-
-    TipRuntimeContentRegistry.
-
-register(
-    "#minecraft:swords",
-        new TipContentEntry(TextContent.of("Extra sword tooltip"),List.
-
-of(), false,true)
-    );
-```
-
-Runtime content can also be removed by namespace:
-
-```java
-TipRuntimeContentRegistry.clearNamespace("mymod");
-```
-
-### Register Custom Variables
-```java
-VariableResolver.registerVariable("my_var", stack -> "custom_value");
-```
-
-### Register Custom Conditions
-```java
-ConditionChecker.registerCondition("my_condition", (value, stack, player, level) -> {
-    return player.getAbsorptionAmount() > 0;
-});
-```
-
-Then use in JSON:
-```json
-{
-  "conditions": {
-    "my_condition": true
-  }
-}
-```
-
-### Event Hooks
-
-`onAppendLines` runs during tooltip collection, even when the item has no matching DataTip content.
-
-```java
-// Pre-render event (modify or cancel)
-TipEventManager.onPreRender(event -> {
-    event.setItemStack(customStack);
-    // or event.cancel() to cancel rendering
-});
-
-// Append extra tooltip lines
-    TipEventManager.
-
-onAppendLines(event ->{
-    event.
-
-addLine("Extra info from other mod");
-});
-
-// Variable resolve event (inject custom variables)
-TipEventManager.onResolveVariable(event -> {
-    if (event.getVariableName().equals("custom_var")) {
-        event.setValue("custom_value");
-    }
-});
-```
-
-## Hot Reload
-
-Press F3+T to reload client resource packs and tooltips without restarting. `/reload` only reloads
-server data packs and does not replace a client resource reload.
+Translation keys used by the example can be placed in `assets/example/lang/en_us.json` and
+`assets/example/lang/zh_cn.json`. The generated `showcase.json` remains the exhaustive stress-test reference.
 
 ## License
 
-GNU LGPL 3.0
+DataTip is licensed under the GNU Lesser General Public License 3.0. See [LICENSE](LICENSE).

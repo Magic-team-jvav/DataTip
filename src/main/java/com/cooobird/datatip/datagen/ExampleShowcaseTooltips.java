@@ -1,5 +1,6 @@
 package com.cooobird.datatip.datagen;
 
+import com.cooobird.datatip.api.node.TipModifiers;
 import com.google.gson.JsonObject;
 
 import java.util.List;
@@ -8,7 +9,7 @@ import java.util.Map;
 import static com.cooobird.datatip.datagen.TipContentBuilder.*;
 
 /**
- * 使用 TipContentBuilder 覆盖全部内容类型、布局、文本形式和动画组合。
+ * 使用 TipContentBuilder 覆盖全部内容类型及代表性布局、文本和动画组合。
  */
 final class ExampleShowcaseTooltips {
     private ExampleShowcaseTooltips() {
@@ -42,7 +43,7 @@ final class ExampleShowcaseTooltips {
             langText(languages("NBT 变量", "NBT variables"), "yellow", true, false, false, false),
             text("Name: {nbt:display.Name}", "white"),
             text("Damage: {nbt:Damage}/{max_durability}", "gray"),
-            text("RepairCost: {nbt:RepairCost}", "gold")
+            text("Quality: {nbt:quality}", "gold")
         ), Map.of(), false, true));
 
         root.add("minecraft:diamond_pickaxe", toJson(vbox(3,
@@ -115,6 +116,29 @@ final class ExampleShowcaseTooltips {
         root.add("minecraft:filled_map", toJson(image(
             "minecraft:textures/map/map_background.png", 64, 64,
             0, 0, 128, 128, 0.75f, 2, 2)));
+        root.add("minecraft:nether_star", toJson(stack(
+            2,
+            "center",
+            "center",
+            modifiers(
+                block("minecraft:obsidian", 42),
+                false,
+                -20,
+                TipModifiers.SelfAlignment.CENTER
+            ),
+            modifiers(
+                item("minecraft:nether_star"),
+                false,
+                0,
+                TipModifiers.SelfAlignment.CENTER
+            ),
+            modifiers(
+                translate("datatip.example.stack_foreground"),
+                true,
+                20,
+                TipModifiers.SelfAlignment.CENTER
+            )
+        )));
         root.add("#minecraft:swords", toJson(langText(languages("标签匹配", "Tag match"), "aqua")));
         root.add("minecraft:*_axe", toJson(langText(languages("通配符匹配", "Wildcard match"), "yellow")));
         return root;

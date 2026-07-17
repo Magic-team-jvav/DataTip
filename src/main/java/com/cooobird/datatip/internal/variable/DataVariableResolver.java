@@ -1,10 +1,11 @@
 package com.cooobird.datatip.internal.variable;
 
+import com.cooobird.datatip.api.condition.ComponentReaderRegistry;
 import com.cooobird.datatip.internal.nbt.NbtPathReader;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * 解析 Forge 1.20.1 的 {nbt:path} 变量。
+ * 解析 Forge 1.20.1 的物品数据变量。
  */
 public final class DataVariableResolver {
     private DataVariableResolver() {
@@ -16,7 +17,11 @@ public final class DataVariableResolver {
         while (i < text.length()) {
             DataVariable dataVariable = read(text, i);
             if (dataVariable != null) {
-                result.append(NbtPathReader.readAsString(stack, dataVariable.path()));
+                String value = switch (dataVariable.source()) {
+                    case NBT -> NbtPathReader.readAsString(stack, dataVariable.path());
+                    case COMPONENT -> ComponentReaderRegistry.read(stack, dataVariable.path());
+                };
+                if (value != null) result.append(value);
                 i = dataVariable.endIndex() + 1;
                 continue;
             }
@@ -28,18 +33,34 @@ public final class DataVariableResolver {
     }
 
     private static DataVariable read(String text, int start) {
-        if (!text.startsWith("{nbt:", start)) {
+        DataSource source;
+        int pathStart;
+        if (text.startsWith("{nbt:", start)) {
+            source = DataSource.NBT;
+            pathStart = start + 5;
+        } else if (text.startsWith("{custom_data:", start)) {
+            source = DataSource.NBT;
+            pathStart = start + 13;
+        } else if (text.startsWith("{component:", start)) {
+            source = DataSource.COMPONENT;
+            pathStart = start + 11;
+        } else {
             return null;
         }
 
         int end = text.indexOf('}', start);
-        if (end <= start + 5) {
+        if (end <= pathStart) {
             return null;
         }
 
-        return new DataVariable(text.substring(start + 5, end), end);
+        return new DataVariable(text.substring(pathStart, end), end, source);
     }
 
-    private record DataVariable(String path, int endIndex) {
+    private record DataVariable(String path, int endIndex, DataSource source) {
+    }
+
+    private enum DataSource {
+        NBT,
+        COMPONENT
     }
 }

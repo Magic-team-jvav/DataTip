@@ -28,7 +28,7 @@ final class LocalizedTextJsonWriter {
         if (component instanceof LocalizedText localized) return toJson(localized);
         if (component.getContents() instanceof TranslatableContents translatable) {
             JsonObject object = new JsonObject();
-            object.addProperty("trans", translatable.getKey());
+            object.addProperty("translate", translatable.getKey());
             return object;
         }
         return componentValue(component);

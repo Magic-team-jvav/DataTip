@@ -84,15 +84,13 @@ public class AtlasContentParser implements ContentParser {
             : null;
 
         // 获取偏移量
-        int offsetX = context.getInt(json, "offsetX", 0);
-        int offsetY = context.getInt(json, "offsetY", 0);
 
         // 优先级：texture > block > item
         // 1. 直接指定纹理路径
         if (context.has(json, "texture")) {
             String textureStr = context.getString(json, "texture", "");
             ResourceLocation texturePath = ResourceLocation.parse(textureStr);
-            return new AtlasContent(texturePath, width, height, label, offsetX, offsetY);
+            return new AtlasContent(texturePath, width, height, label, 0, 0);
         }
 
         // 2. 从方块 ID 自动转换
@@ -101,7 +99,7 @@ public class AtlasContentParser implements ContentParser {
             ResourceLocation blockId = ResourceLocation.parse(blockStr);
             ResourceLocation texture = ResourceLocation.fromNamespaceAndPath(
                 blockId.getNamespace(), "textures/block/" + blockId.getPath() + ".png");
-            return new AtlasContent(texture, width, height, label, offsetX, offsetY);
+            return new AtlasContent(texture, width, height, label, 0, 0);
         }
 
         // 3. 从物品 ID 自动转换
@@ -110,7 +108,7 @@ public class AtlasContentParser implements ContentParser {
             ResourceLocation itemId = ResourceLocation.parse(itemStr);
             ResourceLocation texture = ResourceLocation.fromNamespaceAndPath(
                 itemId.getNamespace(), "textures/item/" + itemId.getPath() + ".png");
-            return new AtlasContent(texture, width, height, label, offsetX, offsetY);
+            return new AtlasContent(texture, width, height, label, 0, 0);
         }
 
         // 默认返回石头纹理

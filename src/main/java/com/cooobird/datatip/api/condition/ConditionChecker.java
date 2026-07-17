@@ -1,5 +1,8 @@
 package com.cooobird.datatip.api.condition;
 
+import com.cooobird.datatip.api.session.ItemStackFingerprint;
+import com.cooobird.datatip.api.session.TooltipSession;
+import com.cooobird.datatip.api.session.TooltipSessionContext;
 import com.cooobird.datatip.internal.condition.BuiltInConditions;
 import com.cooobird.datatip.internal.condition.ConditionCache;
 import net.minecraft.client.Minecraft;
@@ -12,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 条件检查器。
@@ -28,6 +32,7 @@ public class ConditionChecker {
      * 自定义条件注册表。
      */
     private static final Map<String, CustomCondition> CUSTOM_CONDITIONS = new ConcurrentHashMap<>();
+    private static final AtomicLong REVISION = new AtomicLong();
 
     /**
      * 自定义条件接口。
@@ -55,8 +60,11 @@ public class ConditionChecker {
      */
     public static void registerCondition(String type, CustomCondition condition) {
         String normalizedType = normalizeType(type);
-        CUSTOM_CONDITIONS.put(normalizedType, Objects.requireNonNull(condition, "condition"));
-        clearCache();
+        CustomCondition replacement = Objects.requireNonNull(condition, "condition");
+        if (CUSTOM_CONDITIONS.put(normalizedType, replacement) != replacement) {
+            REVISION.incrementAndGet();
+            clearCache();
+        }
     }
 
     /**
@@ -64,8 +72,15 @@ public class ConditionChecker {
      */
     public static boolean unregisterCondition(String type) {
         boolean removed = CUSTOM_CONDITIONS.remove(normalizeType(type)) != null;
-        if (removed) clearCache();
+        if (removed) {
+            REVISION.incrementAndGet();
+            clearCache();
+        }
         return removed;
+    }
+
+    public static long getRevision() {
+        return REVISION.get();
     }
 
     /**
@@ -83,9 +98,13 @@ public class ConditionChecker {
         Level level = mc.level;
 
         if (player == null || level == null) return false;
+        TooltipSession session = TooltipSessionContext.current();
+        ItemStackFingerprint item = session != null
+            ? session.dependencies().itemFingerprint()
+            : ItemStackFingerprint.capture(stack);
 
         for (Condition condition : conditions) {
-            if (!check(condition, stack, player, level)) return false;
+            if (!check(condition, stack, item, player, level)) return false;
         }
         return true;
     }
@@ -97,8 +116,14 @@ public class ConditionChecker {
         ConditionCache.clear();
     }
 
-    private static boolean check(Condition condition, ItemStack stack, Player player, Level level) {
-        Boolean cached = ConditionCache.get(condition, stack, player, level);
+    private static boolean check(
+        Condition condition,
+        ItemStack stack,
+        ItemStackFingerprint item,
+        Player player,
+        Level level
+    ) {
+        Boolean cached = ConditionCache.get(condition, item);
         if (cached != null) return cached;
 
         boolean result;
@@ -108,7 +133,7 @@ public class ConditionChecker {
             result = false;
         }
 
-        ConditionCache.put(condition, stack, player, level, result);
+        ConditionCache.put(condition, item, result);
         return result;
     }
 
@@ -127,8 +152,9 @@ public class ConditionChecker {
      * @param value 条件值
      */
     public record Condition(String type, Object value) {
-        public Condition {
-            type = normalizeType(type);
+        public Condition(String type, Object value) {
+            this.type = normalizeType(type);
+            this.value = value;
         }
     }
 

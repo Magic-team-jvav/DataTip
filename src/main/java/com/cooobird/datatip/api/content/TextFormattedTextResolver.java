@@ -17,7 +17,9 @@ final class TextFormattedTextResolver {
 
     static FormattedText resolve(TextContent content, @Nullable ItemStack stack) {
         if (content.formattedText() != null) return content.formattedText();
-        if (content.component() != null) return content.component();
+        if (content.component() != null) {
+            return content.component().copy().withStyle(content.buildStyle());
+        }
 
         FormattedText styledLanguage = resolveStyledLanguage(content, stack);
         if (styledLanguage != FormattedText.EMPTY) {

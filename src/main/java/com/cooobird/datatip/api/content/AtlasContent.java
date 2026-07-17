@@ -1,10 +1,12 @@
 package com.cooobird.datatip.api.content;
 
-import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.api.text.LocalizedText;
+import com.cooobird.datatip.internal.layout.LabeledVisualBounds;
+import com.cooobird.datatip.internal.layout.PreparedLabeledVisualLayout;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -46,14 +48,25 @@ public record AtlasContent(
     @Nullable LocalizedText labelText, // 可选的标签文本
     int offsetX,                   // X 轴偏移量
     int offsetY                    // Y 轴偏移量
-) implements TipContent {
+) implements com.cooobird.datatip.api.layout.PreparedContent {
 
-    public AtlasContent {
-        texturePath = java.util.Objects.requireNonNull(texturePath, "texturePath");
-        width = ContentBounds.dimension(width);
-        height = ContentBounds.dimension(height);
-        offsetX = ContentBounds.offset(offsetX);
-        offsetY = ContentBounds.offset(offsetY);
+    public AtlasContent(
+        ResourceLocation texturePath,
+        int width,
+        int height,
+        @Nullable LocalizedText labelText,
+        int offsetX,
+        int offsetY
+    ) {
+        this.texturePath = java.util.Objects.requireNonNull(
+            texturePath,
+            "texturePath"
+        );
+        this.width = ContentBounds.dimension(width);
+        this.height = ContentBounds.dimension(height);
+        this.labelText = labelText;
+        this.offsetX = ContentBounds.offset(offsetX);
+        this.offsetY = ContentBounds.offset(offsetY);
     }
 
     public AtlasContent(
@@ -115,38 +128,61 @@ public record AtlasContent(
 
     @Override
     public int getHeight(int maxWidth) {
-        return visualHeight();
+        return getHeight(new TipLayoutContext(
+            Minecraft.getInstance().font,
+            net.minecraft.world.item.ItemStack.EMPTY,
+            Math.max(0, maxWidth)
+        ));
+    }
+
+    @Override
+    public int getHeight(TipLayoutContext context) {
+        return LabeledVisualBounds.height(
+            visualHeight(),
+            labelComponent(),
+            context.font()
+        );
     }
 
     @Override
     public int getWidth(int maxWidth) {
-        int spriteWidth = visualWidth();
-        Component label = labelComponent();
-        if (label != null) {
-            Minecraft minecraft = Minecraft.getInstance();
-            Font font = minecraft != null ? minecraft.font : null;
-            if (font != null) spriteWidth += 4 + font.width(label);
-        }
-        return Math.min(spriteWidth, maxWidth);
+        return getWidth(new TipLayoutContext(
+            Minecraft.getInstance().font,
+            net.minecraft.world.item.ItemStack.EMPTY,
+            Math.max(0, maxWidth)
+        ));
+    }
+
+    @Override
+    public int getWidth(TipLayoutContext context) {
+        return LabeledVisualBounds.width(
+            visualWidth(),
+            labelComponent(),
+            context.font()
+        );
     }
 
     @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         if (alpha <= 0) return;
 
-        int renderBaseX = x + Math.max(0, -offsetX);
-        int renderBaseY = y + Math.max(0, -offsetY);
+        int renderBaseX = x + ContentBounds.negativeInset(offsetX);
+        int renderBaseY = y + ContentBounds.negativeInset(offsetY);
         int renderX = renderBaseX + offsetX;
         int renderY = renderBaseY + offsetY;
 
-        boolean clipped = ContentBounds.beginHorizontalClip(
-            context, x, y, maxWidth, visualHeight(), getWidth(Integer.MAX_VALUE));
+        boolean clipped = false;
         try {
             context.blit(texturePath, renderX, renderY, 0, 0, width, height, width, height);
             Component label = labelComponent();
             if (label != null) {
                 int labelX = x + visualWidth() + 4;
-                int labelY = y + (visualHeight() - 8) / 2;
+                int rowHeight = LabeledVisualBounds.height(
+                    visualHeight(),
+                    label,
+                    context.font()
+                );
+                int labelY = LabeledVisualBounds.labelY(y, rowHeight, context.font());
                 context.drawString(label, labelX, labelY, 0xFFFFFF);
             }
         } finally {
@@ -160,5 +196,74 @@ public record AtlasContent(
 
     private int visualHeight() {
         return ContentBounds.extent(height, offsetY);
+    }
+
+    @Override
+    public com.cooobird.datatip.api.layout.PreparedLayout prepare(
+        com.cooobird.datatip.api.layout.TipPrepareContext context
+    ) {
+        Component frozenLabel = labelComponent();
+        int naturalBodyWidth = visualWidth();
+        int naturalBodyHeight = visualHeight();
+        long rawX = ContentBounds.negativeInsetLong(offsetX) + offsetX;
+        long rawY = ContentBounds.negativeInsetLong(offsetY) + offsetY;
+        return PreparedLabeledVisualLayout.prepare(
+            context,
+            naturalBodyWidth,
+            naturalBodyHeight,
+            frozenLabel != null ? frozenLabel.copy() : null,
+            0xFFFFFFFF,
+            com.cooobird.datatip.api.render.RenderPhase.VISUAL_2D,
+            "atlas",
+            (renderContext, x, y, scale, alpha) -> {
+                int drawX = ContentBounds.coordinate(
+                    x,
+                    scaled(rawX, scale)
+                );
+                int drawY = ContentBounds.coordinate(
+                    y,
+                    scaled(rawY, scale)
+                );
+                int drawWidth = scaled(width, scale);
+                int drawHeight = scaled(height, scale);
+                float[] shaderColor = RenderSystem.getShaderColor().clone();
+                RenderSystem.setShaderColor(
+                    shaderColor[0],
+                    shaderColor[1],
+                    shaderColor[2],
+                    shaderColor[3] * alpha
+                );
+                try {
+                    renderContext.blit(
+                        texturePath,
+                        drawX,
+                        drawY,
+                        drawWidth,
+                        drawHeight,
+                        0,
+                        0,
+                        width,
+                        height,
+                        width,
+                        height
+                    );
+                } finally {
+                    RenderSystem.setShaderColor(
+                        shaderColor[0],
+                        shaderColor[1],
+                        shaderColor[2],
+                        shaderColor[3]
+                    );
+                }
+            }
+        );
+    }
+
+    private static int scaled(long value, double scale) {
+        if (value <= 0) return 0;
+        return (int) Math.min(
+            Integer.MAX_VALUE,
+            Math.round(value * scale)
+        );
     }
 }

@@ -1,12 +1,17 @@
 package com.cooobird.datatip.api.content;
 
-import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
+import com.cooobird.datatip.api.session.TooltipInvalidation;
+import com.cooobird.datatip.api.session.TooltipSession;
+import com.cooobird.datatip.api.session.TooltipSessionContext;
+import com.cooobird.datatip.internal.layout.LabeledVisualBounds;
+import com.cooobird.datatip.internal.layout.PreparedLabeledVisualLayout;
+import com.cooobird.datatip.internal.layout.RotatingModelBounds;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
@@ -21,7 +26,8 @@ import org.jetbrains.annotations.Nullable;
  * 实体渲染内容类。
  * 在 tooltip 中渲染 3D 实体模型。
  */
-public class EntityContent implements TipContent {
+public class EntityContent
+    implements com.cooobird.datatip.api.layout.PreparedContent {
     private static final float ENTITY_BOX_PADDING = 0.9f;
 
     private final EntityType<?> entityType;  // 实体类型
@@ -33,12 +39,8 @@ public class EntityContent implements TipContent {
     @Nullable
     private final Component label;           // 可选的标签文本
 
-    private float currentRotation = 0;
+    private float currentRotation;
     private int lastTick = -1;
-    @Nullable
-    private Entity cachedEntity;
-    @Nullable
-    private Level cachedLevel;
 
     public EntityContent(EntityType<?> entityType, int size, float rotationSpeed,
                          boolean autoRotate, int offsetX, int offsetY, @Nullable Component label) {
@@ -103,17 +105,30 @@ public class EntityContent implements TipContent {
 
     @Override
     public int getHeight(int maxWidth) {
-        return visualHeight();
+        return getHeight(new TipLayoutContext(
+            Minecraft.getInstance().font,
+            net.minecraft.world.item.ItemStack.EMPTY,
+            Math.max(0, maxWidth)
+        ));
+    }
+
+    @Override
+    public int getHeight(TipLayoutContext context) {
+        return LabeledVisualBounds.height(visualHeight(), label, context.font());
     }
 
     @Override
     public int getWidth(int maxWidth) {
-        int width = visualWidth();
-        if (label != null) {
-            Font font = Minecraft.getInstance().font;
-            width += 4 + font.width(label);
-        }
-        return width;
+        return getWidth(new TipLayoutContext(
+            Minecraft.getInstance().font,
+            net.minecraft.world.item.ItemStack.EMPTY,
+            Math.max(0, maxWidth)
+        ));
+    }
+
+    @Override
+    public int getWidth(TipLayoutContext context) {
+        return LabeledVisualBounds.width(visualWidth(), label, context.font());
     }
 
     @Override
@@ -136,42 +151,52 @@ public class EntityContent implements TipContent {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
-        Entity entity = getOrCreateEntity(mc.level);
-        if (entity == null) return;
+        EntityLease lease = acquireEntityLease(mc.level);
+        if (lease == null) return;
+        Entity entity = lease.entity();
 
         // 获取旋转角度，使用 partialTick 进行插值让旋转更平滑
         float rotation = autoRotate
             ? Mth.wrapDegrees(currentRotation + rotationSpeed * context.partialTick())
             : 0;
 
-        int renderBaseX = x + Math.max(0, -offsetX);
-        int renderBaseY = y + Math.max(0, -offsetY);
+        int renderBaseX = x + ContentBounds.negativeInset(offsetX);
+        int renderBaseY = y + ContentBounds.negativeInset(offsetY);
+        int horizontalInset = RotatingModelBounds.inset(size);
+        int verticalInset = RotatingModelBounds.entityVerticalInset(size);
 
-        boolean clipped = ContentBounds.beginHorizontalClip(
-            context, x, y, maxWidth, visualHeight(), getWidth(Integer.MAX_VALUE));
+        boolean clipped = false;
         try {
             renderEntity(
                 context.graphics(), entity,
-                renderBaseX + size / 2 + offsetX,
-                renderBaseY + size + offsetY,
+                renderBaseX + horizontalInset + size / 2 + offsetX,
+                renderBaseY + verticalInset + size + offsetY,
                 size, rotation
             );
             if (label != null) {
                 int labelX = x + visualWidth() + 4;
-                int labelY = y + (visualHeight() - 8) / 2;
+                int rowHeight = LabeledVisualBounds.height(
+                    visualHeight(),
+                    label,
+                    context.font()
+                );
+                int labelY = LabeledVisualBounds.labelY(y, rowHeight, context.font());
                 context.drawString(label, labelX, labelY, 0xFFFFFF);
             }
         } finally {
             ContentBounds.endHorizontalClip(context, clipped);
+            if (TooltipSessionContext.current() == null) {
+                lease.close();
+            }
         }
     }
 
     private int visualWidth() {
-        return ContentBounds.extent(size, offsetX);
+        return ContentBounds.extent(RotatingModelBounds.boxSize(size), offsetX);
     }
 
     private int visualHeight() {
-        return ContentBounds.extent(size, offsetY);
+        return ContentBounds.extent(RotatingModelBounds.entityHeight(size), offsetY);
     }
 
     // 渲染实体到 GUI
@@ -209,11 +234,132 @@ public class EntityContent implements TipContent {
     }
 
     @Nullable
-    private Entity getOrCreateEntity(Level level) {
-        if (cachedEntity == null || cachedLevel != level || cachedEntity.isRemoved()) {
-            cachedEntity = entityType.create(level);
-            cachedLevel = level;
+    private EntityLease acquireEntityLease(Level level) {
+        TooltipSession session = TooltipSessionContext.current();
+        if (session == null) {
+            Entity entity = entityType.create(level);
+            return entity != null ? new EntityLease(entity) : null;
         }
-        return cachedEntity;
+
+        EntityLease cached = session.cached(
+            TooltipInvalidation.ENTITY,
+            this,
+            EntityLease.class
+        );
+        if (cached != null && !cached.entity().isRemoved()) {
+            return cached;
+        }
+        if (cached != null) {
+            cached.close();
+        }
+
+        Entity entity = entityType.create(level);
+        if (entity == null) return null;
+        EntityLease created = new EntityLease(entity);
+        session.cache(TooltipInvalidation.ENTITY, this, created);
+        session.own(TooltipInvalidation.ENTITY, created);
+        return created;
+    }
+
+    private static final class EntityLease implements AutoCloseable {
+        private final Entity entity;
+        private boolean closed;
+
+        private EntityLease(Entity entity) {
+            this.entity = entity;
+        }
+
+        private Entity entity() {
+            return entity;
+        }
+
+        @Override
+        public void close() {
+            if (closed) return;
+            closed = true;
+            entity.discard();
+        }
+    }
+
+    @Override
+    public com.cooobird.datatip.api.layout.PreparedLayout prepare(
+        com.cooobird.datatip.api.layout.TipPrepareContext context
+    ) {
+        return PreparedLabeledVisualLayout.prepare(
+            context,
+            visualWidth(),
+            visualHeight(),
+            label != null ? label.copy() : null,
+            0xFFFFFFFF,
+            com.cooobird.datatip.api.render.RenderPhase.ISOLATED_MODEL,
+            "entity",
+            this::renderPreparedModel
+        );
+    }
+
+    private void renderPreparedModel(
+        TipRenderContext context,
+        int x,
+        int y,
+        double scale,
+        float alpha
+    ) {
+        if (alpha <= 0) return;
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null) return;
+        EntityLease lease = acquireEntityLease(minecraft.level);
+        if (lease == null) return;
+        try {
+            float rotation = autoRotate
+                ? Mth.wrapDegrees(
+                currentRotation + rotationSpeed * context.partialTick()
+            )
+                : 0;
+            int preparedSize = scaled(size, scale);
+            int preparedOffsetX = scaledSigned(offsetX, scale);
+            int preparedOffsetY = scaledSigned(offsetY, scale);
+            int horizontalInset = RotatingModelBounds.inset(preparedSize);
+            int verticalInset = RotatingModelBounds.entityVerticalInset(
+                preparedSize
+            );
+            renderEntity(
+                context.graphics(),
+                lease.entity(),
+                ContentBounds.coordinate(
+                    x,
+                    ContentBounds.negativeInsetLong(preparedOffsetX),
+                    horizontalInset,
+                    preparedSize / 2L,
+                    preparedOffsetX
+                ),
+                ContentBounds.coordinate(
+                    y,
+                    ContentBounds.negativeInsetLong(preparedOffsetY),
+                    verticalInset,
+                    preparedSize,
+                    preparedOffsetY
+                ),
+                preparedSize,
+                rotation
+            );
+        } finally {
+            if (TooltipSessionContext.current() == null) {
+                lease.close();
+            }
+        }
+    }
+
+    private static int scaled(int value, double scale) {
+        return (int) Math.max(
+            1,
+            Math.min(Integer.MAX_VALUE, Math.round(value * scale))
+        );
+    }
+
+    private static int scaledSigned(int value, double scale) {
+        return (int) Math.max(
+            Integer.MIN_VALUE,
+            Math.min(Integer.MAX_VALUE, Math.round(value * scale))
+        );
     }
 }

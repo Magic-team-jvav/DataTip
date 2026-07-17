@@ -28,7 +28,17 @@ public final class LocalizedTextParser {
 
         JsonObject object = element.getAsJsonObject();
         if (object.has("trans")) {
-            return LocalizedText.translatable(context.getString(object, "trans", ""));
+            throw new IllegalArgumentException("Property 'trans' is not supported; use 'translate'");
+        }
+        if (object.has("translate")) {
+            if (object.size() != 1) {
+                throw new IllegalArgumentException("Translated localized text must contain only 'translate'");
+            }
+            JsonElement translate = object.get("translate");
+            if (!translate.isJsonPrimitive() || !translate.getAsJsonPrimitive().isString()) {
+                throw new IllegalArgumentException("Property 'translate' must be a string");
+            }
+            return LocalizedText.translatable(translate.getAsString());
         }
 
         Map<String, Component> translations = new LinkedHashMap<>();

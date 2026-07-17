@@ -1,12 +1,14 @@
 package com.cooobird.datatip.api.content;
 
-import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
+import com.cooobird.datatip.internal.layout.LabeledVisualBounds;
+import com.cooobird.datatip.internal.layout.PreparedLabeledVisualLayout;
+import com.cooobird.datatip.internal.layout.RotatingModelBounds;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
@@ -20,7 +22,8 @@ import org.jetbrains.annotations.Nullable;
  * 方块渲染内容类。
  * 在 tooltip 中渲染 3D 方块模型。
  */
-public class BlockContent implements TipContent {
+public class BlockContent
+    implements com.cooobird.datatip.api.layout.PreparedContent {
 
     private final Block block;               // 方块实例
     private final int size;                  // 渲染大小
@@ -31,7 +34,7 @@ public class BlockContent implements TipContent {
     private final int offsetX;               // X 轴偏移量
     private final int offsetY;               // Y 轴偏移量
 
-    private float currentRotation = 0;
+    private float currentRotation;
     private int lastTick = -1;
     private final ItemStack renderStack;
 
@@ -99,17 +102,30 @@ public class BlockContent implements TipContent {
 
     @Override
     public int getHeight(int maxWidth) {
-        return visualHeight();
+        return getHeight(new TipLayoutContext(
+            Minecraft.getInstance().font,
+            ItemStack.EMPTY,
+            Math.max(0, maxWidth)
+        ));
+    }
+
+    @Override
+    public int getHeight(TipLayoutContext context) {
+        return LabeledVisualBounds.height(visualHeight(), label, context.font());
     }
 
     @Override
     public int getWidth(int maxWidth) {
-        int width = visualWidth();
-        if (label != null) {
-            Font font = Minecraft.getInstance().font;
-            width += 4 + font.width(label);
-        }
-        return Math.min(width, maxWidth);
+        return getWidth(new TipLayoutContext(
+            Minecraft.getInstance().font,
+            ItemStack.EMPTY,
+            Math.max(0, maxWidth)
+        ));
+    }
+
+    @Override
+    public int getWidth(TipLayoutContext context) {
+        return LabeledVisualBounds.width(visualWidth(), label, context.font());
     }
 
     @Override
@@ -130,24 +146,28 @@ public class BlockContent implements TipContent {
         if (alpha <= 0) return;
 
         // 应用偏移
-        int renderBaseX = x + Math.max(0, -offsetX);
-        int renderBaseY = y + Math.max(0, -offsetY);
-        int renderX = renderBaseX + offsetX;
-        int renderY = renderBaseY + offsetY;
+        int renderBaseX = x + ContentBounds.negativeInset(offsetX);
+        int renderBaseY = y + ContentBounds.negativeInset(offsetY);
+        int renderX = renderBaseX + offsetX + RotatingModelBounds.blockInset(size);
+        int renderY = renderBaseY + offsetY + RotatingModelBounds.blockInset(size);
 
         // 使用 partialTick 进行插值，让旋转更平滑
         float smoothRotation = autoRotate
             ? Mth.wrapDegrees(currentRotation + rotationSpeed * context.partialTick())
             : currentRotation;
 
-        boolean clipped = ContentBounds.beginHorizontalClip(
-            context, x, y, maxWidth, visualHeight(), getWidth(Integer.MAX_VALUE));
+        boolean clipped = false;
         try {
             renderBlockAsItem(context.graphics(), renderStack,
                 renderX + size / 2, renderY + size / 2, size, smoothRotation);
             if (label != null) {
                 int labelX = x + visualWidth() + 4;
-                int labelY = y + (visualHeight() - 8) / 2;
+                int rowHeight = LabeledVisualBounds.height(
+                    visualHeight(),
+                    label,
+                    context.font()
+                );
+                int labelY = LabeledVisualBounds.labelY(y, rowHeight, context.font());
                 context.drawString(label, labelX, labelY, 0xFFFFFF);
             }
         } finally {
@@ -156,11 +176,11 @@ public class BlockContent implements TipContent {
     }
 
     private int visualWidth() {
-        return ContentBounds.extent(size, offsetX);
+        return ContentBounds.extent(RotatingModelBounds.blockBoxSize(size), offsetX);
     }
 
     private int visualHeight() {
-        return ContentBounds.extent(size, offsetY);
+        return ContentBounds.extent(RotatingModelBounds.blockBoxSize(size), offsetY);
     }
 
     // 使用物品渲染方式渲染方块
@@ -190,5 +210,73 @@ public class BlockContent implements TipContent {
             Lighting.setupFor3DItems();
             poseStack.popPose();
         }
+    }
+
+    @Override
+    public com.cooobird.datatip.api.layout.PreparedLayout prepare(
+        com.cooobird.datatip.api.layout.TipPrepareContext context
+    ) {
+        return PreparedLabeledVisualLayout.prepare(
+            context,
+            visualWidth(),
+            visualHeight(),
+            label != null ? label.copy() : null,
+            0xFFFFFFFF,
+            com.cooobird.datatip.api.render.RenderPhase.ISOLATED_MODEL,
+            "block",
+            this::renderPreparedModel
+        );
+    }
+
+    private void renderPreparedModel(
+        TipRenderContext context,
+        int x,
+        int y,
+        double scale,
+        float alpha
+    ) {
+        if (alpha <= 0) return;
+        int preparedSize = scaled(size, scale);
+        int preparedOffsetX = scaledSigned(offsetX, scale);
+        int preparedOffsetY = scaledSigned(offsetY, scale);
+        int renderX = ContentBounds.coordinate(
+            x,
+            ContentBounds.negativeInsetLong(preparedOffsetX),
+            preparedOffsetX,
+            RotatingModelBounds.blockInset(preparedSize)
+        );
+        int renderY = ContentBounds.coordinate(
+            y,
+            ContentBounds.negativeInsetLong(preparedOffsetY),
+            preparedOffsetY,
+            RotatingModelBounds.blockInset(preparedSize)
+        );
+        float smoothRotation = autoRotate
+            ? Mth.wrapDegrees(
+            currentRotation + rotationSpeed * context.partialTick()
+        )
+            : currentRotation;
+        renderBlockAsItem(
+            context.graphics(),
+            renderStack,
+            ContentBounds.coordinate(renderX, preparedSize / 2L),
+            ContentBounds.coordinate(renderY, preparedSize / 2L),
+            preparedSize,
+            smoothRotation
+        );
+    }
+
+    private static int scaled(int value, double scale) {
+        return (int) Math.max(
+            1,
+            Math.min(Integer.MAX_VALUE, Math.round(value * scale))
+        );
+    }
+
+    private static int scaledSigned(int value, double scale) {
+        return (int) Math.max(
+            Integer.MIN_VALUE,
+            Math.min(Integer.MAX_VALUE, Math.round(value * scale))
+        );
     }
 }

@@ -2,6 +2,9 @@ package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
+import com.cooobird.datatip.api.session.TooltipInvalidation;
+import com.cooobird.datatip.api.session.TooltipSession;
+import com.cooobird.datatip.api.session.TooltipSessionContext;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
@@ -18,7 +21,8 @@ import java.util.Map;
  * @see BaseTextContent 基类
  * @since 1.2.0
  */
-public class TypewriterContent extends BaseTextContent {
+public class TypewriterContent extends BaseTextContent
+    implements com.cooobird.datatip.api.layout.PreparedContent {
 
     final List<String> lines;
     @Nullable
@@ -28,7 +32,7 @@ public class TypewriterContent extends BaseTextContent {
     final int charsPerSecond;
     final int pauseSeconds;
     final boolean loop;
-    private final TypewriterState state;
+    private final TypewriterState fallbackState;
 
     public TypewriterContent(List<String> lines, int charsPerSecond, int pauseSeconds, boolean loop, int color) {
         this(lines, null, null, charsPerSecond, pauseSeconds, loop, color, null, null, false, false, false, false, TextAlign.LEFT, true, TextContentDefaults.lineHeight(), false);
@@ -51,7 +55,7 @@ public class TypewriterContent extends BaseTextContent {
         this.charsPerSecond = ContentBounds.dimension(charsPerSecond);
         this.pauseSeconds = ContentBounds.spacing(pauseSeconds);
         this.loop = loop;
-        this.state = new TypewriterState();
+        this.fallbackState = new TypewriterState();
     }
 
     public static TypewriterContent create() {
@@ -99,7 +103,7 @@ public class TypewriterContent extends BaseTextContent {
 
     @Override
     public int getHeight(TipLayoutContext context) {
-        return TypewriterLayout.getHeight(this);
+        return TypewriterLayout.getHeight(this, context);
     }
 
     @Override
@@ -124,16 +128,16 @@ public class TypewriterContent extends BaseTextContent {
 
     @Override
     public void tick(int tickPc) {
-        state.tick(this, tickPc);
+        state().tick(this, tickPc);
     }
 
     public void reset() {
-        state.reset();
+        state().reset();
     }
 
     @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
-        TypewriterRenderer.render(this, state, context, x, y, maxWidth, alpha);
+        TypewriterRenderer.render(this, state(), context, x, y, maxWidth, alpha);
     }
 
     @Nullable
@@ -153,5 +157,26 @@ public class TypewriterContent extends BaseTextContent {
         List<String> copy = new ArrayList<>();
         source.stream().filter(java.util.Objects::nonNull).forEach(copy::add);
         return List.copyOf(copy);
+    }
+
+    @Override
+    public com.cooobird.datatip.api.layout.PreparedLayout prepare(
+        com.cooobird.datatip.api.layout.TipPrepareContext context
+    ) {
+        return PreparedTypewriterLayout.prepare(this, context);
+    }
+
+    TypewriterState state() {
+        TooltipSession session = TooltipSessionContext.current();
+        if (session == null) return fallbackState;
+        TypewriterState state = session.cached(
+            TooltipInvalidation.ANIMATION,
+            this,
+            TypewriterState.class
+        );
+        if (state != null) return state;
+        TypewriterState created = new TypewriterState();
+        session.cache(TooltipInvalidation.ANIMATION, this, created);
+        return created;
     }
 }

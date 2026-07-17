@@ -85,10 +85,6 @@ legacyForge {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
-jar {
-    manifest.attributes('FMLAT': 'accesstransformer.cfg')
-}
-
 repositories {
     mavenLocal()
 }

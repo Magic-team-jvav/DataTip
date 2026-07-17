@@ -1,1258 +1,673 @@
 # DataTip
 
-JSON 驱动的自定义物品 Tooltip 系统。资源包内容放在 `assets/<命名空间>/datatip/` 下；目录中的
-及其子目录中的所有 `.json` 文件都会被加载，文件名可以自定义，也可以按物品或用途拆成多个文件。
+[English](README.md)
 
-## 快速开始
+DataTip 是面向 Minecraft 1.20.1 与 Forge 47.4.20 的 JSON 驱动物品 Tooltip
+系统。资源包可以直接组合文本、物品图标、纹理、旋转方块与实体、进度条、图表、动画和嵌套布局，无需编写 Java 代码。
+
+当前项目版本：`1.2.5-forge`。
+
+## 资源包结构
+
+DataTip 会加载以下目录及其所有子目录中的 JSON 文件：
+
+```text
+assets/<namespace>/datatip/
+```
+
+命名空间应当直接位于 `assets` 下；`datatip` 是资源重载目录。文件名和子目录可以自由组织。例如以下两个路径都正确：
+
+```text
+assets/example/datatip/items.json
+assets/example/datatip/equipment/weapons.json
+```
+
+`datatip.json` 只是示例文件名，并不是固定名称。
+
+每个文件都是一个 JSON 对象，对象的键用于选择物品：
+
+| 选择器     | 示例                  | 含义                      |
+|---------|---------------------|-------------------------|
+| 精确物品 ID | `minecraft:diamond` | 匹配一个物品                  |
+| 物品标签    | `#minecraft:swords` | 匹配标签内的所有物品              |
+| 通配符     | `minecraft:*_sword` | `*` 匹配任意字符序列，`?` 匹配一个字符 |
+
+标签选择器不能包含通配符。以 `_` 开头的顶层键和 `$schema` 会被当作元数据忽略。
+
+### 最小示例
+
+将下面的内容保存为 `assets/example/datatip/getting_started.json`：
 
 ```json
 {
   "minecraft:diamond": {
-    "type": "text",
-    "text": "一颗闪亮的钻石",
-    "color": "#55FFFF"
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {
+        "type": "text",
+        "translate": "example.tooltip.diamond",
+        "color": "aqua",
+        "bold": true
+      },
+      {
+        "type": "progress",
+        "progress": 0.75,
+        "width": 100,
+        "label": "75%",
+        "labelAlign": "right"
+      }
+    ]
   }
 }
 ```
 
-将此文件保存为资源包中的任意 JSON，例如 `assets/minecraft/datatip/getting_started.json`，然后在
-游戏中悬停钻石即可看到效果。`datatip.json` 只是可选的示例名称，并不是固定文件名。
+翻译内容放在 DataTip JSON 外部，例如写入 `assets/example/lang/zh_cn.json`：
 
-## 内容类型
+```json
+{
+  "example.tooltip.diamond": "一颗闪亮的钻石"
+}
+```
 
-| 类型           | 说明    | 示例                                                            |
-|--------------|-------|---------------------------------------------------------------|
-| `text`       | 文本内容  | `{"type": "text", "text": "Hello", "color": "white"}`         |
-| `item`       | 物品图标  | `{"type": "item", "item": "minecraft:diamond", "size": 32}`   |
-| `block`      | 3D 方块 | `{"type": "block", "block": "minecraft:stone", "size": 48}`   |
-| `entity`     | 3D 实体 | `{"type": "entity", "entity": "minecraft:wolf", "size": 48}`  |
-| `progress`   | 进度条   | `{"type": "progress", "progress": 0.75, "width": 100}`        |
-| `carousel`   | 轮播容器  | `{"type": "carousel", "intervalSeconds": 3, "frames": [...]}` |
-| `typewriter` | 打字机效果 | `{"type": "typewriter", "lines": ["逐字显示"]}`                   |
-| `atlas`      | 纹理渲染  | `{"type": "atlas", "item": "minecraft:apple", "size": 32}`    |
-| `image`      | 图片    | `{"type": "image", "texture": "mymod:gui/icon.png"}`          |
-| `chart`      | 图表    | `{"type": "chart", "chartType": "bar", "entries": [...]}`     |
-| `vbox`       | 垂直布局  | `{"type": "vbox", "gap": 4, "children": [...]}`               |
-| `hbox`       | 水平布局  | `{"type": "hbox", "gap": 8, "children": [...]}`               |
-| `divider`    | 分割线   | `{"type": "divider", "color": "#555555"}`                     |
-| `spacer`     | 间距    | `{"type": "spacer", "height": 8}`                             |
+修改资源后可以使用 `F3 + T` 重载资源包。
 
-### 内容类型详情
+## 原版 Tooltip 集成
 
-#### text
-文本内容，支持丰富的样式选项。
+DataTip 接入 Minecraft/Forge 的 Tooltip 流程，而不是替换原版 Tooltip：
+
+- Minecraft 负责收集 Tooltip 组件、为普通文本换行、选择鼠标旁的显示位置，并绘制背景和边框。
+- DataTip 使用与实际渲染相同的可用宽度准备和测量内容。
+- `max_width > 0` 会传入 Tooltip 收集事件，使原版文本与 DataTip 内容共用配置宽度。
+- `max_width = 0` 时先保留内容自然宽度，再由原版屏幕适配规则限制；若实际可用宽度发生变化，文本会按最终宽度重新测量和换行。
+- 高度受物理屏幕视口限制，计算时包含原版背景外扩、边距和普通 Tooltip 组件占用的高度。
+- 内容高于视口时保留完整语义布局，只在可见的 DataTip 区域内滚动，不会让背景无限超出屏幕。
+- 最终可见 Tooltip 的原版背景和四条边线会完整绘制。
+
+方块和实体通过准备后的 DataTip 绘制命令路径直接渲染，并使用有作用域的渲染状态和物理剪裁。文本与其他 2D
+节点使用同一份测量布局，因此测量、剪裁与绘制的边界一致。
+
+### 键位
+
+两个操作都注册在 Minecraft 控制设置的 DataTip 分类中，可以由玩家重新绑定：
+
+| 操作            | 默认键位    | 用途                        |
+|---------------|---------|---------------------------|
+| 显示详细提示        | 左 Shift | 显示带有 `"shift": true` 的节点  |
+| 滚动 Tooltip 内容 | 左 Ctrl  | Tooltip 超出视口时，按住该键并滚动鼠标滚轮 |
+
+滚动提示中的 `%s` 会替换为当前真实绑定的键名，并非写死为 Ctrl。即使多个节点被折叠，一个 Tooltip 也只显示一条合并后的 Shift
+提示。切换 Shift 内容时会保留当前滚动会话，不会直接跳回顶部。
+
+## 条目属性
+
+物品选择器对应的对象既是根内容节点，也是该条目的定义。
+
+| 属性           | 默认值        | 说明                        |
+|--------------|------------|---------------------------|
+| `type`       | 现代 JSON 必填 | 根内容类型                     |
+| `prepend`    | `false`    | 插入在物品名称之后、其余原版文本之前        |
+| `shift`      | `false`    | 在“显示详细提示”键按下前，仅折叠当前节点及其子树 |
+| `conditions` | `{}`       | 当前节点必须全部通过的条件             |
+
+`shift` 和 `conditions` 都是通用修饰符，因此也可以用于任意嵌套节点，并非只能写在根节点。
+
+## 通用修饰符
+
+所有内置内容类型都支持同一组通用修饰符。
+
+| 属性                                                    | 默认值       | 说明                                                                        |
+|-------------------------------------------------------|-----------|---------------------------------------------------------------------------|
+| `offsetX`、`offsetY`                                   | `0`       | 布局完成后的有符号 64 位 XY 位移                                                      |
+| `offsetZ`                                             | `0`       | 同一父节点内的有符号 64 位图层顺序                                                       |
+| `selfAlignX`                                          | `inherit` | `inherit`、`left`、`center`、`right`；`selfAlign` 是别名                         |
+| `selfAlignY`                                          | `inherit` | `inherit`、`top`、`center`、`bottom`                                         |
+| `margin`                                              | `0`       | 同时设置四个方向的外边距                                                              |
+| `marginTop`、`marginRight`、`marginBottom`、`marginLeft` | `margin`  | 各方向的有符号 64 位外边距                                                           |
+| `constraints`                                         | 无         | 可包含 `width`、`height`、`minWidth`、`minHeight`、`maxWidth`、`maxHeight`；值不得为负数 |
+| `scale`                                               | `1`       | 等比缩放简写                                                                    |
+| `scaleX`、`scaleY`                                     | `scale`   | 各轴正数缩放                                                                    |
+| `rotation`                                            | `0`       | 有限的旋转角度，单位为度                                                              |
+| `pivotX`、`pivotY`                                     | `0.5`     | `0` 到 `1` 的变换中心                                                           |
+| `opacity`                                             | `1`       | `0` 到 `1` 的不透明度                                                           |
+| `visible`                                             | `true`    | 为 `false` 时隐藏当前节点                                                         |
+| `overflow`                                            | `none`    | `none`、`wrap`、`scale_down`（也接受 `scale-down`）或 `clip`                      |
+| `shift`                                               | `false`   | 仅在配置的详情键按下时显示当前节点                                                         |
+| `conditions`                                          | `{}`      | 必须全部通过的条件                                                                 |
+
+当内容类型自身也使用 `width` 或 `height` 时，应显式使用 `constraints` 对象：
+
 ```json
 {
   "type": "text",
-  "text": "你好世界",
-  "color": "#55FFFF",
-  "bold": true,
-  "align": "center"
+  "text": "可以移动和变换的文本",
+  "offsetX": 8,
+  "offsetY": -3,
+  "offsetZ": 20,
+  "selfAlignX": "center",
+  "margin": 2,
+  "constraints": {"minWidth": 80, "maxWidth": 160},
+  "scaleX": 1.1,
+  "scaleY": 1.1,
+  "rotation": -4,
+  "pivotX": 0.5,
+  "pivotY": 0.5,
+  "opacity": 0.9,
+  "overflow": "wrap"
 }
 ```
 
-#### item
-在 tooltip 中渲染物品图标。
+实际处理顺序是：自然尺寸测量 → 尺寸约束 → 父布局对齐 → 外边距 → 中心点/缩放/旋转 → XY 位移 → 局部 Z 顺序 → overflow
+与视口剪裁。
+
+### Z 顺序与真实重叠
+
+`offsetZ` 只排序当前父节点内的兄弟节点。数值较小的先绘制，较大的后绘制；数值相同则保持 JSON 中的原始顺序。子节点不能越过祖先命令组，
+`offsetZ` 也不会写入 Minecraft 世界的深度缓冲。
+
+需要多个节点共用同一 XY 区域时使用 `stack`。Z 顺序只会改变真正发生重叠的内容：
+
 ```json
 {
-  "type": "item",
-  "item": "minecraft:diamond",
-  "size": 32,
-  "offsetY": 4
+  "type": "stack",
+  "padding": 2,
+  "horizontalAlign": "center",
+  "verticalAlign": "center",
+  "children": [
+    {"type": "entity", "entity": "minecraft:pig", "size": 68, "offsetZ": -10},
+    {"type": "text", "text": "位于猪模型之上的文本", "color": "gold", "bold": true, "offsetZ": 10}
+  ]
 }
 ```
 
-#### block
-渲染 3D 方块模型，支持自动旋转。
+## 内置内容类型
+
+| 类型           | 用途              |
+|--------------|-----------------|
+| `text`       | 字面文本、语言映射或翻译键文本 |
+| `spacer`     | 空白垂直间距          |
+| `divider`    | 实线、虚线或点线分隔符     |
+| `item`       | 物品堆图标           |
+| `atlas`      | 来自纹理、方块或物品的平面纹理 |
+| `block`      | 旋转的 3D 方块模型     |
+| `entity`     | 旋转的 3D 实体模型     |
+| `progress`   | 带样式的进度条         |
+| `vbox`       | 垂直子节点布局         |
+| `hbox`       | 水平子节点布局         |
+| `stack`      | 共用 XY 区域的叠放布局   |
+| `carousel`   | 定时切换的帧容器        |
+| `typewriter` | 逐字显示动画          |
+| `image`      | 纹理中的 UV 区域      |
+| `chart`      | 柱状图、折线图或饼图      |
+
+### 文本与本地化
+
+`text` 节点必须在 `text` 和 `translate` 中二选一：
+
 ```json
 {
-  "type": "block",
-  "block": "minecraft:chest",
-  "size": 48,
-  "autoRotate": true
+    "type": "text",
+    "text": "字面文本"
 }
 ```
 
-#### entity
-渲染 3D 实体模型，支持自动旋转。
 ```json
 {
-  "type": "entity",
-  "entity": "minecraft:wolf",
-  "size": 48,
-  "autoRotate": true,
-  "offsetY": 8
+  "type": "text",
+  "text": {
+    "zh_cn": "中文内容",
+    "en_us": "English content"
+  }
 }
 ```
 
-#### progress
-进度条，支持多种样式。
 ```json
 {
-  "type": "progress",
-  "progress": 0.75,
-  "width": 100,
-  "height": 8,
-  "style": "gradient",
-  "showLabel": true,
-  "label": "75%",
-  "labelAlign": "right"
+    "type": "text",
+    "translate": "example.tooltip.key"
 }
 ```
 
-#### carousel
-自动切换多帧显示。
+语言映射会依次尝试当前语言、`en_us` 和第一项。翻译键使用普通 Minecraft 语言文件，因此可以在不修改 DataTip JSON
+的情况下新增或替换翻译。现代解析器不接受旧 `trans` 属性；旧格式转换器会将其改写为 `translate`。
+
+| 文本属性                                         | 默认值     | 说明                                      |
+|----------------------------------------------|---------|-----------------------------------------|
+| `color`                                      | 配置默认值   | 命名颜色或 `#RRGGBB`                         |
+| `font`                                       | 原版字体    | 字体资源位置                                  |
+| `shadow`                                     | `true`  | 字体阴影                                    |
+| `align`                                      | `left`  | 在文本测量宽度内使用 `left`、`center` 或 `right` 对齐 |
+| `lineHeight`                                 | 配置/原版   | 行高；配置值 `0` 表示原版字体高度                     |
+| `maxWidth`                                   | `0`     | 可选的节点局部换行宽度                             |
+| `bold`、`italic`、`underlined`、`strikethrough` | `false` | 文本样式                                    |
+
+可见的 `label` 和 `title` 属性可以使用字面字符串、语言映射、带样式的语言项或 `{"translate": "key"}`
+。变量会在测量前解析，所以换行尺寸与最终绘制文本保持一致。
+
+### 布局容器
+
+| 类型      | 属性                                                      | 默认值                                 |
+|---------|---------------------------------------------------------|-------------------------------------|
+| `vbox`  | `children`、`gap`、`padding`、`align`（`left/center/right`） | `gap: 0`、`padding: 0`、`align: left` |
+| `hbox`  | `children`、`gap`、`padding`、`align`（`top/center/bottom`） | `gap: 0`、`padding: 0`、`align: top`  |
+| `stack` | `children`、`padding`、`horizontalAlign`、`verticalAlign`  | `padding: 0`，两个方向分别默认 `left/top`    |
+
+容器尺寸由测量后的子节点、间距、内边距、外边距、尺寸约束和变换共同决定。偏移会移动视觉结果，同时仍会进入准备后的视口边界计算。
+
+### 视觉节点
+
+| 类型       | 类型专属属性与默认值                                                                                                                                       |
+|----------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `item`   | `item: minecraft:air`、`count: 1`、`size: 16`、`showCount: true`、`showDurability: true`、`showLabel: false`、可选 `label`、`labelColor: #FFFFFF`         |
+| `atlas`  | 来源优先级 `texture` → `block` → `item`；`width: 16`、`height: width`，可选 `size` 会同时覆盖宽高，可选 `label`                                                      |
+| `block`  | `block: minecraft:stone`、`size: 32`、`rotationSpeed: 0.5`、`autoRotate: true`、可选 `label`                                                           |
+| `entity` | `entity: minecraft:pig`、`size: 48`、`rotationSpeed: 1.0`、`autoRotate: true`、可选 `label`                                                            |
+| `image`  | `texture: minecraft:textures/gui/icons.png`、`width: 64`、`height: 64`、`u: 0`、`v: 0`、`textureWidth: width`、`textureHeight: height`；位置和最终节点缩放使用通用变换 |
+
+`block` 与 `entity` 会保留声明的正方形布局尺寸，并计入旋转模型的视觉边界；它们只受最终物理 Tooltip 视口剪裁，不会被无关的中间矩形截断。
+
+### 分隔符、间距与进度条
+
+| 类型         | 属性与默认值                                                                                                                                                                                                                                               |
+|------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `spacer`   | `height: 4`                                                                                                                                                                                                                                          |
+| `divider`  | `color: #555555`、`thickness: 1`、`width: 0`、`marginTop: 2`、`marginBottom: 2`、`style: solid`（`solid/dashed/dotted`）、`widthMode: fill`（`fill/fixed/centered`）                                                                                           |
+| `progress` | `progress: 0`、`width: 100`、`height: 8`、`colorFg: #55FF55`、`colorBg: #333333`、可选 `colorFgLight`/`colorBgDark`、`style: gradient`（`flat/gradient/segmented/animated`）、`showLabel: false`、可选 `label`、`animated: false`、`animSpeed: 2`、`labelAlign: left` |
+
+### 轮播与打字机
+
 ```json
 {
   "type": "carousel",
   "intervalSeconds": 3,
+  "transition": "slide",
   "frames": [
     {"type": "text", "text": "第一帧"},
-    {"type": "text", "text": "第二帧"}
+    {"type": "item", "item": "minecraft:diamond", "size": 24}
   ]
 }
 ```
 
-#### typewriter
-逐字显示动画效果。
-```json
-{
-  "type": "typewriter",
-  "lines": ["你好", "世界"],
-  "charsPerSecond": 10,
-  "pauseSeconds": 1,
-  "loop": false
-}
-```
+`carousel` 默认使用 `intervalSeconds: 3` 和 `transition: fade`；过渡类型为 `none`、`fade` 和 `slide`。
 
-#### atlas
-从纹理图集渲染（物品/方块 ID 自动转换）。
-```json
-{
-  "type": "atlas",
-  "item": "minecraft:apple",
-  "size": 32
-}
-```
+`typewriter` 的 `lines` 可以是普通数组，也可以是“语言代码到数组”的对象。不同语言的单行内容还可以写成带样式对象。默认值为
+`charsPerSecond: 2`、`pauseSeconds: 1`、`loop: false`、`shadow: true`、`align: left`；同时支持文本颜色、字体、行高和样式属性。
 
-#### image
-渲染自定义纹理图片。
-```json
-{
-  "type": "image",
-  "texture": "mymod:textures/gui/icon.png",
-  "width": 32,
-  "height": 32
-}
-```
+### 图表
 
-#### chart
-柱状图、饼图或折线图，支持变量。
 ```json
 {
   "type": "chart",
   "chartType": "bar",
-  "width": 100,
-  "height": 60,
+  "width": 140,
+  "height": 70,
+  "title": {"translate": "example.chart.title"},
+  "showLabels": true,
+  "showValues": true,
   "entries": [
-    {"label": "X", "value": "{player_x}", "color": "#FF5555"},
-    {"label": "Y", "value": "{player_y}", "color": "#55FF55"}
+    {"label": "伤害", "value": 8, "color": "red"},
+    {"label": "生命", "valueExpr": "{player_health}", "color": "green"}
   ]
 }
 ```
 
-#### vbox / hbox
-垂直/水平布局容器。
-```json
-{
-  "type": "vbox",
-  "gap": 4,
-  "children": [...]
-}
+`chartType` 可以是 `bar`、`line` 或 `pie`。默认值：`width: 100`、`height: 60`、`titleColor: #FFFFFF`、`labelColor: #AAAAAA`、
+`valueColor: #FFFFFF`、`zeroLineColor: #888888`、`showLabels: true`、`showValues: true`。条目值可以是数字、数字字符串、变量或表达式。
+
+## 变量与表达式
+
+可见文本和数值表达式都可以使用花括号变量，例如 `"耐久：{durability}/{max_durability}"`。
+
+| 分组  | 变量                                                                                                                                                                                    |
+|-----|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 物品  | `durability`、`max_durability`、`damage`、`count`、`item_name`、`item_id`、`durability_percent`、`enchantment_count`、`is_enchanted`、`rarity`、`max_stack_size`、`is_stackable`、`is_damageable` |
+| 玩家  | `player_health`、`player_max_health`、`player_hunger`、`player_experience`、`player_x`、`player_y`、`player_z`                                                                              |
+| 世界  | `game_time`、`is_day`、`is_raining`、`is_thundering`                                                                                                                                     |
+| 格式化 | `durability_bar`、`health_bar`                                                                                                                                                         |
+| NBT | `{nbt:path}` 读取物品 NBT 点分隔路径；列表索引可写成 `display.Lore[0]`                                                                                                                                 |
+
+合成路径 `Damage`、`Count` 和 `RepairCost` 始终可用。其他路径读取当前物品栈标签，例如 `{nbt:display.Name}` 或
+`{nbt:display.Lore[0]}`。
+
+表达式支持算术、比较、布尔逻辑、括号和三元运算符。例如：
+
+```text
+{durability_percent} < 20
+{player_health} / {player_max_health} * 100
+{is_raining} && {count} >= 16
+{is_enchanted} ? 1 : 0
 ```
-
-#### divider
-分割线，支持多种样式。
-```json
-{
-  "type": "divider",
-  "color": "#555555",
-  "style": "dashed"
-}
-```
-
-#### spacer
-内容之间的空白间距。
-```json
-{
-  "type": "spacer",
-  "height": 8
-}
-```
-
-## 文本属性
-
-| 属性              | 类型            | 默认值     | 说明                                           |
-|-----------------|---------------|---------|----------------------------------------------|
-| `text`          | String/Object | -       | 文本内容（支持多语言对象）                                |
-| `color`         | String        | "white" | 颜色（命名色或十六进制，支持表达式）                           |
-| `font`          | String        | -       | 自定义字体（如 `minecraft:alt`、`minecraft:uniform`） |
-| `align`         | String        | "left"  | 对齐：`left`、`center`、`right`                   |
-| `bold`          | boolean       | false   | 粗体                                           |
-| `italic`        | boolean       | false   | 斜体                                           |
-| `underlined`    | boolean       | false   | 下划线                                          |
-| `strikethrough` | boolean       | false   | 删除线                                          |
-| `shift`         | boolean       | false   | 需要按住 Shift 才显示                               |
-| `maxWidth`      | int           | 0       | 最大宽度（0=不换行）                                  |
-
-默认情况下，DataTip 不再额外设置全局行宽：文本按实际内容自然测量，最终位置和背景边界交给
-Minecraft 原版 Tooltip 渲染流程处理。只有文本自身设置了 `maxWidth`，或配置文件中的
-`max_width` 大于 0 时，DataTip 才会主动换行。变量会先替换再参与宽高计算，因此长物品名和
-NBT 文本不会再使用占位符的旧尺寸。
-
-## 进度条属性
-
-| 属性           | 类型            | 默认值        | 说明                                          |
-|--------------|---------------|------------|---------------------------------------------|
-| `progress`   | float         | 0.0        | 进度值（0.0-1.0）                                |
-| `width`      | int           | 100        | 宽度                                          |
-| `height`     | int           | 8          | 高度                                          |
-| `colorFg`    | String        | "#55FF55"  | 前景色                                         |
-| `colorBg`    | String        | "#333333"  | 背景色                                         |
-| `style`      | String        | "gradient" | 样式：`flat`、`gradient`、`segmented`、`animated` |
-| `showLabel`  | boolean       | false      | 显示标签                                        |
-| `label`      | String/Object | -          | 自定义标签文本（支持多语言）                              |
-| `labelAlign` | String        | "left"     | 标签对齐：`left`、`center`、`right`                |
-
-## 分割线属性
-
-| 属性          | 类型     | 默认值       | 说明                           |
-|-------------|--------|-----------|------------------------------|
-| `color`     | String | "#555555" | 颜色                           |
-| `style`     | String | "solid"   | 样式：`solid`、`dashed`、`dotted` |
-| `width`     | int    | 0         | 宽度（0=填充）                     |
-| `widthMode` | String | "fill"    | 模式：`fill`、`fixed`、`centered` |
-
-## 轮播容器属性
-
-| 属性                | 类型     | 默认值    | 说明                       |
-|-------------------|--------|--------|--------------------------|
-| `frames`          | Array  | -      | 内容帧数组                    |
-| `intervalSeconds` | int    | 3      | 帧切换间隔（秒，最大 86400）        |
-| `transition`      | String | "fade" | 过渡：`none`、`fade`、`slide` |
-
-## 打字机属性
-
-| 属性               | 类型           | 默认值     | 说明                                       |
-|------------------|--------------|---------|------------------------------------------|
-| `lines`          | Array/Object | -       | 文本行数组（支持多语言对象）                           |
-| `charsPerSecond` | int          | 2       | 每秒字符数                                    |
-| `pauseSeconds`   | int          | 1       | 行间暂停（秒）                                  |
-| `loop`           | boolean      | false   | 重新悬停/展开时重播（`true` = 每次重播，`false` = 只播一次） |
-| `color`          | String       | "white" | 文本颜色                                     |
-| `font`           | String       | -       | 自定义字体                                    |
-| `bold`           | boolean      | false   | 粗体                                       |
-| `italic`         | boolean      | false   | 斜体                                       |
-| `underlined`     | boolean      | false   | 下划线                                      |
-| `strikethrough`  | boolean      | false   | 删除线                                      |
-| `align`          | String       | "left"  | 对齐：`left`、`center`、`right`               |
-| `shadow`         | boolean      | true    | 文字阴影                                     |
-| `lineHeight`     | int          | 9       | 行高（像素，默认使用原版字体行高）                        |
-| `shift`          | boolean      | false   | 需要按住 Shift 才显示                           |
-
-## 图表属性
-
-| 属性              | 类型            | 默认值       | 说明                      |
-|-----------------|---------------|-----------|-------------------------|
-| `chartType`     | String        | "bar"     | 图表类型：`bar`、`pie`、`line` |
-| `width`         | int           | 100       | 宽度（饼图最大 128）            |
-| `height`        | int           | 60        | 高度（饼图最大 128）            |
-| `title`         | String/Object | -         | 标题（支持多语言）               |
-| `entries`       | Array         | -         | 数据条目数组                  |
-| `titleColor`    | String        | "#FFFFFF" | 标题颜色                    |
-| `labelColor`    | String        | "#AAAAAA" | 标签颜色                    |
-| `valueColor`    | String        | "#FFFFFF" | 数值颜色                    |
-| `zeroLineColor` | String        | "#888888" | 零线颜色（区分正负值）             |
-| `showLabels`    | boolean       | true      | 显示数据标签                  |
-| `showValues`    | boolean       | true      | 显示图表数值                  |
-
-图表条目中的 `value` 可以是数字、数字字符串或变量表达式；也可以使用等价的 `valueExpr` 字段。
-条目 `label` 与 `title` 接受相同的多语言值。超过图表宽度承载能力的标签会自动隐藏，但图形本身
-仍会限制在声明宽度内。
-
-## 实体/物品/方块/纹理/图片通用属性
-
-| 属性        | 类型            | 默认值 | 说明                   |
-|-----------|---------------|-----|----------------------|
-| `label`   | String/Object | -   | 可选的多语言标签（`image` 除外） |
-| `offsetX` | int           | 0   | X 轴偏移（正值向右，负值向左）     |
-| `offsetY` | int           | 0   | Y 轴偏移（正值向下，负值向上）     |
-
-## 变量
-
-| 变量                     | 说明                     |
-|------------------------|------------------------|
-| `{durability}`         | 当前耐久                   |
-| `{max_durability}`     | 最大耐久                   |
-| `{damage}`             | 已损坏值                   |
-| `{durability_percent}` | 耐久百分比                  |
-| `{durability_bar}`     | 耐久条（可视化）               |
-| `{count}`              | 物品数量                   |
-| `{item_name}`          | 物品称                    |
-| `{item_id}`            | 物品 ID                  |
-| `{enchantment_count}`  | 附魔数量                   |
-| `{is_enchanted}`       | 是否附魔                   |
-| `{rarity}`             | 稀有度                    |
-| `{max_stack_size}`     | 最大堆叠数                  |
-| `{is_stackable}`       | 是否可堆叠                  |
-| `{is_damageable}`      | 是否可损坏                  |
-| `{player_health}`      | 玩家生命值                  |
-| `{player_max_health}`  | 玩家最大生命值                |
-| `{player_hunger}`      | 玩家饥饿值                  |
-| `{player_experience}`  | 玩家经验等级                 |
-| `{player_x}`           | 玩家 X 坐标                |
-| `{player_y}`           | 玩家 Y 坐标                |
-| `{player_z}`           | 玩家 Z 坐标                |
-| `{game_time}`          | 游戏时间                   |
-| `{is_day}`             | 是否白天                   |
-| `{is_raining}`         | 是否下雨                   |
-| `{is_thundering}`      | 是否雷暴                   |
-| `{health_bar}`         | 生命条（可视化）               |
-| `{nbt:path}`           | 物品 NBT 值（见下方 NBT 变量说明） |
-
-### NBT 变量
-
-Forge 1.20.1 的物品自定义数据存储在 NBT 中。使用 `{nbt:path}` 读取当前物品栈上的点分隔 NBT 路径。
-
-```json
-{
-  "type": "text",
-  "text": "名称: {nbt:display.Name}",
-  "color": "white"
-}
-```
-
-**支持的路径：**
-- `display.Name` - 自定义物品名称
-- `display.Lore[0]` - 第一行物品描述
-- `Damage` - 损坏值
-- `RepairCost` - 修复花费
-- `Enchantments[0].id` - 第一个附魔 ID
-- `Count` - 物品堆叠数量（合成值）
 
 ## 条件
 
-| 条件           | 说明           | 示例                                               |
-|--------------|--------------|--------------------------------------------------|
-| `dimension`  | 维度           | `"dimension": "minecraft:the_nether"`            |
-| `biome`      | 生物群系         | `"biome": "minecraft:desert"`                    |
-| `holding`    | 手持物品         | `"holding": "minecraft:diamond_sword"`           |
-| `sneaking`   | 是否潜行         | `"sneaking": true`                               |
-| `creative`   | 创造模式         | `"creative": true`                               |
-| `survival`   | 生存模式         | `"survival": true`                               |
-| `health`     | 生命值          | `"health": "50%"` 或 `"health": 10`               |
-| `hunger`     | 饥饿值          | `"hunger": 15`                                   |
-| `experience` | 经验等级         | `"experience": 30`                               |
-| `time`       | 时间           | `"time": "day"` 或 `"time": 6000`                 |
-| `weather`    | 天气           | `"weather": "rain"`                              |
-| `light`      | 光照           | `"light": "dark"` 或 `"light": 8`                 |
-| `altitude`   | 海拔           | `"altitude": ">=64"`                             |
-| `enchanted`  | 是否附魔         | `"enchanted": true`                              |
-| `damage`     | 损坏值          | `"damage": 100`                                  |
-| `count`      | 物品数量         | `"count": 16`                                    |
-| `nbt`        | NBT 路径存在或值匹配 | `"nbt": "display.Name"` 或 `"nbt": {"Damage": 0}` |
-| `item_tag`   | 物品标签         | `"item_tag": "minecraft:swords"`                 |
+`conditions` 对象内的所有属性按 AND 组合。条件可以写在根节点或任意嵌套节点上。
 
-布尔条件同时支持 `true` 和 `false`。无法识别的 `time`、`weather`、`light` 值会判定为不满足，
-避免拼写错误意外放行内容。
-
-### NBT 条件
-
-检查物品是否存在某个 NBT 路径，或一组 NBT 路径是否匹配指定值。
-
-```json
-{
-  "conditions": {
-    "nbt": "display.Name"
-  }
-}
-```
-
-```json
-{
-  "conditions": {
-    "nbt": {
-      "Damage": 0,
-      "RepairCost": 0
-    }
-  }
-}
-```
-
-### 物品标签条件
-
-检查物品是否属于指定标签。
-```json
-{
-  "conditions": {
-    "item_tag": "minecraft:swords"
-  }
-}
-```
-
-## 表达式
-
-支持在文本和颜色中使用表达式：
+| 条件                               | 可接受的值                                   |
+|----------------------------------|-----------------------------------------|
+| `dimension`                      | 维度 ID                                   |
+| `biome`                          | 生物群系 ID 或 ID 数组                         |
+| `holding`                        | 物品 ID 或数组；检查主手和副手                       |
+| `sneaking`、`creative`、`survival` | 布尔值                                     |
+| `health`                         | 数字、比较字符串或百分比字符串                         |
+| `hunger`、`experience`、`level`    | 数字或比较字符串                                |
+| `time`                           | 数字，或 `day`、`night`、`noon`、`midnight`    |
+| `weather`                        | `clear`、`rain`、`thunder`                |
+| `light`                          | 数字/比较字符串，或 `dark`、`dim`、`bright`、`full` |
+| `altitude`                       | 数字，或使用 `>`、`>=`、`<`、`<=` 的比较字符串         |
+| `enchanted`                      | 布尔值                                     |
+| `damage`                         | 允许的当前物品损伤值上限                            |
+| `count`                          | 允许的物品堆数量下限                              |
+| `nbt`                            | 必须存在的 NBT 路径，或由路径及期望值组成的对象              |
+| `item_tag`                       | 物品标签 ID                                 |
 
 ```json
 {
   "type": "text",
-  "text": "状态: {durability > 100 ? '良好' : '需要修复'}",
-  "color": "{durability > 100 ? 'green' : 'red'}"
-}
-```
-
-支持的运算符：
-- 比较：`>`、`<`、`==`、`!=`、`>=`、`<=`
-- 逻辑：`&&`、`||`、`!`
-- 算术：`+`、`-`、`*`、`/`
-- 三元：`condition ? true_value : false_value`
-
-## 多语言
-
-所有会显示给玩家的 JSON 文本均支持多语言，包括：`text.text`、`typewriter.lines`、
-`progress.label`、`chart.title`、`chart.entries[].label`，以及 `item`、`block`、`entity`、
-`atlas` 的 `label`。容器与轮播中的子内容同样遵循这套规则。
-
-资源包自行提供的文本可以直接按语言代码编写：
-
-```json
-{
-  "type": "progress",
-  "progress": 0.75,
-  "showLabel": true,
-  "label": {
-    "zh_cn": "资源完整度 75%",
-    "en_us": "Resource integrity 75%"
+  "text": "仅在物品损坏、生存模式且高度低于 64 时显示",
+  "conditions": {
+    "survival": true,
+    "damage": 100,
+    "altitude": "<64"
   }
 }
 ```
 
-单值的 `label`/`title` 字段还可以为各语言携带样式，或者引用 Minecraft/其他模组已有的翻译键：
-
-```json
-{
-  "type": "chart",
-  "title": {
-    "zh_cn": {"text": "村民交易指数", "color": "gold", "bold": true},
-    "en_us": {"text": "Villager Trade Index", "color": "gold", "bold": true}
-  },
-  "entries": [
-    {"label": {"trans": "entity.minecraft.villager"}, "value": 12}
-  ]
-}
-```
-
-DataTip 会跟随 Minecraft 当前选择的语言。找不到完全匹配的语言时，会依次回退到 `en_us`、
-语言对象中的第一项，避免切换语言后整段内容消失。
-
-## 特殊属性
-
-| 属性           | 说明                                            |
-|--------------|-----------------------------------------------|
-| `align`      | 对齐：`left`、`center`、`right`（所有内容类型都支持）         |
-| `shift`      | 需要按住 Shift 才显示。容器内多条 `shift: true` 自动合并为一条提示。 |
-| `prepend`    | 显示在物品名之后（原版内容之前）                              |
-| `conditions` | 条件配置                                          |
+无效或未知的条件值会安全地判定为不通过，不会意外显示节点。
 
 ## 颜色
 
-### 命名颜色
+颜色支持 `#RRGGBB` 或命名值：`black`、`dark_blue`、`dark_green`、`dark_aqua`、`dark_red`、`dark_purple`、`gold`、`gray`、
+`dark_gray`、`blue`、`green`、`aqua`、`red`、`light_purple`、`yellow`、`white`、`pink`、`cyan`、`magenta`、`lime`、`brown`。同时接受
+`orange`、`grey`、`dark_grey`、`light_blue`、`light_green`、`light_red` 别名。
 
-| 颜色                  | 十六进制      |
-|---------------------|-----------|
-| black               | #000000   |
-| dark_blue           | #0000AA   |
-| dark_green          | #00AA00   |
-| dark_aqua           | #00AAAA   |
-| dark_red            | #AA0000   |
-| dark_purple         | #AA00AA   |
-| gold                | #FFAA00   |
-| gray/grey           | #AAAAAA   |
-| dark_gray/dark_grey | #555555   |
-| blue                | #5555FF   |
-| green               | #55FF55   |
-| aqua                | #55FFFF   |
-| red                 | #FF5555   |
-| light_purple        | #FF55FF   |
-| yellow              | #FFFF55   |
-| white               | #FFFFFF   |
-
-### 十六进制颜色
-
-任何 6 位十六进制值，带 `#` 前缀：`"#FF6600"`、`"#AABBCC"`、`"#00FF00"`
-
-## JSON Schema
-
-`datatip.schema.json` 是给 DataTip 资源包 JSON 使用的编辑器辅助文件。它可以在 IntelliJ IDEA
-或 VS Code 里提供字段补全、类型提示和基础格式校验。它不是运行时必需文件，修改它也不会改变
-DataTip 在游戏内加载 tooltip 的逻辑。
-
-DataTip 会在客户端启动时自动导出 schema。当前 Schema 与运行时解析器同步，包含现代格式、
-兼容旧格式、通配符、样式化多语言文本、条件和全部内置内容字段：
-
-```text
-.minecraft/datatip.schema.json
-```
-
-推荐的 IntelliJ IDEA 配置方式：
-
-1. 先启动一次游戏，让 DataTip 导出 `.minecraft/datatip.schema.json`。
-2. 打开 `Settings | Languages & Frameworks | Schemas and DTDs | JSON Schema Mappings`。
-3. 新增一个映射，选择 `.minecraft/datatip.schema.json`。
-4. 把它映射到资源包的整个 DataTip 目录，例如 `assets/*/datatip/`，并包含其下的 JSON 文件。
-
-这样资源包作者不需要给每个 JSON 都写 `$schema`，也不需要打开 mod jar。
-
-可选的资源包内置方式：
-
-```text
-MyResourcePack/
-  datatip.schema.json
-  assets/
-    minecraft/
-      datatip/
-        showcase.json
-        equipment/
-          weapons.json
-```
-
-如果你把 `.minecraft/datatip.schema.json` 复制到了资源包根目录，可以在
-任意 DataTip JSON（例如 `assets/<namespace>/datatip/showcase.json`）中添加：
-
-```json
-{
-  "$schema": "../../../datatip.schema.json",
-  "minecraft:diamond": {
-    "type": "text",
-    "text": "Schema enabled"
-  }
-}
-```
-
-如果你是在模组开发环境里编辑 `src/main/resources/assets/<namespace>/datatip/` 下的文件，
-推荐使用上面的 IDEA 映射方式，或者按你的项目目录调整 `$schema` 相对路径。
+配置文件中的颜色使用有符号整数 ARGB 值。
 
 ## 配置
 
-文件：`config/datatip-common.toml`
+通用配置文件位于 `config/datatip-common.toml`。
 
-| 选项                    | 类型      | 默认值        | 说明                         |
-|-----------------------|---------|------------|----------------------------|
-| `enabled`             | boolean | true       | 启用/禁用 DataTip              |
-| `default_color`       | int     | 0xFFAAAAAA | 默认文本颜色                     |
-| `default_line_height` | int     | 0          | 默认行高（0=使用原版字体行高）           |
-| `max_width`           | int     | 0          | DataTip 内容宽度覆盖值（0=按内容自然测量） |
-| `shift_hint_color`    | int     | 0xFF888888 | Shift 提示文字颜色（ARGB 格式）      |
+| 选项                    | 默认值          | 说明                                |
+|-----------------------|--------------|-----------------------------------|
+| `enabled`             | `true`       | 启用 DataTip 内容                     |
+| `default_color`       | `0xFFAAAAAA` | 整数 ARGB 格式的默认文本颜色                 |
+| `default_line_height` | `0`          | 默认行高；`0` 使用原版字体高度                 |
+| `max_width`           | `0`          | Tooltip 宽度覆盖值；`0` 使用自然宽度和原版屏幕适配限制 |
+| `shift_hint_color`    | `0xFF888888` | 合并后的 Shift 提示颜色                   |
 
-## 旧格式支持
+`max_width` 只是宽度覆盖值，并不允许 Tooltip 超出屏幕。最终宽度、换行、高度视口、位置、背景和边框仍然遵从原版 Tooltip 流程。
 
-旧格式会自动转换为新格式。转换后的 JSON 保存到 `.minecraft/datatip_converted/` 目录。
+## JSON Schema
 
-**支持的旧格式：**
+DataTip 启动时会导出 `.minecraft/datatip.schema.json`。建议在编辑器中将它映射到：
 
-```json
-{
-  "minecraft:diamond": ["第 1 行", "第 2 行"],
-  "minecraft:diamond_sword": {
-    "text": {"zh_cn": ["削铁如泥"], "en_us": ["Cuts through iron"]},
-    "color": "gold",
-    "shift": true
-  }
-}
+```text
+assets/*/datatip/**/*.json
 ```
 
-**转换输出：**
-```
-.minecraft/datatip_converted/
-  └── confluence/
-      └── datatip.json
+Schema 为内置内容类型、通用修饰符、条件、本地化结构和物品选择器提供补全与校验。运行时允许顶层 `$schema` 属性并会忽略它。如果将
+Schema 复制到资源包根目录，`assets/<namespace>/datatip/` 下的文件可以使用正确的相对路径引用它。
+
+仓库中的 [datatip.schema.json](datatip.schema.json) 用于开发时校验。
+
+## 旧格式转换
+
+加载器会识别没有 `type` 的旧对象、原始值/数组形式以及旧的嵌套 `trans` 属性。它会先转换，再把转换结果交给正常的现代解析流程。
+
+- 转换输出会把 `trans` 规范化为 `translate`。
+- `shift`、`prepend` 和 `conditions` 会保留。
+- 现代 JSON 应使用 `translate`；`trans` 不是现代格式的别名。
+- 转换后的文件会写入 `.minecraft/datatip_converted/<resource-namespace>/<resource-path>.json` 供检查。
+
+例如资源 `example:equipment/weapons` 会导出为：
+
+```text
+.minecraft/datatip_converted/example/equipment/weapons.json
 ```
 
-## 完整示例
+## 生成完整示例
+
+数据生成器是完整覆盖示例的权威来源。Windows 下运行：
+
+```powershell
+.\gradlew.bat runData
+```
+
+类 Unix 系统下运行：
+
+```bash
+./gradlew runData
+```
+
+它会生成：
+
+```text
+src/generated/resources/assets/minecraft/datatip/showcase.json
+src/generated/resources/assets/minecraft/datatip/all_conditions.json
+```
+
+`showcase.json` 覆盖所有内置内容类型，以及布局、本地化、动画、叠放、翻译键、Shift 折叠、通用变换、约束、overflow 和视口压力场景。
+`all_conditions.json` 覆盖所有内置条件及常见值形态。
+
+## Java API
+
+### 注册内容类型
+
+```java
+TipContentRegistry.registerParser("my_type",(json, context) ->{
+String value = context.getString(json, "value", "");
+    return new
+
+MyTipContent(value);
+});
+```
+
+### 添加或清理运行时内容
+
+```java
+TipRuntimeContentRegistry.register(
+    "example:my_item",
+        new TipContentEntry(myContent, List.of(), false,false)
+    );
+
+    TipRuntimeContentRegistry.
+
+clearNamespace("example");
+```
+
+### 注册变量、条件和命名兼容读取器
+
+```java
+VariableResolver.registerVariable("my_value",stack ->"42");
+
+    ConditionChecker.
+
+registerCondition(
+    "my_condition",
+        (value, stack, player, level) ->Boolean.TRUE.
+
+equals(value)
+);
+
+    ComponentReaderRegistry.
+
+register("my_component",reader);
+```
+
+在 Forge 1.20.1 中，已注册的兼容读取器通过 `{component:my_component}` 引用；内置物品数据应使用 `{nbt:path}`。
+
+`TipEventManager` 还为模组集成提供资源重载、渲染前和渲染后钩子。需要由 Java 生成 JSON 时，可以使用
+`com.cooobird.datatip.datagen` 下的数据生成构建器。
+
+## 完整 JSON 示例
+
+下面的文件可以直接保存为 `assets/example/datatip/readme_showcase.json`。它覆盖全部 15 种内置内容类型，以及翻译键、通用修饰符、Stack/Z
+顺序和独立 Shift 折叠：
 
 ```json
 {
   "minecraft:diamond": {
     "type": "vbox",
-    "gap": 4,
+    "gap": 3,
+    "padding": 2,
+    "align": "center",
     "children": [
-      {"type": "text", "text": "钻石", "color": "#55FFFF", "align": "center"},
-      {"type": "divider", "color": "#555555", "widthMode": "centered", "width": 80},
-      {"type": "text", "text": "一种珍贵的宝石", "color": "gray", "align": "center"},
-      {"type": "spacer", "height": 4},
-      {"type": "text", "text": "左对齐文本", "color": "white", "align": "left"},
-      {"type": "text", "text": "居中文本", "color": "gold", "align": "center"},
-      {"type": "text", "text": "右对齐文本", "color": "aqua", "align": "right"}
+      {
+        "type": "text",
+        "translate": "example.tooltip.title",
+        "color": "aqua",
+        "bold": true,
+        "selfAlignX": "center"
+      },
+      {
+        "type": "divider",
+        "style": "dashed",
+        "widthMode": "fixed",
+        "width": 150,
+        "color": "dark_aqua"
+      },
+      {
+        "type": "hbox",
+        "gap": 6,
+        "align": "center",
+        "children": [
+          {
+            "type": "item",
+            "item": "minecraft:diamond",
+            "count": 8,
+            "size": 24,
+            "showCount": true
+          },
+          {
+            "type": "progress",
+            "progress": 0.75,
+            "width": 110,
+            "height": 8,
+            "style": "gradient",
+            "label": "75%",
+            "labelAlign": "right"
+          }
+        ]
+      },
+      {
+        "type": "stack",
+        "padding": 3,
+        "horizontalAlign": "center",
+        "verticalAlign": "center",
+        "children": [
+          {
+            "type": "block",
+            "block": "minecraft:diamond_block",
+            "size": 56,
+            "rotationSpeed": 0.6,
+            "offsetZ": -10
+          },
+          {
+            "type": "text",
+            "translate": "example.tooltip.foreground",
+            "color": "yellow",
+            "bold": true,
+            "shadow": true,
+            "offsetX": 4,
+            "offsetY": -2,
+            "offsetZ": 10
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "translate": "example.tooltip.shift_detail",
+        "color": "light_purple",
+        "shift": true
+      }
     ]
   },
-
-  "minecraft:diamond_sword": {
-    "type": "hbox",
-    "gap": 8,
+  "minecraft:carrot_on_a_stick": {
+    "type": "stack",
+    "padding": 4,
+    "horizontalAlign": "center",
+    "verticalAlign": "bottom",
     "children": [
-      {"type": "item", "item": "minecraft:diamond_sword", "size": 32},
-      {"type": "vbox", "gap": 2, "children": [
-        {"type": "text", "text": "钻石剑", "color": "aqua", "align": "center"},
-        {"type": "text", "text": "耐久: {durability}/{max_durability}", "color": "gray"},
-        {"type": "text", "text": "百分比: {durability_percent}%", "color": "gold"}
-      ]}
+      {
+        "type": "entity",
+        "entity": "minecraft:pig",
+        "size": 72,
+        "rotationSpeed": 1.0,
+        "autoRotate": true,
+        "offsetZ": -5
+      },
+      {
+        "type": "text",
+        "text": {
+          "zh_cn": "文字位于完整猪模型之上",
+          "en_us": "Text above the complete pig model"
+        },
+        "color": "gold",
+        "bold": true,
+        "offsetY": -4,
+        "offsetZ": 5
+      }
     ]
   },
-
-  "minecraft:diamond_pickaxe": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "钻石镐", "color": "aqua", "align": "center"},
-      {"type": "progress", "progress": 0.75, "width": 100, "height": 6, "colorFg": "#55FF55", "showLabel": true, "label": "75%", "labelAlign": "right"},
-      {"type": "progress", "progress": 0.5, "width": 100, "height": 8, "style": "segmented"},
-      {"type": "progress", "progress": 0.9, "width": 100, "height": 6, "colorFg": "#FFD700", "animated": true, "animSpeed": 3}
-    ]
-  },
-
-  "minecraft:golden_apple": {
-    "type": "carousel",
-    "intervalSeconds": 10,
-    "frames": [
-      {"type": "vbox", "gap": 2, "children": [
-        {"type": "text", "text": "金苹果", "color": "gold", "align": "center"},
-        {"type": "text", "text": "恢复生命值", "color": "red"}
-      ]},
-      {"type": "vbox", "gap": 2, "children": [
-        {"type": "text", "text": "Golden Apple", "color": "gold", "align": "center"},
-        {"type": "text", "text": "Restores health", "color": "red"}
-      ]},
-      {"type": "vbox", "gap": 2, "children": [
-        {"type": "text", "text": "金蘋果", "color": "gold", "align": "center"},
-        {"type": "text", "text": "恢復生命值", "color": "red"}
-      ]}
-    ]
-  },
-
-  "minecraft:nether_star": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "下界之星", "color": "light_purple", "align": "center"},
-      {"type": "typewriter", "lines": ["Boss 掉落物", "用于合成信标", "稀有物品"], "charsPerSecond": 10, "pauseSeconds": 1, "color": "gray"}
-    ]
-  },
-
-  "minecraft:stone": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "石头", "color": "gray"},
-      {"type": "divider", "color": "#555555", "style": "solid"},
-      {"type": "text", "text": "实线上方", "color": "white"},
-      {"type": "divider", "color": "#555555", "style": "dashed"},
-      {"type": "text", "text": "虚线上方", "color": "white"},
-      {"type": "divider", "color": "#555555", "style": "dotted"},
-      {"type": "text", "text": "点线上方", "color": "white"}
-    ]
-  },
-
-  "minecraft:bow": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "耐久: {durability}/{max_durability}", "color": "gray"},
-      {"type": "text", "text": "百分比: {durability_percent}%", "color": "gold"},
-      {"type": "text", "text": "耐久条: {durability_bar}", "color": "green"},
-      {"type": "text", "text": "生命条: {health_bar}", "color": "red"}
-    ]
-  },
-
-  "minecraft:iron_ingot": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "铁锭", "color": "white", "align": "center"},
-      {"type": "divider", "color": "#555555", "widthMode": "centered", "width": 60},
-      {"type": "text", "text": "生命: {player_health}/{player_max_health}", "color": "red"},
-      {"type": "text", "text": "饥饿: {player_hunger}", "color": "gold"},
-      {"type": "text", "text": "经验: {player_experience}", "color": "green"}
-    ]
-  },
-
   "minecraft:clock": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "时间: {game_time}", "color": "gold"},
-      {"type": "text", "text": "白天: {is_day}", "color": "yellow"},
-      {"type": "text", "text": "下雨: {is_raining}", "color": "aqua"},
-      {"type": "text", "text": "雷暴: {is_thundering}", "color": "red"}
-    ]
-  },
-
-  "#minecraft:swords": {
-    "type": "text",
-    "text": "所有剑类武器", "color": "yellow"
-  },
-
-  "minecraft:diamond_block": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "钻石块", "color": "aqua", "align": "center"},
-      {"type": "text", "text": "只在下界显示", "color": "dark_red"}
-    ],
-    "conditions": {
-      "dimension": "minecraft:the_nether"
-    }
-  },
-
-  "minecraft:emerald_block": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "绿宝石块", "color": "green"},
-      {"type": "text", "text": "按住 Shift 才能看到这段文字", "color": "gray", "shift": true}
-    ]
-  },
-
-  "minecraft:gold_block": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "金块", "color": "gold"},
-      {"type": "text", "text": "整条 tooltip 需要按住 Shift", "color": "gray"},
-      {"type": "text", "text": "所有内容都会被折叠", "color": "yellow"}
-    ],
-    "shift": true
-  },
-
-  "minecraft:iron_block": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "铁块", "color": "white"},
-      {"type": "text", "text": "这段内容会显示在物品名后面", "color": "gray"}
-    ],
-    "prepend": true
-  },
-
-  "minecraft:enchanted_golden_apple": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "附魔金苹果", "color": "gold", "bold": true, "align": "center"},
-      {"type": "divider", "color": "#FFD700", "widthMode": "centered", "width": 80},
-      {"type": "hbox", "gap": 8, "children": [
-        {"type": "item", "item": "minecraft:enchanted_golden_apple", "size": 32},
-        {"type": "vbox", "gap": 2, "children": [
-          {"type": "text", "text": "稀有食物", "color": "light_purple"},
-          {"type": "progress", "progress": 1.0, "width": 80, "height": 6, "colorFg": "#FFD700", "showLabel": true, "label": "满耐久", "labelAlign": "left"}
-        ]}
-      ]},
-      {"type": "text", "text": "耐久条: {durability_bar}", "color": "gray"},
-      {"type": "text", "text": "生命条: {health_bar}", "color": "red"}
-    ]
-  },
-
-  "minecraft:wolf_spawn_egg": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "狼刷怪蛋", "color": "white", "align": "center"},
-      {"type": "entity", "entity": "minecraft:wolf", "size": 48, "rotationSpeed": 1.0, "autoRotate": true},
-      {"type": "text", "text": "可以驯服为宠物", "color": "gray"}
-    ]
-  },
-
-  "minecraft:crafting_table": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "工作台", "color": "white", "align": "center"},
-      {"type": "block", "block": "minecraft:crafting_table", "size": 48, "rotationSpeed": 0.5, "autoRotate": true},
-      {"type": "text", "text": "用于合成物品", "color": "gray"}
-    ]
-  },
-
-  "minecraft:apple": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "苹果", "color": "red", "align": "center"},
-      {"type": "atlas", "item": "minecraft:apple", "size": 32},
-      {"type": "text", "text": "恢复饥饿值", "color": "gray"}
-    ]
-  },
-
-  "minecraft:red_concrete": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "红色混凝土", "color": "red", "align": "center"},
-      {"type": "atlas", "block": "minecraft:red_concrete", "size": 32},
-      {"type": "text", "text": "装饰方块", "color": "gray"}
-    ]
-  },
-
-  "minecraft:iron_sword": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "铁剑", "color": "white", "align": "center"},
-      {"type": "text", "text": "状态: {durability > 100 ? '良好' : '需要修复'}", "color": "{durability > 100 ? 'green' : 'red'}"},
-      {"type": "text", "text": "耐久: {durability}/{max_durability} ({durability_percent}%)", "color": "gray"}
-    ]
-  },
-
-  "minecraft:ender_pearl": {
-    "type": "text",
-    "text": {
-      "zh_cn": "末影珍珠 - 可用于传送",
-      "en_us": "Ender Pearl - Can be used for teleportation"
-    },
-    "color": "#00AAAA"
-  },
-
-  "minecraft:coal": {
-    "type": "vbox",
-    "gap": 0,
-    "children": [
-      {"type": "text", "text": "煤炭", "color": "gray"},
-      {"type": "spacer", "height": 8},
-      {"type": "text", "text": "上面有 8px 间距", "color": "white"}
-    ]
-  },
-
-  "minecraft:emerald": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "粗体文本", "color": "green", "bold": true},
-      {"type": "text", "text": "斜体文本", "color": "green", "italic": true},
-      {"type": "text", "text": "下划线文本", "color": "green", "underlined": true},
-      {"type": "text", "text": "删除线文本", "color": "green", "strikethrough": true}
-    ]
-  },
-
-  "minecraft:compass": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "指南针", "color": "#FF5555", "bold": true},
-      {"type": "text", "text": "位置: {player_x}, {player_y}, {player_z}", "color": "white"},
-      {"type": "chart", "chartType": "bar", "width": 100, "height": 60,
-       "entries": [
-         {"label": "X", "value": "{player_x}", "color": "#FF5555"},
-         {"label": "Y", "value": "{player_y}", "color": "#55FF55"},
-         {"label": "Z", "value": "{player_z}", "color": "#5555FF"}
-       ]
-      }
-    ]
-  },
-
-  "minecraft:redstone": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "红石", "color": "#FF0000", "bold": true},
-      {"type": "chart", "chartType": "pie", "width": 80,
-       "entries": [
-         {"label": "红石粉", "value": 60, "color": "#FF0000"},
-         {"label": "红石火把", "value": 25, "color": "#FF5555"},
-         {"label": "红石中继器", "value": 15, "color": "#FFAAAA"}
-       ]
-      }
-    ]
-  },
-
-  "minecraft:wheat_seeds": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "小麦种子", "color": "#55AA55", "bold": true},
-      {"type": "chart", "chartType": "line", "width": 100, "height": 60,
-       "entries": [
-         {"label": "1", "value": 10, "color": "#55AA55"},
-         {"label": "2", "value": 25, "color": "#55AA55"},
-         {"label": "3", "value": 45, "color": "#55AA55"},
-         {"label": "4", "value": 40, "color": "#55AA55"},
-         {"label": "5", "value": 60, "color": "#55AA55"}
-       ]
-      }
-    ]
-  },
-
-  "minecraft:painting": {
-    "type": "vbox",
-    "gap": 4,
-    "children": [
-      {"type": "text", "text": "画", "color": "#AAAAAA", "bold": true},
-      {"type": "entity", "entity": "minecraft:painting", "size": 48, "autoRotate": false, "offsetY": 8},
-      {"type": "text", "text": "装饰性物品", "color": "gray"}
-    ]
-  },
-
-  "minecraft:emerald_ore": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "多条 shift 自动合并为一条提示", "color": "green"},
-      {"type": "text", "text": "只有按住 Shift 才显示", "color": "gray", "shift": true},
-      {"type": "text", "text": "多条合并为一行", "color": "gray", "shift": true}
-    ]
-  },
-
-  "minecraft:enchanted_book": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "打字机 loop:true 悬停重播", "color": "light_purple", "bold": true},
-      {"type": "typewriter", "lines": [
-        "每次悬停都从头播放",
-        "loop:true + gap 检测",
-        "移开再悬停试试"
-      ], "charsPerSecond": 6, "pauseSeconds": 1, "loop": true, "color": "gray"}
-    ]
-  },
-
-  "minecraft:netherite_upgrade_smithing_template": {
-    "type": "vbox",
-    "gap": 2,
-    "children": [
-      {"type": "text", "text": "打字机 + shift 展开重播", "color": "white", "bold": true},
-      {"type": "typewriter", "lines": [
-        "按 Shift 展开",
-        "每次展开重头播放",
-        "松开再按试试"
-      ], "charsPerSecond": 8, "pauseSeconds": 1, "loop": true, "color": "gray", "shift": true}
-    ]
-  },
-
-  "minecraft:amethyst_shard": {
-    "type": "vbox", "gap": 3,
-    "children": [
-      {"type": "progress", "progress": 0.25, "width": 150, "height": 6, "style": "flat", "label": "Flat · Left", "showLabel": true, "labelAlign": "left"},
-      {"type": "progress", "progress": 0.5, "width": 150, "height": 6, "style": "gradient", "label": {"zh_cn": "渐变 · 居中", "en_us": "Gradient · Center"}, "showLabel": true, "labelAlign": "center"},
-      {"type": "progress", "progress": 0.75, "width": 150, "height": 6, "style": "segmented", "label": "Segmented · Right", "showLabel": true, "labelAlign": "right"},
-      {"type": "progress", "progress": 0.9, "width": 150, "height": 6, "style": "animated", "animated": true, "animSpeed": 2, "colorFg": "#55FFFF", "colorFgLight": "#DDFFFF", "colorBg": "#222222", "colorBgDark": "#111111", "label": "Animated", "showLabel": true, "labelAlign": "center"}
-    ]
-  },
-
-  "minecraft:copper_ingot": {
-    "type": "carousel", "intervalSeconds": 4, "transition": "fade",
+    "type": "carousel",
+    "intervalSeconds": 3,
+    "transition": "slide",
     "frames": [
-      {"type": "text", "text": {"zh_cn": "Fade · 多语言文本", "en_us": "Fade · Localized text"}, "color": "gold"},
-      {"type": "item", "item": "minecraft:copper_ingot", "size": 28, "showLabel": true, "label": {"zh_cn": "物品帧", "en_us": "Item frame"}},
-      {"type": "block", "block": "minecraft:copper_block", "size": 34, "rotationSpeed": 1.2, "autoRotate": true, "label": {"zh_cn": "旋转方块", "en_us": "Rotating block"}}
+      {
+        "type": "atlas",
+        "item": "minecraft:clock",
+        "size": 32,
+        "label": {"translate": "item.minecraft.clock"}
+      },
+      {
+        "type": "image",
+        "texture": "minecraft:textures/item/clock_00.png",
+        "width": 32,
+        "height": 32,
+        "textureWidth": 32,
+        "textureHeight": 32
+      },
+      {
+        "type": "typewriter",
+        "lines": {
+          "zh_cn": ["轮播第三帧", "打字机文本"],
+          "en_us": ["Carousel frame three", "Typewriter text"]
+        },
+        "charsPerSecond": 16,
+        "pauseSeconds": 1,
+        "loop": true,
+        "color": "white",
+        "align": "center"
+      }
     ]
   },
-
-  "minecraft:echo_shard": {
-    "type": "carousel", "intervalSeconds": 4, "transition": "slide",
-    "frames": [
-      {"type": "entity", "entity": "minecraft:pig", "size": 38, "rotationSpeed": -1.5, "autoRotate": true, "label": {"zh_cn": "滑动实体", "en_us": "Sliding entity"}},
-      {"type": "atlas", "item": "minecraft:echo_shard", "size": 32, "label": {"zh_cn": "滑动图集", "en_us": "Sliding atlas"}}
-    ]
-  },
-
-  "minecraft:recovery_compass": {
-    "type": "carousel", "intervalSeconds": 4, "transition": "none",
-    "frames": [{"type": "text", "text": "Frame A"}, {"type": "text", "text": "Frame B"}]
-  },
-
-  "minecraft:filled_map": {
-    "type": "image", "texture": "minecraft:textures/map/map_background.png",
-    "width": 64, "height": 64, "u": 0, "v": 0,
-    "textureWidth": 128, "textureHeight": 128, "scale": 0.75, "offsetX": 2, "offsetY": 2
-  },
-
-  "minecraft:name_tag": {
-    "type": "vbox", "gap": 2, "prepend": true,
+  "minecraft:slime_ball": {
+    "type": "vbox",
+    "gap": 3,
     "children": [
-      {"type": "text", "text": "Name: {nbt:display.Name}", "color": "white"},
-      {"type": "text", "text": "Damage: {nbt:Damage}/{max_durability}", "color": "gray"},
-      {"type": "text", "text": "RepairCost: {nbt:RepairCost}", "color": "gold", "maxWidth": 150}
+      {"type": "spacer", "height": 4},
+      {
+        "type": "chart",
+        "chartType": "bar",
+        "width": 150,
+        "height": 60,
+        "title": {"translate": "example.tooltip.chart"},
+        "showLabels": true,
+        "showValues": true,
+        "entries": [
+          {"label": "A", "value": 3, "color": "red"},
+          {"label": "B", "value": 7, "color": "green"},
+          {"label": "C", "valueExpr": "{count}", "color": "blue"}
+        ]
+      }
     ]
   }
 }
 ```
 
-datagen 还会生成 `10_all_conditions.json`，覆盖全部 1.20.1 内置条件和常见值形态：
-
-```json
-{
-    "minecraft:grass_block": {
-        "type": "text",
-        "text": "dimension",
-        "conditions": {
-            "dimension": "minecraft:overworld"
-        }
-    },
-    "minecraft:oak_sapling": {
-        "type": "text",
-        "text": "biome array",
-        "conditions": {
-            "biome": [
-                "minecraft:plains",
-                "minecraft:forest"
-            ]
-        }
-    },
-    "minecraft:map": {
-        "type": "text",
-        "text": "holding array",
-        "conditions": {
-            "holding": [
-                "minecraft:compass",
-                "minecraft:recovery_compass"
-            ]
-        }
-    },
-    "minecraft:feather": {
-        "type": "text",
-        "text": "sneaking true",
-        "conditions": {
-            "sneaking": true
-        }
-    },
-    "minecraft:flint": {
-        "type": "text",
-        "text": "sneaking false",
-        "conditions": {
-            "sneaking": false
-        }
-    },
-    "minecraft:command_block": {
-        "type": "text",
-        "text": "creative",
-        "conditions": {
-            "creative": true
-        }
-    },
-    "minecraft:wooden_sword": {
-        "type": "text",
-        "text": "survival",
-        "conditions": {
-            "survival": true
-        }
-    },
-    "minecraft:golden_apple": {
-        "type": "text",
-        "text": "health",
-        "conditions": {
-            "health": "50%"
-        }
-    },
-    "minecraft:bread": {
-        "type": "text",
-        "text": "hunger",
-        "conditions": {
-            "hunger": 15
-        }
-    },
-    "minecraft:experience_bottle": {
-        "type": "text",
-        "text": "experience",
-        "conditions": {
-            "experience": 5
-        }
-    },
-    "minecraft:bookshelf": {
-        "type": "text",
-        "text": "level",
-        "conditions": {
-            "level": 5
-        }
-    },
-    "minecraft:sunflower": {
-        "type": "text",
-        "text": "time",
-        "conditions": {
-            "time": "day"
-        }
-    },
-    "minecraft:clock": {
-        "type": "text",
-        "text": "time number",
-        "conditions": {
-            "time": 6000
-        }
-    },
-    "minecraft:lightning_rod": {
-        "type": "text",
-        "text": "weather",
-        "conditions": {
-            "weather": "clear"
-        }
-    },
-    "minecraft:torch": {
-        "type": "text",
-        "text": "light",
-        "conditions": {
-            "light": "bright"
-        }
-    },
-    "minecraft:glowstone": {
-        "type": "text",
-        "text": "light number",
-        "conditions": {
-            "light": 8
-        }
-    },
-    "minecraft:scaffolding": {
-        "type": "text",
-        "text": "altitude",
-        "conditions": {
-            "altitude": ">=64"
-        }
-    },
-    "minecraft:stick": {
-        "type": "text",
-        "text": "enchanted",
-        "conditions": {
-            "enchanted": false
-        }
-    },
-    "minecraft:diamond_pickaxe": {
-        "type": "text",
-        "text": "damage",
-        "conditions": {
-            "damage": 100
-        }
-    },
-    "minecraft:cobblestone": {
-        "type": "text",
-        "text": "count",
-        "conditions": {
-            "count": 16
-        }
-    },
-    "minecraft:name_tag": {
-        "type": "text",
-        "text": "nbt path",
-        "conditions": {
-            "nbt": "display.Name"
-        }
-    },
-    "minecraft:paper": {
-        "type": "text",
-        "text": "nbt values",
-        "conditions": {
-            "nbt": {
-                "Damage": 0,
-                "RepairCost": 0
-            }
-        }
-    },
-    "minecraft:iron_sword": {
-        "type": "text",
-        "text": "item_tag",
-        "conditions": {
-            "item_tag": "minecraft:swords"
-        }
-    },
-    "minecraft:diamond_block": {
-        "type": "text",
-        "text": "combined",
-        "conditions": {
-            "dimension": "minecraft:overworld",
-            "creative": false,
-            "health": 1,
-            "count": 1
-        }
-    }
-}
-```
-
-## 模组开发者
-
-### Datagen 与 TipContentBuilder
-
-运行客户端 datagen 时，`DatatipDataGen` 会自动注册 `ExampleTooltipProvider` 并生成：
-
-- `assets/minecraft/datatip/00_showcase.json`：全部内容类型、布局、多语言和动画组合
-- `assets/minecraft/datatip/10_all_conditions.json`：全部 1.20.1 内置条件和常用值形态
-
-示例只使用 `TipContentBuilder` 构造内容：
-
-```java
-import static com.cooobird.datatip.datagen.TipContentBuilder.*;
-
-root.add("minecraft:clock", toJson(carousel(4, "fade",
-    langText(languages("淡入淡出文本", "Fade text"), "gold"),
-    item("minecraft:clock", 1, 28, false, false, true,
-        languages("物品帧", "Item frame"), "#FFAA00", 0, 0),
-    image("minecraft:textures/item/clock_00.png", 16, 16,
-        0, 0, 16, 16, 1.5f, 0, 0)
-)));
-
-root.add("minecraft:name_tag", entry(
-    text("需要自定义名称 NBT", "yellow"),
-    Map.of("nbt", "display.Name"), false, true
-));
-```
-
-完整 Builder 组合可直接查看 `ExampleShowcaseTooltips` 和 `ExampleConditionTooltips`。
-
-### 运行时注册 Tooltip 内容
-
-运行时注册的内容不会写入资源包，但会和资源包 JSON 内容一起显示。
-
-```java
-TipRuntimeContentRegistry.register(
-    "minecraft:diamond",
-    TextContent.of("来自代码注册的 DataTip")
-);
-
-TipRuntimeContentRegistry.register(
-    "#minecraft:swords",
-    new TipContentEntry(TextContent.of("剑类物品额外提示"), List.of(), false, true)
-);
-```
-
-也可以按命名空间清理运行时注册内容：
-
-```java
-TipRuntimeContentRegistry.clearNamespace("mymod");
-```
-
-### 事件钩子
-
-`onAppendLines` 会在 tooltip 收集阶段触发，即使当前物品没有匹配的 DataTip 配置，也可以追加额外文本。
-
-```java
-// 渲染前事件（修改或取消）
-TipEventManager.onPreRender(event -> {
-    event.setItemStack(customStack);
-    // 或 event.cancel() 取消渲染
-});
-
-// 追加额外 tooltip 文本行
-TipEventManager.onAppendLines(event -> {
-    event.addLine("来自其他模组的额外信息");
-});
-
-// 变量解析事件（注入自定义变量）
-TipEventManager.onResolveVariable(event -> {
-    if (event.getVariableName().equals("custom_var")) {
-        event.setValue("custom_value");
-    }
-});
-```
-
-## 热重载
-
-按 F3+T 重新加载客户端资源包和 tooltip，无需重启游戏。`/reload` 只负责服务端数据包，
-不会替代客户端资源重载。
+示例使用的翻译键可以分别放入 `assets/example/lang/en_us.json` 和 `assets/example/lang/zh_cn.json`。数据生成器输出的
+`showcase.json` 仍然是完整压力测试的权威参考。
 
 ## 许可证
 
-GNU LGPL 3.0
+DataTip 使用 GNU Lesser General Public License 3.0。详见 [LICENSE](LICENSE)。

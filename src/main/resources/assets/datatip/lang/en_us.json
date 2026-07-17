@@ -1,7 +1,10 @@
 {
     "tooltip.datatip.hold_shift": "Hold %s to view detailed information",
+    "tooltip.datatip.scroll_hint": "Hold %s and use the mouse wheel to view more content",
     "key.categories.datatip": "DataTip",
     "key.datatip.show_tip": "Show Detailed Tooltip",
+    "key.datatip.scroll_tooltip": "Scroll Tooltip Content",
+
     "datatip.configuration.enabled": "Enable DataTip",
     "datatip.configuration.enabled.tooltip": "Enable DataTip tooltips. Set to false to disable all custom tooltips.",
     "datatip.configuration.default_color": "Default Text Color",
@@ -11,5 +14,6 @@
     "datatip.configuration.max_width": "Width Override",
     "datatip.configuration.max_width.tooltip": "Tooltip width override in pixels. Set to 0 to use the vanilla tooltip width.",
     "datatip.configuration.shift_hint_color": "Shift Hint Color",
-    "datatip.configuration.shift_hint_color.tooltip": "Shift hint text color (ARGB format)."
+    "datatip.configuration.shift_hint_color.tooltip": "Shift hint text color (ARGB format).",
+    "datatip.example.stack_foreground": "Translated foreground"
 }

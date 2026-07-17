@@ -6,6 +6,8 @@ import com.cooobird.datatip.api.content.ProgressContent;
 import com.google.gson.JsonObject;
 import net.minecraft.network.chat.Component;
 
+import java.util.Locale;
+
 /**
  * ProgressContent 解析器。
  * <p>
@@ -100,7 +102,7 @@ public class ProgressContentParser implements ContentParser {
 
         // 解析样式
         String styleStr = context.getString(json, "style", "gradient");
-        ProgressContent.ProgressStyle style = switch (styleStr.toLowerCase()) {
+        ProgressContent.ProgressStyle style = switch (styleStr.toLowerCase(Locale.ROOT)) {
             case "flat" -> ProgressContent.ProgressStyle.FLAT;
             case "segmented" -> ProgressContent.ProgressStyle.SEGMENTED;
             case "animated" -> ProgressContent.ProgressStyle.ANIMATED;
@@ -124,7 +126,7 @@ public class ProgressContentParser implements ContentParser {
 
         // 获取标签对齐方式
         String labelAlignStr = context.getString(json, "labelAlign", "left");
-        ProgressContent.LabelAlign labelAlign = switch (labelAlignStr.toLowerCase()) {
+        ProgressContent.LabelAlign labelAlign = switch (labelAlignStr.toLowerCase(Locale.ROOT)) {
             case "center" -> ProgressContent.LabelAlign.CENTER;
             case "right" -> ProgressContent.LabelAlign.RIGHT;
             default -> ProgressContent.LabelAlign.LEFT;

@@ -3,7 +3,7 @@ package com.cooobird.datatip.api.content;
 import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
-import com.cooobird.datatip.event.TipRenderEventHandler;
+import com.cooobird.datatip.client.DatatipKeyMappings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
@@ -91,7 +91,7 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
         if (iter.hasCollapsed()) {
             Font font = Minecraft.getInstance().font;
             Component hint = Component.translatable("tooltip.datatip.hold_shift",
-                TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
+                DatatipKeyMappings.SHOW_TIP.getTranslatedKeyMessage());
             int hintWidth = font.width(hint);
             if (hintWidth > maxW[0]) maxW[0] = hintWidth;
         }
@@ -139,5 +139,12 @@ public record VBoxContent(List<TipContent> children, int gap, int padding,
         return maxWidth > 0
             ? TipLayoutContext.bounded(Minecraft.getInstance().font, net.minecraft.world.item.ItemStack.EMPTY, maxWidth)
             : TipLayoutContext.unbounded(Minecraft.getInstance().font, net.minecraft.world.item.ItemStack.EMPTY);
+    }
+
+    @Override
+    public com.cooobird.datatip.api.layout.PreparedLayout prepare(
+        com.cooobird.datatip.api.layout.TipPrepareContext context
+    ) {
+        return PreparedContainerSupport.prepareTree(this, context);
     }
 }

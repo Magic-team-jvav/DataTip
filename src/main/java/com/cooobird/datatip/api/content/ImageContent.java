@@ -1,7 +1,9 @@
 package com.cooobird.datatip.api.content;
 
-import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipRenderContext;
+import com.cooobird.datatip.api.layout.OverflowPolicy;
+import com.cooobird.datatip.internal.layout.PreparedLeafSupport;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.resources.ResourceLocation;
 
 /**
@@ -18,17 +20,30 @@ public record ImageContent(
     float scale,               // 缩放比例
     int offsetX,               // X 轴偏移量
     int offsetY                // Y 轴偏移量
-) implements TipContent {
+) implements com.cooobird.datatip.api.layout.PreparedContent {
 
-    public ImageContent {
-        texture = java.util.Objects.requireNonNull(texture, "texture");
-        width = ContentBounds.dimension(width);
-        height = ContentBounds.dimension(height);
-        textureWidth = ContentBounds.dimension(textureWidth);
-        textureHeight = ContentBounds.dimension(textureHeight);
-        scale = Float.isFinite(scale) && scale > 0 ? scale : 1.0f;
-        offsetX = ContentBounds.offset(offsetX);
-        offsetY = ContentBounds.offset(offsetY);
+    public ImageContent(
+        ResourceLocation texture,
+        int width,
+        int height,
+        int u,
+        int v,
+        int textureWidth,
+        int textureHeight,
+        float scale,
+        int offsetX,
+        int offsetY
+    ) {
+        this.texture = java.util.Objects.requireNonNull(texture, "texture");
+        this.width = ContentBounds.dimension(width);
+        this.height = ContentBounds.dimension(height);
+        this.u = u;
+        this.v = v;
+        this.textureWidth = ContentBounds.dimension(textureWidth);
+        this.textureHeight = ContentBounds.dimension(textureHeight);
+        this.scale = Float.isFinite(scale) && scale > 0 ? scale : 1.0f;
+        this.offsetX = ContentBounds.offset(offsetX);
+        this.offsetY = ContentBounds.offset(offsetY);
     }
 
     // 创建图片内容
@@ -58,7 +73,7 @@ public record ImageContent(
 
     @Override
     public int getWidth(int maxWidth) {
-        return Math.min(ContentBounds.extent(renderWidth(), offsetX), maxWidth);
+        return ContentBounds.extent(renderWidth(), offsetX);
     }
 
     @Override
@@ -68,13 +83,12 @@ public record ImageContent(
         int renderWidth = renderWidth();
         int renderHeight = renderHeight();
 
-        int renderBaseX = x + Math.max(0, -offsetX);
-        int renderBaseY = y + Math.max(0, -offsetY);
+        int renderBaseX = x + ContentBounds.negativeInset(offsetX);
+        int renderBaseY = y + ContentBounds.negativeInset(offsetY);
         int renderX = renderBaseX + offsetX;
         int renderY = renderBaseY + offsetY;
 
-        boolean clipped = ContentBounds.beginHorizontalClip(
-            context, x, y, maxWidth, getHeight(maxWidth), ContentBounds.extent(renderWidth, offsetX));
+        boolean clipped = false;
         try {
             // 目标区域使用缩放后的尺寸，源纹理采样区域保持 JSON 声明的原始尺寸。
             // 如果把 renderWidth/renderHeight 同时用于源区域，scale > 1 时会越界采样并重复纹理。
@@ -91,5 +105,78 @@ public record ImageContent(
 
     private int renderHeight() {
         return ContentBounds.scaledDimension(height, scale);
+    }
+
+    @Override
+    public com.cooobird.datatip.api.layout.PreparedLayout prepare(
+        com.cooobird.datatip.api.layout.TipPrepareContext context
+    ) {
+        int naturalWidth = getWidth(0);
+        int naturalHeight = getHeight(0);
+        double fit = naturalWidth > context.measureSpec().hardMaxWidth()
+            ? (double) context.measureSpec().hardMaxWidth() / naturalWidth
+            : 1.0;
+        int allocatedWidth = scaled(naturalWidth, fit);
+        int allocatedHeight = scaled(naturalHeight, fit);
+        int imageWidth = scaled(renderWidth(), fit);
+        int imageHeight = scaled(renderHeight(), fit);
+        int imageX = scaled(
+            ContentBounds.negativeInsetLong(offsetX) + offsetX,
+            fit
+        );
+        int imageY = scaled(
+            ContentBounds.negativeInsetLong(offsetY) + offsetY,
+            fit
+        );
+        return PreparedLeafSupport.draw(
+            naturalWidth,
+            naturalHeight,
+            naturalWidth,
+            naturalHeight,
+            allocatedWidth,
+            allocatedHeight,
+            OverflowPolicy.SCALE_DOWN,
+            com.cooobird.datatip.api.render.RenderPhase.VISUAL_2D,
+            "image",
+            (renderContext, x, y, alpha) -> {
+                float[] shaderColor = RenderSystem.getShaderColor().clone();
+                RenderSystem.setShaderColor(
+                    shaderColor[0],
+                    shaderColor[1],
+                    shaderColor[2],
+                    shaderColor[3] * alpha
+                );
+                try {
+                    renderContext.blit(
+                        texture,
+                        ContentBounds.coordinate(x, imageX),
+                        ContentBounds.coordinate(y, imageY),
+                        imageWidth,
+                        imageHeight,
+                        u,
+                        v,
+                        width,
+                        height,
+                        textureWidth,
+                        textureHeight
+                    );
+                } finally {
+                    RenderSystem.setShaderColor(
+                        shaderColor[0],
+                        shaderColor[1],
+                        shaderColor[2],
+                        shaderColor[3]
+                    );
+                }
+            }
+        );
+    }
+
+    private static int scaled(long value, double scale) {
+        if (value <= 0) return 0;
+        return (int) Math.max(
+            1,
+            Math.min(Integer.MAX_VALUE, Math.round(value * scale))
+        );
     }
 }

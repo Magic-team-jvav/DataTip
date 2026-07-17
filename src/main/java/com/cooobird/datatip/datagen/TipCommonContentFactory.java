@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -31,7 +32,7 @@ final class TipCommonContentFactory {
     }
 
     static DividerContent divider(String color, String style) {
-        return DividerContent.of(parseColor(color), switch (style.toLowerCase()) {
+        return DividerContent.of(parseColor(color), switch (style.toLowerCase(Locale.ROOT)) {
             case "dashed" -> DividerContent.DividerStyle.DASHED;
             case "dotted" -> DividerContent.DividerStyle.DOTTED;
             default -> DividerContent.DividerStyle.SOLID;
@@ -46,13 +47,13 @@ final class TipCommonContentFactory {
 
     static ItemContent item(String itemId) {
         return ItemContent.of(new ItemStack(
-            BuiltInRegistries.ITEM.get(new ResourceLocation(itemId))
+            BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId))
         ));
     }
 
     static ItemContent item(String itemId, String label) {
         return ItemContent.withLabel(
-            new ItemStack(BuiltInRegistries.ITEM.get(new ResourceLocation(itemId))),
+            new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId))),
             Component.literal(label)
         );
     }
@@ -60,7 +61,7 @@ final class TipCommonContentFactory {
     static ItemContent item(String itemId, int count, int size, boolean showCount, boolean showDurability,
                             boolean showLabel, Map<String, String> label, String labelColor,
                             int offsetX, int offsetY) {
-        ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(new ResourceLocation(itemId)), Math.max(1, count));
+        ItemStack stack = new ItemStack(BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId)), Math.max(1, count));
         return new ItemContent(stack, size, showCount, showDurability, showLabel, localized(label),
             parseColor(labelColor), offsetX, offsetY);
     }

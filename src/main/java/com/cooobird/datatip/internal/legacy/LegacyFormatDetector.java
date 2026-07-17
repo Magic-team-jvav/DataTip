@@ -3,6 +3,7 @@ package com.cooobird.datatip.internal.legacy;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.util.ArrayDeque;
 import java.util.Map;
 
 /**
@@ -21,11 +22,37 @@ final class LegacyFormatDetector {
 
             if (value.isJsonObject()) {
                 JsonObject obj = value.getAsJsonObject();
-                if (!obj.has("type")) {
+                if (!obj.has("type") || containsLegacyTranslationKey(obj)) {
                     return true;
                 }
             } else if (value.isJsonArray() || value.isJsonPrimitive()) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsLegacyTranslationKey(JsonElement root) {
+        ArrayDeque<JsonElement> work = new ArrayDeque<>();
+        work.push(root);
+        while (!work.isEmpty()) {
+            JsonElement current = work.pop();
+            if (current.isJsonArray()) {
+                for (JsonElement child : current.getAsJsonArray()) {
+                    if (child.isJsonArray() || child.isJsonObject()) {
+                        work.push(child);
+                    }
+                }
+                continue;
+            }
+            if (!current.isJsonObject()) continue;
+            for (Map.Entry<String, JsonElement> entry
+                : current.getAsJsonObject().entrySet()) {
+                if (entry.getKey().equals("trans")) return true;
+                JsonElement child = entry.getValue();
+                if (child.isJsonArray() || child.isJsonObject()) {
+                    work.push(child);
+                }
             }
         }
         return false;

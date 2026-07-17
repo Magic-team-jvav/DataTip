@@ -77,8 +77,6 @@ public class BlockContentParser implements ContentParser {
         int size = context.getInt(json, "size", 32);
         float rotationSpeed = context.getFloat(json, "rotationSpeed", 0.5f);
         boolean autoRotate = context.getBoolean(json, "autoRotate", true);
-        int offsetX = context.getInt(json, "offsetX", 0);
-        int offsetY = context.getInt(json, "offsetY", 0);
 
         // 获取标签（可选）
         Component label = null;
@@ -86,6 +84,6 @@ public class BlockContentParser implements ContentParser {
             label = LocalizedTextParser.parse(json, "label", context);
         }
 
-        return new BlockContent(block, size, rotationSpeed, autoRotate, label, offsetX, offsetY);
+        return new BlockContent(block, size, rotationSpeed, autoRotate, label, 0, 0);
     }
 }

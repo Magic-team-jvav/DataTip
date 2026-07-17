@@ -27,21 +27,33 @@ final class PieChartRenderer {
         int centerY = y + renderHeight / 2;
         int radius = Math.min(renderWidth, renderHeight) / 2 - 4;
         if (radius <= 0) return;
+        List<ChartGeometryBuckets.Bucket> buckets =
+            ChartGeometryBuckets.sumAbsolute(
+                entries,
+                values,
+                Math.max(1, (int) Math.ceil(2.0 * Math.PI * radius))
+            );
+        values = buckets.stream()
+            .mapToDouble(ChartGeometryBuckets.Bucket::value)
+            .toArray();
+        total = Arrays.stream(values).sum();
 
         double startAngle = -90; // 从顶部开始
-        int labelY = y + renderHeight + 4;
 
-        for (int i = 0; i < entries.size(); i++) {
-            ChartContent.ChartEntry entry = entries.get(i);
+        for (int i = 0; i < buckets.size(); i++) {
+            ChartGeometryBuckets.Bucket bucket = buckets.get(i);
             double sweepAngle = (values[i] / total) * 360;
             double endAngle = startAngle + sweepAngle;
 
-            ChartRenderUtils.drawPieSlice(context, centerX, centerY, radius, startAngle, endAngle, entry.color());
-
-            if (chart.showLabels() || chart.showValues()) {
-                context.drawString(chart.legendText(entry, context), x, labelY, entry.color());
-                labelY += 10;
-            }
+            ChartRenderUtils.drawPieSlice(
+                context,
+                centerX,
+                centerY,
+                radius,
+                startAngle,
+                endAngle,
+                bucket.color()
+            );
 
             startAngle = endAngle;
         }

@@ -28,7 +28,7 @@ public final class ExpressionVariableResolver {
                         Object value = ExpressionParser.evaluate(expr, variables);
                         result.append(value != null ? value.toString() : "");
                     } else {
-                        result.append("{").append(expr).append("}");
+                        result.append('{').append(expr).append('}');
                     }
 
                     i = end + 1;

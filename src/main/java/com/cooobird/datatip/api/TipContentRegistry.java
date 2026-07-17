@@ -1,11 +1,14 @@
 package com.cooobird.datatip.api;
 
-import com.cooobird.datatip.api.content.AlignedContent;
-import com.cooobird.datatip.api.content.TextContent;
-import com.cooobird.datatip.api.content.VBoxContent;
+import com.cooobird.datatip.api.layout.OverflowPolicy;
+import com.cooobird.datatip.api.node.TipModifiers;
+import com.cooobird.datatip.api.node.TipNode;
+import com.cooobird.datatip.internal.condition.ConditionJsonCodec;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.jetbrains.annotations.Nullable;
 
+import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -46,6 +49,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *   <tr><td>chart</td><td>图表内容</td></tr>
  *   <tr><td>vbox</td><td>垂直布局</td></tr>
  *   <tr><td>hbox</td><td>水平布局</td></tr>
+ *   <tr><td>stack</td><td>共享 XY 区域的叠放布局</td></tr>
  *   <tr><td>divider</td><td>分割线</td></tr>
  *   <tr><td>spacer</td><td>间距</td></tr>
  * </table>
@@ -85,8 +89,11 @@ public class TipContentRegistry {
      * @param parser 解析器实现
      */
     public static void registerOrReplaceParser(String type, ContentParser parser) {
-        parsers.put(normalizeType(type), Objects.requireNonNull(parser, "parser"));
-        REVISION.incrementAndGet();
+        ContentParser replacement = Objects.requireNonNull(parser, "parser");
+        ContentParser previous = parsers.put(normalizeType(type), replacement);
+        if (previous != replacement) {
+            REVISION.incrementAndGet();
+        }
     }
 
     /**
@@ -132,6 +139,11 @@ public class TipContentRegistry {
      */
     @Nullable
     public static TipContent parse(JsonObject json, ParseContext context) {
+        return context.parseContent(json);
+    }
+
+    @Nullable
+    static TipContent parseSingle(JsonObject json, ParseContext context) {
         if (!json.has("type")) {
             context.addWarning("JSON object missing 'type' field");
             return null;
@@ -152,24 +164,14 @@ public class TipContentRegistry {
         }
 
         try {
+            TipModifiers modifiers = parseModifiers(json);
             TipContent content = parser.parse(json, context);
             if (content == null) {
                 context.addWarning("Parser returned null for type: '" + type + "'");
                 return null;
             }
 
-            // 如果 JSON 中有 align 属性，自动包装为 AlignedContent
-            if (json.has("align") && !(content instanceof TextContent)) {
-                String alignStr = json.get("align").getAsString();
-                VBoxContent.HorizontalAlign align = switch (alignStr.toLowerCase()) {
-                    case "center" -> VBoxContent.HorizontalAlign.CENTER;
-                    case "right" -> VBoxContent.HorizontalAlign.RIGHT;
-                    default -> VBoxContent.HorizontalAlign.LEFT;
-                };
-                return new AlignedContent(content, align);
-            }
-
-            return content;
+            return TipNode.wrap(content, modifiers);
         } catch (Exception e) {
             context.addWarning("Failed to parse type '" + type + "': " + e.getMessage());
             return null;
@@ -219,5 +221,237 @@ public class TipContentRegistry {
     @Nullable
     private static String normalizeLookupType(String type) {
         return type == null || type.isBlank() ? null : type.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static TipModifiers parseModifiers(JsonObject json) {
+        boolean shift = parseBoolean(json, "shift", false);
+        var conditions = ConditionJsonCodec.parse(json);
+        long offsetX = parseLong(json, "offsetX", 0);
+        long offsetY = parseLong(json, "offsetY", 0);
+        long offsetZ = parseLong(json, "offsetZ", 0);
+        TipModifiers.SelfAlignment selfAlignX = parseSelfAlignment(json);
+        TipModifiers.VerticalAlignment selfAlignY = parseVerticalAlignment(json);
+        TipModifiers.Margins margins = parseMargins(json);
+        TipModifiers.SizeConstraints sizeConstraints = parseSizeConstraints(json);
+        double commonScale = parseDouble(json, "scale", 1.0);
+        double scaleX = parseDouble(json, "scaleX", commonScale);
+        double scaleY = parseDouble(json, "scaleY", commonScale);
+        double rotation = parseDouble(json, "rotation", 0.0);
+        double pivotX = parseDouble(json, "pivotX", 0.5);
+        double pivotY = parseDouble(json, "pivotY", 0.5);
+        double opacity = parseDouble(json, "opacity", 1.0);
+        boolean visible = parseBoolean(json, "visible", true);
+        OverflowPolicy overflow = parseOverflow(json);
+        return new TipModifiers(
+            shift,
+            conditions,
+            offsetX,
+            offsetY,
+            offsetZ,
+            selfAlignX,
+            selfAlignY,
+            margins,
+            sizeConstraints,
+            scaleX,
+            scaleY,
+            rotation,
+            pivotX,
+            pivotY,
+            opacity,
+            visible,
+            overflow
+        );
+    }
+
+    private static long parseLong(
+        JsonObject json,
+        String property,
+        long defaultValue
+    ) {
+        if (!json.has(property) || json.get(property).isJsonNull()) {
+            return defaultValue;
+        }
+
+        JsonElement element = json.get(property);
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            throw new IllegalArgumentException(
+                "Property '" + property + "' must be a 64-bit integer"
+            );
+        }
+
+        try {
+            BigDecimal value = element.getAsBigDecimal();
+            return value.longValueExact();
+        } catch (ArithmeticException | NumberFormatException exception) {
+            throw new IllegalArgumentException(
+                "Property '" + property + "' must be a 64-bit integer",
+                exception
+            );
+        }
+    }
+
+    private static TipModifiers.SelfAlignment parseSelfAlignment(JsonObject json) {
+        String property = json.has("selfAlignX") ? "selfAlignX" : "selfAlign";
+        if (!json.has(property) || json.get(property).isJsonNull()) {
+            return TipModifiers.SelfAlignment.INHERIT;
+        }
+
+        String value = parseString(json, property).toLowerCase(Locale.ROOT);
+        return switch (value) {
+            case "inherit" -> TipModifiers.SelfAlignment.INHERIT;
+            case "left" -> TipModifiers.SelfAlignment.LEFT;
+            case "center" -> TipModifiers.SelfAlignment.CENTER;
+            case "right" -> TipModifiers.SelfAlignment.RIGHT;
+            default -> throw new IllegalArgumentException(
+                "Property '" + property
+                    + "' must be one of: inherit, left, center, right"
+            );
+        };
+    }
+
+    private static TipModifiers.VerticalAlignment parseVerticalAlignment(
+        JsonObject json
+    ) {
+        if (!json.has("selfAlignY") || json.get("selfAlignY").isJsonNull()) {
+            return TipModifiers.VerticalAlignment.INHERIT;
+        }
+
+        String value = parseString(json, "selfAlignY").toLowerCase(Locale.ROOT);
+        return switch (value) {
+            case "inherit" -> TipModifiers.VerticalAlignment.INHERIT;
+            case "top" -> TipModifiers.VerticalAlignment.TOP;
+            case "center" -> TipModifiers.VerticalAlignment.CENTER;
+            case "bottom" -> TipModifiers.VerticalAlignment.BOTTOM;
+            default -> throw new IllegalArgumentException(
+                "Property 'selfAlignY' must be one of: inherit, top, center, bottom"
+            );
+        };
+    }
+
+    private static TipModifiers.Margins parseMargins(JsonObject json) {
+        long common = parseLong(json, "margin", 0);
+        return new TipModifiers.Margins(
+            parseLong(json, "marginTop", common),
+            parseLong(json, "marginRight", common),
+            parseLong(json, "marginBottom", common),
+            parseLong(json, "marginLeft", common)
+        );
+    }
+
+    private static TipModifiers.SizeConstraints parseSizeConstraints(
+        JsonObject json
+    ) {
+        JsonObject source = json;
+        if (json.has("constraints") && !json.get("constraints").isJsonNull()) {
+            JsonElement element = json.get("constraints");
+            if (!element.isJsonObject()) {
+                throw new IllegalArgumentException(
+                    "Property 'constraints' must be an object"
+                );
+            }
+            source = element.getAsJsonObject();
+        } else if (!json.has("minWidth")
+            && !json.has("minHeight")
+            && !json.has("maxWidth")
+            && !json.has("maxHeight")) {
+            // 旧内容类型常用 width/height 表示自身尺寸，不能把它们误判为公共约束。
+            return TipModifiers.SizeConstraints.NONE;
+        }
+        return new TipModifiers.SizeConstraints(
+            parseOptionalSize(source, "width"),
+            parseOptionalSize(source, "height"),
+            parseOptionalSize(source, "minWidth"),
+            parseOptionalSize(source, "minHeight"),
+            parseOptionalSize(source, "maxWidth"),
+            parseOptionalSize(source, "maxHeight")
+        );
+    }
+
+    @Nullable
+    private static Long parseOptionalSize(JsonObject json, String property) {
+        if (!json.has(property) || json.get(property).isJsonNull()) return null;
+        long value = parseLong(json, property, 0);
+        if (value < 0) {
+            throw new IllegalArgumentException(
+                "Property '" + property + "' must be greater than or equal to 0"
+            );
+        }
+        return value;
+    }
+
+    private static double parseDouble(
+        JsonObject json,
+        String property,
+        double defaultValue
+    ) {
+        if (!json.has(property) || json.get(property).isJsonNull()) {
+            return defaultValue;
+        }
+        JsonElement element = json.get(property);
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            throw new IllegalArgumentException(
+                "Property '" + property + "' must be a finite number"
+            );
+        }
+        double value;
+        try {
+            value = element.getAsBigDecimal().doubleValue();
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(
+                "Property '" + property + "' must be a finite number",
+                exception
+            );
+        }
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException(
+                "Property '" + property + "' must be a finite number"
+            );
+        }
+        return value;
+    }
+
+    private static boolean parseBoolean(
+        JsonObject json,
+        String property,
+        boolean defaultValue
+    ) {
+        if (!json.has(property) || json.get(property).isJsonNull()) {
+            return defaultValue;
+        }
+        JsonElement element = json.get(property);
+        if (!element.isJsonPrimitive()
+            || !element.getAsJsonPrimitive().isBoolean()) {
+            throw new IllegalArgumentException(
+                "Property '" + property + "' must be a boolean"
+            );
+        }
+        return element.getAsBoolean();
+    }
+
+    private static String parseString(JsonObject json, String property) {
+        JsonElement element = json.get(property);
+        if (!element.isJsonPrimitive()
+            || !element.getAsJsonPrimitive().isString()) {
+            throw new IllegalArgumentException(
+                "Property '" + property + "' must be a string"
+            );
+        }
+        return element.getAsString();
+    }
+
+    private static OverflowPolicy parseOverflow(JsonObject json) {
+        if (!json.has("overflow") || json.get("overflow").isJsonNull()) {
+            return OverflowPolicy.NONE;
+        }
+        String value = parseString(json, "overflow").toLowerCase(Locale.ROOT);
+        return switch (value) {
+            case "none" -> OverflowPolicy.NONE;
+            case "wrap" -> OverflowPolicy.WRAP;
+            case "scale_down", "scale-down" -> OverflowPolicy.SCALE_DOWN;
+            case "clip" -> OverflowPolicy.CLIP;
+            default -> throw new IllegalArgumentException(
+                "Property 'overflow' must be one of: none, wrap, scale_down, clip"
+            );
+        };
     }
 }

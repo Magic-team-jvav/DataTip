@@ -4,7 +4,9 @@ import com.cooobird.datatip.api.content.BaseTextContent;
 import com.cooobird.datatip.api.content.TextContent;
 import com.cooobird.datatip.api.content.TextContentDefaults;
 import com.google.gson.JsonObject;
+import net.minecraft.network.chat.contents.TranslatableContents;
 
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -34,6 +36,10 @@ final class TipTextJsonWriter {
             JsonObject languages = new JsonObject();
             textContent.langText().forEach(languages::addProperty);
             json.add("text", languages);
+        } else if (textContent.component() != null
+            && textContent.component().getContents()
+            instanceof TranslatableContents translated) {
+            json.addProperty("translate", translated.getKey());
         } else if (textContent.text() != null) {
             json.addProperty("text", textContent.text());
         }
@@ -47,7 +53,10 @@ final class TipTextJsonWriter {
         if (textContent.strikethrough()) json.addProperty("strikethrough", true);
         if (!textContent.shadow()) json.addProperty("shadow", false);
         if (textContent.align() != BaseTextContent.TextAlign.LEFT)
-            json.addProperty("align", textContent.align().toString().toLowerCase());
+            json.addProperty(
+                "align",
+                textContent.align().toString().toLowerCase(Locale.ROOT)
+            );
         if (textContent.lineHeight() != TextContentDefaults.lineHeight())
             json.addProperty("lineHeight", textContent.lineHeight());
         if (textContent.shift()) json.addProperty("shift", true);

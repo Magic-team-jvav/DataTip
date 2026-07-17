@@ -8,6 +8,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * CarouselContent 解析器。
@@ -59,7 +60,7 @@ public class CarouselContentParser implements ContentParser {
 
         // 获取过渡效果类型
         String transitionStr = context.getString(json, "transition", "fade");
-        CarouselContent.TransitionType transition = switch (transitionStr.toLowerCase()) {
+        CarouselContent.TransitionType transition = switch (transitionStr.toLowerCase(Locale.ROOT)) {
             case "slide" -> CarouselContent.TransitionType.SLIDE;
             case "none" -> CarouselContent.TransitionType.NONE;
             default -> CarouselContent.TransitionType.FADE;

@@ -1,8 +1,11 @@
 package com.cooobird.datatip.internal.util;
 
+import com.cooobird.datatip.api.session.ItemStackFingerprint;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.ForgeRegistries;
+
+import java.util.Objects;
 
 /**
  * 性能优化工具。
@@ -12,7 +15,10 @@ import net.minecraftforge.registries.ForgeRegistries;
  * @since 1.2.0
  */
 public final class PerformanceOptimizer {
-    private static final ResourceLocation AIR_ID = ResourceLocation.parse("minecraft:air");
+    private static final ResourceLocation AIR_ID = Objects.requireNonNull(
+        ResourceLocation.tryParse("minecraft:air"),
+        "Invalid built-in item id"
+    );
 
     private PerformanceOptimizer() {
     }
@@ -21,16 +27,14 @@ public final class PerformanceOptimizer {
      * 获取物品 ID。
      */
     public static ResourceLocation getItemId(ItemStack stack) {
-        ResourceLocation key = ForgeRegistries.ITEMS.getKey(stack.getItem());
-        return key != null ? key : AIR_ID;
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        return id != null ? id : AIR_ID;
     }
 
     /**
-     * 获取用于短期缓存的物品语义签名。
+     * 获取用于缓存依赖比较的结构化物品指纹。
      */
-    public static String getItemSignature(ItemStack stack) {
-        return getItemId(stack) + "|count=" + stack.getCount()
-            + "|damage=" + stack.getDamageValue()
-            + "|tag=" + stack.getTag();
+    public static ItemStackFingerprint getItemFingerprint(ItemStack stack) {
+        return ItemStackFingerprint.capture(stack);
     }
 }

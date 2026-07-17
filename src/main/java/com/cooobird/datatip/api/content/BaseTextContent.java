@@ -4,6 +4,7 @@ import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.api.expression.ExpressionParser;
 import com.cooobird.datatip.api.util.ColorParser;
+import com.cooobird.datatip.client.DatatipKeyMappings;
 import com.cooobird.datatip.config.DatatipConfig;
 import com.cooobird.datatip.event.TipRenderEventHandler;
 import net.minecraft.client.gui.Font;
@@ -11,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -41,9 +43,24 @@ public abstract class BaseTextContent implements TipContent {
         TextAlign align,
         boolean shift
     ) {
-        public LangStyle {
-            text = text != null ? text : "";
-            align = align != null ? align : TextAlign.LEFT;
+        public LangStyle(
+            String text,
+            int color,
+            boolean bold,
+            boolean italic,
+            boolean underlined,
+            boolean strikethrough,
+            TextAlign align,
+            boolean shift
+        ) {
+            this.text = text != null ? text : "";
+            this.color = color;
+            this.bold = bold;
+            this.italic = italic;
+            this.underlined = underlined;
+            this.strikethrough = strikethrough;
+            this.align = align != null ? align : TextAlign.LEFT;
+            this.shift = shift;
         }
 
         public LangStyle(String text, int color, boolean bold, boolean italic, boolean underlined, boolean strikethrough) {
@@ -80,7 +97,7 @@ public abstract class BaseTextContent implements TipContent {
         this.colorExpression = colorExpression;
         this.shadow = shadow;
         this.align = align != null ? align : TextAlign.LEFT;
-        this.lineHeight = Math.max(1, Math.min(32, lineHeight));
+        this.lineHeight = Math.max(1, lineHeight);
         this.bold = bold;
         this.italic = italic;
         this.underlined = underlined;
@@ -136,9 +153,18 @@ public abstract class BaseTextContent implements TipContent {
      * 解析颜色，支持变量和简单表达式。
      */
     protected int resolveColor(TipRenderContext context) {
+        return resolveColor(context.itemStack());
+    }
+
+    protected int resolveColor(ItemStack stack) {
         if (colorExpression == null || colorExpression.isEmpty()) return color;
 
-        String resolved = context.resolveVariables(colorExpression);
+        String resolved = stack != null && !stack.isEmpty()
+            ? com.cooobird.datatip.api.util.VariableResolver.resolve(
+            colorExpression,
+            stack
+        )
+            : colorExpression;
         if (resolved == null || resolved.isEmpty()) return color;
 
         if (resolved.contains("?") || resolved.contains(">") || resolved.contains("<")) {
@@ -146,8 +172,9 @@ public abstract class BaseTextContent implements TipContent {
                 Map<String, String> variables = new HashMap<>();
                 Object result = ExpressionParser.evaluate(resolved, variables);
                 if (result instanceof String s) return parseColorString(s, color);
-            } catch (Exception e) {
-                // 表达式解析失败时，继续按普通颜色字符串解析。
+            } catch (Exception ignored) {
+                // 表达式解析失败时，明确回退到普通颜色字符串。
+                return parseColorString(resolved, color);
             }
         }
 
@@ -194,7 +221,7 @@ public abstract class BaseTextContent implements TipContent {
      */
     public static void renderShiftHint(TipRenderContext context, int x, int y) {
         Component hint = Component.translatable("tooltip.datatip.hold_shift",
-            TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
+            DatatipKeyMappings.SHOW_TIP.getTranslatedKeyMessage());
         context.drawString(hint, x, y, shiftHintColor(), true);
     }
 

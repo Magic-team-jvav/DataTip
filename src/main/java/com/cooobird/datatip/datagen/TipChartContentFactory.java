@@ -6,6 +6,7 @@ import com.cooobird.datatip.api.util.ColorParser;
 import net.minecraft.network.chat.Component;
 
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -16,7 +17,7 @@ final class TipChartContentFactory {
     }
 
     static ChartContent chart(String chartType, int width, int height) {
-        return switch (chartType.toLowerCase()) {
+        return switch (chartType.toLowerCase(Locale.ROOT)) {
             case "pie" -> ChartContent.pie(width);
             case "line" -> ChartContent.line(width, height);
             default -> ChartContent.bar(width, height);

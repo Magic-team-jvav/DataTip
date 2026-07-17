@@ -39,7 +39,7 @@ final class TextContentLayout {
     }
 
     static boolean hasContent(TextContent content) {
-        return content.formattedText((net.minecraft.world.item.ItemStack) null) != FormattedText.EMPTY;
+        return content.formattedText(null) != FormattedText.EMPTY;
     }
 
     static int getWidth(TextContent content, int availableWidth) {

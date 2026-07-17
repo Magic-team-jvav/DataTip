@@ -40,7 +40,6 @@ public class TypewriterContentParser implements ContentParser {
         boolean italic = context.getBoolean(json, "italic", false);
         boolean underlined = context.getBoolean(json, "underlined", false);
         boolean strikethrough = context.getBoolean(json, "strikethrough", false);
-        boolean shift = context.getBoolean(json, "shift", false);
 
         BaseTextContent.TextAlign align = BaseTextContent.TextAlign.LEFT;
         String alignStr = context.getString(json, "align", "left");
@@ -139,7 +138,7 @@ public class TypewriterContentParser implements ContentParser {
         }
 
         return new TypewriterContent(lines, langLines, langStyledLines, charsPerSecond, pauseSeconds, loop, color,
-            colorExpression, font, bold, italic, underlined, strikethrough, align, shadow, lineHeight, shift);
+            colorExpression, font, bold, italic, underlined, strikethrough, align, shadow, lineHeight, false);
     }
 
     private static int parseColor(String colorStr) {

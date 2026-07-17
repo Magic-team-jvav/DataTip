@@ -8,6 +8,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -67,7 +68,7 @@ final class BuiltInEnvironmentConditions {
         long time = level.getDayTime() % 24000;
         if (value instanceof Number num) return time >= num.longValue();
         if (value instanceof String str) {
-            return switch (str.toLowerCase()) {
+            return switch (str.toLowerCase(Locale.ROOT)) {
                 case "day" -> time >= 0 && time < 12000;
                 case "night" -> time >= 12000;
                 case "noon" -> time >= 5500 && time <= 6500;
@@ -80,7 +81,7 @@ final class BuiltInEnvironmentConditions {
 
     private static boolean checkWeather(Object value, Level level) {
         if (!(value instanceof String str)) return false;
-        return switch (str.toLowerCase()) {
+        return switch (str.toLowerCase(Locale.ROOT)) {
             case "clear" -> !level.isRaining() && !level.isThundering();
             case "rain" -> level.isRaining();
             case "thunder" -> level.isThundering();
@@ -92,7 +93,7 @@ final class BuiltInEnvironmentConditions {
         int light = level.getMaxLocalRawBrightness(player.blockPosition());
         if (value instanceof Number num) return light >= num.intValue();
         if (value instanceof String str) {
-            return switch (str.toLowerCase()) {
+            return switch (str.toLowerCase(Locale.ROOT)) {
                 case "dark" -> light < 4;
                 case "dim" -> light < 8;
                 case "bright" -> light >= 8;

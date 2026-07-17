@@ -138,7 +138,7 @@ final class LegacyMultiLanguageTextConverter {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < lines.size(); i++) {
                 if (i > 0) {
-                    sb.append("\n");
+                    sb.append('\n');
                 }
                 sb.append(lines.get(i).getAsString());
             }

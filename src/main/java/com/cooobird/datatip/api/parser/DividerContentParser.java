@@ -5,6 +5,8 @@ import com.cooobird.datatip.api.ParseContext;
 import com.cooobird.datatip.api.content.DividerContent;
 import com.google.gson.JsonObject;
 
+import java.util.Locale;
+
 /**
  * DividerContent 解析器。
  * <p>
@@ -73,7 +75,7 @@ public class DividerContentParser implements ContentParser {
 
         // 解析线条样式
         String styleStr = context.getString(json, "style", "solid");
-        DividerContent.DividerStyle style = switch (styleStr.toLowerCase()) {
+        DividerContent.DividerStyle style = switch (styleStr.toLowerCase(Locale.ROOT)) {
             case "dashed" -> DividerContent.DividerStyle.DASHED;
             case "dotted" -> DividerContent.DividerStyle.DOTTED;
             default -> DividerContent.DividerStyle.SOLID;
@@ -81,7 +83,7 @@ public class DividerContentParser implements ContentParser {
 
         // 解析宽度模式
         String widthModeStr = context.getString(json, "widthMode", "fill");
-        DividerContent.WidthMode widthMode = switch (widthModeStr.toLowerCase()) {
+        DividerContent.WidthMode widthMode = switch (widthModeStr.toLowerCase(Locale.ROOT)) {
             case "fixed" -> DividerContent.WidthMode.FIXED;
             case "centered" -> DividerContent.WidthMode.CENTERED;
             default -> DividerContent.WidthMode.FILL;
