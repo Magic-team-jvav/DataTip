@@ -1,6 +1,9 @@
 package com.cooobird.datatip.api.util;
 
 import com.cooobird.datatip.api.expression.ExpressionParser;
+import com.cooobird.datatip.api.session.ItemStackFingerprint;
+import com.cooobird.datatip.api.session.TooltipSession;
+import com.cooobird.datatip.api.session.TooltipSessionContext;
 import com.cooobird.datatip.internal.variable.*;
 import net.minecraft.world.item.ItemStack;
 
@@ -36,9 +39,17 @@ public class VariableResolver {
             return text;
         }
 
-        String cached = VariableCache.get(text, stack);
-        if (cached != null) {
-            return cached;
+        boolean itemStatic = VariableRegistry.isItemStatic(text);
+        ItemStackFingerprint item = null;
+        if (itemStatic) {
+            TooltipSession session = TooltipSessionContext.current();
+            item = session != null
+                ? session.dependencies().itemFingerprint()
+                : ItemStackFingerprint.capture(stack);
+            String cached = VariableCache.get(text, item);
+            if (cached != null) {
+                return cached;
+            }
         }
 
         String result = DataVariableResolver.resolve(text, stack);
@@ -46,7 +57,9 @@ public class VariableResolver {
         result = EventVariableResolver.resolve(registered.text(), stack);
         result = ExpressionVariableResolver.resolve(result, registered.variables());
 
-        VariableCache.put(text, stack, result);
+        if (itemStatic) {
+            VariableCache.put(text, item, result);
+        }
         return result;
     }
 

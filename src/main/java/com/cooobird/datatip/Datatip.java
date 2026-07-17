@@ -4,7 +4,6 @@ import com.cooobird.datatip.api.TipContentRegistry;
 import com.cooobird.datatip.api.parser.*;
 import com.cooobird.datatip.config.DatatipConfig;
 import com.mojang.logging.LogUtils;
-import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
@@ -15,7 +14,7 @@ public class Datatip {
     public static final String MODID = "datatip";
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    public Datatip(IEventBus modEventBus, ModContainer modContainer) {
+    public Datatip(ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, DatatipConfig.SPEC);
         registerContentParsers();
 
@@ -25,7 +24,7 @@ public class Datatip {
     /**
      * 注册所有内容解析器。
      */
-    private static void registerContentParsers() {
+    static void registerContentParsers() {
         // 基础内容类型
         TipContentRegistry.registerParser("text", new TextContentParser());
         TipContentRegistry.registerParser("spacer", new SpacerContentParser());
@@ -43,6 +42,7 @@ public class Datatip {
         // 布局
         TipContentRegistry.registerParser("vbox", new VBoxContentParser());
         TipContentRegistry.registerParser("hbox", new HBoxContentParser());
+        TipContentRegistry.registerParser("stack", new StackContentParser());
 
         // 动画/轮播
         TipContentRegistry.registerParser("carousel", new CarouselContentParser());

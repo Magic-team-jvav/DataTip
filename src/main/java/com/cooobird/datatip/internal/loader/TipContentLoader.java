@@ -35,6 +35,7 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener implement
     private final TipContentEntryParser entryParser = new TipContentEntryParser();
     private final ReloadOptimizer reloadOptimizer = new ReloadOptimizer();
     private final Map<ResourceLocation, LoadedDatatipFile> loadedFiles = new TreeMap<>();
+    private long revision;
 
     public TipContentLoader() {
         super(GSON, "datatip");
@@ -69,6 +70,7 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener implement
 
         rebuildIndex();
         reloadOptimizer.commit(reloadPlan, elements);
+        revision++;
         logReloadResult(reloadPlan, context);
     }
 
@@ -187,6 +189,10 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener implement
 
     public Set<String> getExactItemIds() {
         return contentIndex.getExactItemIds();
+    }
+
+    public long getRevision() {
+        return revision;
     }
 
     private static String parseEnvironmentSignature() {

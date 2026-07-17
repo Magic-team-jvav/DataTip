@@ -1,6 +1,5 @@
 package com.cooobird.datatip.api.content;
 
-import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.api.text.LocalizedText;
@@ -31,7 +30,7 @@ public record ChartContent(
     int labelColor,           // 标签颜色
     int valueColor,           // 数值颜色
     int zeroLineColor         // 零线颜色
-) implements TipContent {
+) implements com.cooobird.datatip.api.layout.PreparedContent {
     private static final int TITLE_HEIGHT = 14;
     private static final int VALUE_LABEL_HEIGHT = 12;
     private static final int AXIS_LABEL_HEIGHT = 12;
@@ -44,16 +43,39 @@ public record ChartContent(
     }
 
     // 图表条目，支持静态值和变量表达式
-    public ChartContent {
-        type = type != null ? type : ChartType.BAR;
-        entries = entries != null
+    public ChartContent(
+        ChartType type,
+        List<ChartEntry> entries,
+        int width,
+        int height,
+        @Nullable Component title,
+        boolean showLabels,
+        boolean showValues,
+        int titleColor,
+        int labelColor,
+        int valueColor,
+        int zeroLineColor
+    ) {
+        ChartType resolvedType = type != null ? type : ChartType.BAR;
+        this.type = resolvedType;
+        this.entries = entries != null
             ? entries.stream()
             .filter(Objects::nonNull)
-            .limit(ContentBounds.MAX_CHART_ENTRIES)
             .collect(java.util.stream.Collectors.toCollection(ArrayList::new))
             : new ArrayList<>();
-        width = type == ChartType.PIE ? ContentBounds.pieDimension(width) : ContentBounds.dimension(width);
-        height = type == ChartType.PIE ? ContentBounds.pieDimension(height) : ContentBounds.dimension(height);
+        this.width = resolvedType == ChartType.PIE
+            ? ContentBounds.pieDimension(width)
+            : ContentBounds.dimension(width);
+        this.height = resolvedType == ChartType.PIE
+            ? ContentBounds.pieDimension(height)
+            : ContentBounds.dimension(height);
+        this.title = title;
+        this.showLabels = showLabels;
+        this.showValues = showValues;
+        this.titleColor = titleColor;
+        this.labelColor = labelColor;
+        this.valueColor = valueColor;
+        this.zeroLineColor = zeroLineColor;
     }
 
     public record ChartEntry(
@@ -61,9 +83,16 @@ public record ChartContent(
         String valueExpr,  // 值表达式
         int color          // 颜色
     ) {
-        public ChartEntry {
-            labelText = labelText != null ? labelText : LocalizedText.empty();
-            valueExpr = valueExpr != null ? valueExpr : "0";
+        public ChartEntry(
+            LocalizedText labelText,
+            String valueExpr,
+            int color
+        ) {
+            this.labelText = labelText != null
+                ? labelText
+                : LocalizedText.empty();
+            this.valueExpr = valueExpr != null ? valueExpr : "0";
+            this.color = color;
         }
 
         public ChartEntry(@Nullable String label, @Nullable String valueExpr, int color) {
@@ -127,9 +156,7 @@ public record ChartContent(
     }
 
     public ChartContent addEntry(@Nullable LocalizedText label, @Nullable String valueExpr, int color) {
-        if (entries.size() < ContentBounds.MAX_CHART_ENTRIES) {
-            entries.add(new ChartEntry(label, valueExpr, color));
-        }
+        entries.add(new ChartEntry(label, valueExpr, color));
         return this;
     }
 
@@ -245,5 +272,12 @@ public record ChartContent(
         } catch (NumberFormatException ignored) {
             return resolved;
         }
+    }
+
+    @Override
+    public com.cooobird.datatip.api.layout.PreparedLayout prepare(
+        com.cooobird.datatip.api.layout.TipPrepareContext context
+    ) {
+        return PreparedChartLayout.prepare(this, context);
     }
 }

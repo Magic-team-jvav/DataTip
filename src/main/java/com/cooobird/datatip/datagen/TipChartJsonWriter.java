@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 图表内容 JSON 写出器。
@@ -30,7 +31,10 @@ final class TipChartJsonWriter {
         int zeroLineColor
     ) {
         json.addProperty("type", "chart");
-        json.addProperty("chartType", type.toString().toLowerCase());
+        json.addProperty(
+            "chartType",
+            type.toString().toLowerCase(Locale.ROOT)
+        );
         json.addProperty("width", width);
         json.addProperty("height", height);
         LocalizedTextJsonWriter.add(json, "title", title);

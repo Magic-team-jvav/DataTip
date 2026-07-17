@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
+import java.util.ArrayDeque;
 import java.util.Map;
 
 /**
@@ -71,7 +72,7 @@ public class LegacyFormatConverter {
             }
 
             if (isModernEntry(value)) {
-                result.add(key, value.deepCopy());
+                result.add(key, normalizeModernKeys(value));
                 continue;
             }
 
@@ -108,6 +109,55 @@ public class LegacyFormatConverter {
 
     private static boolean isModernEntry(JsonElement value) {
         return value.isJsonObject() && value.getAsJsonObject().has("type");
+    }
+
+    static JsonElement normalizeModernKeys(JsonElement value) {
+        JsonElement result = emptyCopy(value);
+        if (!value.isJsonArray() && !value.isJsonObject()) return result;
+
+        ArrayDeque<NormalizationFrame> work = new ArrayDeque<>();
+        work.push(new NormalizationFrame(value, result));
+        while (!work.isEmpty()) {
+            NormalizationFrame frame = work.pop();
+            if (frame.source().isJsonArray()) {
+                var destination = frame.destination().getAsJsonArray();
+                for (JsonElement child : frame.source().getAsJsonArray()) {
+                    JsonElement copy = emptyCopy(child);
+                    destination.add(copy);
+                    if (child.isJsonArray() || child.isJsonObject()) {
+                        work.push(new NormalizationFrame(child, copy));
+                    }
+                }
+                continue;
+            }
+
+            JsonObject destination = frame.destination().getAsJsonObject();
+            for (Map.Entry<String, JsonElement> entry
+                : frame.source().getAsJsonObject().entrySet()) {
+                String key = entry.getKey().equals("trans")
+                    ? "translate"
+                    : entry.getKey();
+                JsonElement copy = emptyCopy(entry.getValue());
+                destination.add(key, copy);
+                if (entry.getValue().isJsonArray()
+                    || entry.getValue().isJsonObject()) {
+                    work.push(new NormalizationFrame(entry.getValue(), copy));
+                }
+            }
+        }
+        return result;
+    }
+
+    private static JsonElement emptyCopy(JsonElement value) {
+        if (value.isJsonArray()) return new com.google.gson.JsonArray();
+        if (value.isJsonObject()) return new JsonObject();
+        return value.deepCopy();
+    }
+
+    private record NormalizationFrame(
+        JsonElement source,
+        JsonElement destination
+    ) {
     }
 
     private static void preserveTopLevelProperties(JsonElement value, JsonObject contentJson) {

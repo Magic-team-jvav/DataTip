@@ -22,9 +22,16 @@ public record TipContentEntry(
     boolean shift,
     boolean prepend
 ) {
-    public TipContentEntry {
-        content = java.util.Objects.requireNonNull(content, "content");
-        conditions = conditions == null ? List.of() : List.copyOf(conditions);
+    public TipContentEntry(
+        TipContent content,
+        List<ConditionChecker.Condition> conditions,
+        boolean shift,
+        boolean prepend
+    ) {
+        this.content = java.util.Objects.requireNonNull(content, "content");
+        this.conditions = conditions == null ? List.of() : List.copyOf(conditions);
+        this.shift = shift;
+        this.prepend = prepend;
     }
 
     public static TipContentEntry of(TipContent content) {

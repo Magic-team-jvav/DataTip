@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -31,7 +32,7 @@ final class TipCommonContentFactory {
     }
 
     static DividerContent divider(String color, String style) {
-        return DividerContent.of(parseColor(color), switch (style.toLowerCase()) {
+        return DividerContent.of(parseColor(color), switch (style.toLowerCase(Locale.ROOT)) {
             case "dashed" -> DividerContent.DividerStyle.DASHED;
             case "dotted" -> DividerContent.DividerStyle.DOTTED;
             default -> DividerContent.DividerStyle.SOLID;

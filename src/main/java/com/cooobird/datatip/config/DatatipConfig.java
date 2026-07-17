@@ -78,7 +78,12 @@ public class DatatipConfig {
      */
     public static final ModConfigSpec.IntValue DEFAULT_LINE_HEIGHT = BUILDER
         .comment("Default line height in pixels. Set to 0 to use the vanilla font line height.")
-        .defineInRange("default_line_height", 0, 0, 32);
+        .defineInRange(
+            "default_line_height",
+            0,
+            0,
+            Integer.MAX_VALUE
+        );
 
     /**
      * 宽度覆盖值。
@@ -88,7 +93,7 @@ public class DatatipConfig {
      */
     public static final ModConfigSpec.IntValue MAX_WIDTH = BUILDER
         .comment("Tooltip width override in pixels. Set to 0 to use the content's natural width.")
-        .defineInRange("max_width", 0, 0, 10000);
+        .defineInRange("max_width", 0, 0, Integer.MAX_VALUE);
 
     /**
      * Shift 提示文字颜色。

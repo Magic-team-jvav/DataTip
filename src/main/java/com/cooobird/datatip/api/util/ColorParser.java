@@ -1,5 +1,7 @@
 package com.cooobird.datatip.api.util;
 
+import java.util.Locale;
+
 /**
  * 通用颜色解析工具。
  */
@@ -18,7 +20,7 @@ public final class ColorParser {
             return parseHex(colorStr, defaultValue);
         }
 
-        return switch (colorStr.toLowerCase()) {
+        return switch (colorStr.toLowerCase(Locale.ROOT)) {
             case "black" -> 0xFF000000;
             case "dark_blue" -> 0xFF0000AA;
             case "dark_green" -> 0xFF00AA00;

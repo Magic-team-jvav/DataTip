@@ -3,7 +3,7 @@ package com.cooobird.datatip.api.content;
 import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
-import com.cooobird.datatip.event.TipRenderEventHandler;
+import com.cooobird.datatip.client.DatatipKeyMappings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
@@ -110,7 +110,7 @@ public record HBoxContent(List<TipContent> children, int gap, int padding,
         if (iter.hasCollapsed()) {
             Font font = Minecraft.getInstance().font;
             Component hint = Component.translatable("tooltip.datatip.hold_shift",
-                TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
+                DatatipKeyMappings.SHOW_TIP.getTranslatedKeyMessage());
             if (iter.hasNonCollapsed()) totalW[0] += gap;
             totalW[0] += font.width(hint);
         }
@@ -151,7 +151,7 @@ public record HBoxContent(List<TipContent> children, int gap, int padding,
             int remainingWidth = Math.max(0, x + padding + aw - cx[0]);
             if (remainingWidth > 0) {
                 Component hint = Component.translatable("tooltip.datatip.hold_shift",
-                    TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
+                    DatatipKeyMappings.SHOW_TIP.getTranslatedKeyMessage());
                 boolean clipped = ContentBounds.beginHorizontalClip(
                     context, cx[0], hintY, remainingWidth, HINT_LINE_HEIGHT, context.font().width(hint));
                 try {
@@ -179,7 +179,7 @@ public record HBoxContent(List<TipContent> children, int gap, int padding,
     private int reservedHintWidth(Font font, int availableWidth) {
         if (!anyShiftCollapsed() || availableWidth <= 0) return 0;
         Component hint = Component.translatable("tooltip.datatip.hold_shift",
-            TipRenderEventHandler.SHOW_TIP.getTranslatedKeyMessage());
+            DatatipKeyMappings.SHOW_TIP.getTranslatedKeyMessage());
         int required = font.width(hint) + (hasVisibleNonCollapsed() ? gap : 0);
         return Math.min(availableWidth, required);
     }
@@ -195,5 +195,12 @@ public record HBoxContent(List<TipContent> children, int gap, int padding,
         return maxWidth > 0
             ? TipLayoutContext.bounded(Minecraft.getInstance().font, net.minecraft.world.item.ItemStack.EMPTY, maxWidth)
             : TipLayoutContext.unbounded(Minecraft.getInstance().font, net.minecraft.world.item.ItemStack.EMPTY);
+    }
+
+    @Override
+    public com.cooobird.datatip.api.layout.PreparedLayout prepare(
+        com.cooobird.datatip.api.layout.TipPrepareContext context
+    ) {
+        return PreparedContainerSupport.prepareTree(this, context);
     }
 }

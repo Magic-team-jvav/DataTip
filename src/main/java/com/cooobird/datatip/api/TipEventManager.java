@@ -110,7 +110,7 @@ public class TipEventManager {
      */
     public static class PreRenderEvent {
         private ItemStack itemStack;
-        private boolean canceled = false;
+        private boolean canceled;
 
         public PreRenderEvent(ItemStack itemStack) {
             this.itemStack = itemStack;
@@ -140,7 +140,7 @@ public class TipEventManager {
         private final String variableName;
         private final ItemStack itemStack;
         private String value;
-        private boolean resolved = false;
+        private boolean resolved;
 
         public VariableResolveEvent(String variableName, ItemStack itemStack) {
             this.variableName = variableName;

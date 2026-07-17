@@ -87,8 +87,6 @@ public class ItemContentParser implements ContentParser {
         boolean showCount = context.getBoolean(json, "showCount", true);
         boolean showDurability = context.getBoolean(json, "showDurability", true);
         boolean showLabel = context.getBoolean(json, "showLabel", false);
-        int offsetX = context.getInt(json, "offsetX", 0);
-        int offsetY = context.getInt(json, "offsetY", 0);
 
         // 获取标签
         Component label = null;
@@ -103,6 +101,7 @@ public class ItemContentParser implements ContentParser {
             labelColor = context.getColor(json, "labelColor", 0xFFFFFF);
         }
 
-        return new ItemContent(stack, size, showCount, showDurability, showLabel, label, labelColor, offsetX, offsetY);
+        // 平面偏移由所有节点共享的 TipModifiers 统一处理，内容本身保持局部原点不变。
+        return new ItemContent(stack, size, showCount, showDurability, showLabel, label, labelColor, 0, 0);
     }
 }

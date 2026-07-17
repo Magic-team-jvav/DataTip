@@ -4,7 +4,6 @@ import com.cooobird.datatip.api.ParseContext;
 import com.cooobird.datatip.api.content.BaseTextContent;
 import com.cooobird.datatip.api.content.TextContent;
 import com.cooobird.datatip.api.content.TextContentDefaults;
-import com.cooobird.datatip.config.DatatipConfig;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.network.chat.Component;
@@ -27,11 +26,10 @@ record TextContentStyleOptions(
     boolean bold,
     boolean italic,
     boolean underlined,
-    boolean strikethrough,
-    boolean shift
+    boolean strikethrough
 ) {
     static TextContentStyleOptions parse(JsonObject json, ParseContext context) {
-        int color = DatatipConfig.DEFAULT_COLOR.get();
+        int color = TextContentDefaults.color();
         String colorExpression = null;
 
         JsonElement colorElement = json.get("color");
@@ -39,9 +37,9 @@ record TextContentStyleOptions(
             String colorStr = colorElement.getAsString();
             if (colorStr.contains("{") && colorStr.contains("}")) {
                 colorExpression = colorStr;
-                color = DatatipConfig.DEFAULT_COLOR.get();
+                color = TextContentDefaults.color();
             } else {
-                color = context.getColor(json, "color", DatatipConfig.DEFAULT_COLOR.get());
+                color = context.getColor(json, "color", TextContentDefaults.color());
             }
         }
 
@@ -56,8 +54,7 @@ record TextContentStyleOptions(
             context.getBoolean(json, "bold", false),
             context.getBoolean(json, "italic", false),
             context.getBoolean(json, "underlined", false),
-            context.getBoolean(json, "strikethrough", false),
-            context.getBoolean(json, "shift", false)
+            context.getBoolean(json, "strikethrough", false)
         );
     }
 
@@ -85,7 +82,7 @@ record TextContentStyleOptions(
         @Nullable Map<String, BaseTextContent.LangStyle> langStyledText
     ) {
         return new TextContent(text, component, formattedText, langText, langStyledText, font, color, colorExpression,
-            shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, shift);
+            shadow, align, lineHeight, maxWidth, bold, italic, underlined, strikethrough, false);
     }
 
     @Nullable

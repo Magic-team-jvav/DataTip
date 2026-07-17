@@ -1,5 +1,10 @@
 package com.cooobird.datatip.api;
 
+import com.cooobird.datatip.api.layout.LegacyContentPreparer;
+import com.cooobird.datatip.api.layout.PreparedLayout;
+import com.cooobird.datatip.api.layout.TipPrepareContext;
+import com.cooobird.datatip.api.node.TipModifiers;
+
 /**
  * Tooltip 内容的基础接口。
  * <p>
@@ -47,6 +52,23 @@ package com.cooobird.datatip.api;
  * @since 1.2.0
  */
 public interface TipContent {
+
+    /**
+     * 获取当前节点的公共修饰符。
+     */
+    default TipModifiers modifiers() {
+        return TipModifiers.DEFAULT;
+    }
+
+    /**
+     * 将内容准备为可复用的单次布局快照。
+     * <p>
+     * 旧第三方实现会自动通过保守适配器继续工作。
+     * </p>
+     */
+    default PreparedLayout prepare(TipPrepareContext context) {
+        return LegacyContentPreparer.prepare(this, context);
+    }
 
     /**
      * 使用完整布局上下文获取内容高度。
@@ -104,6 +126,90 @@ public interface TipContent {
      */
     default boolean isShiftCollapsed() {
         return false;
+    }
+
+    /**
+     * 获取当前父级叠放上下文中的绘制顺序。
+     * <p>
+     * 此值只用于稳定的 painter-order，不会写入 GPU 深度缓冲。
+     * </p>
+     */
+    default long offsetZ() {
+        return modifiers().offsetZ();
+    }
+
+    /**
+     * 获取节点的水平绘制偏移。
+     */
+    default long layoutOffsetX() {
+        return modifiers().offsetX();
+    }
+
+    /**
+     * 获取节点的垂直绘制偏移。
+     */
+    default long layoutOffsetY() {
+        return modifiers().offsetY();
+    }
+
+    /**
+     * 获取节点自身的水平对齐方式。
+     */
+    default TipModifiers.SelfAlignment selfAlignX() {
+        return modifiers().selfAlignX();
+    }
+
+    /**
+     * 获取节点自身的垂直对齐方式。
+     */
+    default TipModifiers.VerticalAlignment selfAlignY() {
+        return modifiers().selfAlignY();
+    }
+
+    /**
+     * 获取节点四边的外边距。
+     */
+    default TipModifiers.Margins margins() {
+        return modifiers().margins();
+    }
+
+    /**
+     * 获取节点的尺寸约束。
+     */
+    default TipModifiers.SizeConstraints sizeConstraints() {
+        return modifiers().sizeConstraints();
+    }
+
+    default double scaleX() {
+        return modifiers().scaleX();
+    }
+
+    default double scaleY() {
+        return modifiers().scaleY();
+    }
+
+    default double rotation() {
+        return modifiers().rotation();
+    }
+
+    default double pivotX() {
+        return modifiers().pivotX();
+    }
+
+    default double pivotY() {
+        return modifiers().pivotY();
+    }
+
+    default double opacity() {
+        return modifiers().opacity();
+    }
+
+    default boolean visible() {
+        return modifiers().visible();
+    }
+
+    default com.cooobird.datatip.api.layout.OverflowPolicy overflow() {
+        return modifiers().overflow();
     }
 
     /**

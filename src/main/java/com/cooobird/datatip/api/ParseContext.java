@@ -1,13 +1,17 @@
 package com.cooobird.datatip.api;
 
+import com.cooobird.datatip.api.content.CarouselContent;
+import com.cooobird.datatip.api.content.HBoxContent;
+import com.cooobird.datatip.api.content.StackContent;
+import com.cooobird.datatip.api.content.VBoxContent;
+import com.cooobird.datatip.api.node.TipNode;
 import com.cooobird.datatip.api.util.ColorParser;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * 解析上下文。
@@ -20,7 +24,7 @@ import java.util.List;
  */
 public class ParseContext {
 
-    private final List<String> warnings = new ArrayList<>();
+    private final LinkedHashSet<String> warnings = new LinkedHashSet<>();
 
     /**
      * 添加解析警告。
@@ -37,7 +41,7 @@ public class ParseContext {
      * @return 警告列表
      */
     public List<String> getWarnings() {
-        return warnings;
+        return List.copyOf(warnings);
     }
 
     /**
@@ -57,7 +61,30 @@ public class ParseContext {
      */
     @Nullable
     public TipContent parseContent(JsonObject json) {
-        return TipContentRegistry.parse(json, this);
+        if (!isBuiltInContainer(json)) {
+            return TipContentRegistry.parseSingle(json, this);
+        }
+
+        ParseFrame root = new ParseFrame(json);
+        ArrayDeque<ParseFrame> work = new ArrayDeque<>();
+        work.push(root);
+        while (!work.isEmpty()) {
+            ParseFrame frame = work.peek();
+            if (!frame.initialized) {
+                frame.initialize(this);
+            }
+            if (frame.result != null || frame.failed) {
+                work.pop();
+                continue;
+            }
+            if (frame.nextChild < frame.children.size()) {
+                work.push(frame.children.get(frame.nextChild++));
+                continue;
+            }
+            frame.finish();
+            work.pop();
+        }
+        return root.result;
     }
 
     /**
@@ -169,5 +196,106 @@ public class ParseContext {
         if (!json.has(key)) return null;
         JsonElement element = json.get(key);
         return element.isJsonPrimitive() ? element : null;
+    }
+
+    private static boolean isBuiltInContainer(JsonObject json) {
+        if (!json.has("type") || !json.get("type").isJsonPrimitive()) {
+            return false;
+        }
+        String type = json.get("type").getAsString()
+            .trim()
+            .toLowerCase(Locale.ROOT);
+        return type.equals("vbox")
+            || type.equals("hbox")
+            || type.equals("stack")
+            || type.equals("carousel");
+    }
+
+    /**
+     * 用显式堆栈完成内置容器的后序解析，不限制合法 JSON 的嵌套深度。
+     */
+    private static final class ParseFrame {
+        private final JsonObject source;
+        private final ArrayList<ParseFrame> children = new ArrayList<>();
+        private TipNode shell;
+        private boolean initialized;
+        private boolean failed;
+        private int nextChild;
+        @Nullable
+        private TipContent result;
+
+        private ParseFrame(JsonObject source) {
+            this.source = source;
+        }
+
+        private void initialize(ParseContext context) {
+            initialized = true;
+            if (!isBuiltInContainer(source)) {
+                result = TipContentRegistry.parseSingle(source, context);
+                if (result == null) failed = true;
+                return;
+            }
+            String type = source.get("type").getAsString()
+                .trim()
+                .toLowerCase(Locale.ROOT);
+            String childKey = type.equals("carousel") ? "frames" : "children";
+            JsonArray sourceChildren = context.getArray(source, childKey);
+            JsonObject shallow = new JsonObject();
+            for (var entry : source.entrySet()) {
+                if (!entry.getKey().equals(childKey)) {
+                    shallow.add(entry.getKey(), entry.getValue());
+                }
+            }
+
+            TipContent parsed = TipContentRegistry.parseSingle(shallow, context);
+            if (!(parsed instanceof TipNode node)) {
+                failed = true;
+                return;
+            }
+            shell = node;
+            if (sourceChildren == null) return;
+            for (JsonElement child : sourceChildren) {
+                if (child.isJsonObject()) {
+                    children.add(new ParseFrame(child.getAsJsonObject()));
+                }
+            }
+        }
+
+        private void finish() {
+            ArrayList<TipContent> parsedChildren = new ArrayList<>(
+                children.size()
+            );
+            for (ParseFrame child : children) {
+                if (child.result != null) parsedChildren.add(child.result);
+            }
+
+            TipContent rebuilt = switch (shell.inner()) {
+                case VBoxContent vbox -> new VBoxContent(
+                    parsedChildren,
+                    vbox.gap(),
+                    vbox.padding(),
+                    vbox.horizontalAlign()
+                );
+                case HBoxContent hbox -> new HBoxContent(
+                    parsedChildren,
+                    hbox.gap(),
+                    hbox.padding(),
+                    hbox.verticalAlign()
+                );
+                case StackContent stack -> new StackContent(
+                    parsedChildren,
+                    stack.padding(),
+                    stack.horizontalAlign(),
+                    stack.verticalAlign()
+                );
+                case CarouselContent carousel -> new CarouselContent(
+                    parsedChildren,
+                    carousel.getIntervalSeconds(),
+                    carousel.getTransition()
+                );
+                default -> shell.inner();
+            };
+            result = TipNode.wrap(rebuilt, shell.modifiers());
+        }
     }
 }

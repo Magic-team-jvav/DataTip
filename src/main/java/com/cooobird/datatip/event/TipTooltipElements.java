@@ -3,14 +3,23 @@ package com.cooobird.datatip.event;
 import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.TipContentEntry;
 import com.cooobird.datatip.api.TipEventManager;
+import com.cooobird.datatip.api.component.ScrollHintTooltipComponent;
 import com.cooobird.datatip.api.component.TipContentTooltipComponent;
+import com.cooobird.datatip.api.component.TooltipViewportBudget;
+import com.cooobird.datatip.api.content.CarouselContent;
+import com.cooobird.datatip.api.content.ContainerContent;
+import com.cooobird.datatip.api.content.VBoxContent;
+import com.cooobird.datatip.api.node.TipNode;
+import com.cooobird.datatip.api.session.TooltipHit;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.client.event.RenderTooltipEvent;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,13 +27,17 @@ import java.util.List;
  * Tooltip 元素插入工具。
  */
 final class TipTooltipElements {
+    private static final Object PREPEND_SCROLL_KEY = new Object();
+    private static final Object NORMAL_SCROLL_KEY = new Object();
+
     private TipTooltipElements() {
     }
 
-    static void insertContentEntries(
+    @Nullable
+    static TooltipViewportBudget insertContentEntries(
         RenderTooltipEvent.GatherComponents event,
         List<TipContentEntry> entries,
-        ItemStack stack,
+        TooltipHit hit,
         boolean shiftDown,
         KeyMapping showTipKey
     ) {
@@ -35,12 +48,49 @@ final class TipTooltipElements {
         List<TipContent> prependContents = new ArrayList<>();
         List<TipContent> normalContents = new ArrayList<>();
         collectVisibleContents(entries, shiftDown, prependContents, normalContents);
-        insertPrependContents(event, prependContents, stack);
-        appendNormalContents(event, normalContents, stack);
+        // Gather 阶段原版尚未换行，先按原版背景外扩保留边界；
+        // 最终预算会在 Pre 阶段按真实组件高度覆盖。
+        TooltipViewportBudget budget = TooltipViewportBudget.forScreen(
+            event.getScreenWidth(),
+            event.getScreenHeight()
+        );
+        insertPrependContents(event, prependContents, hit, budget);
+        appendNormalContents(event, normalContents, hit, budget);
+        return prependContents.isEmpty() && normalContents.isEmpty()
+            ? null
+            : budget;
     }
 
     private static boolean hasShiftContent(List<TipContentEntry> entries) {
-        return entries.stream().anyMatch(TipContentEntry::shift);
+        for (TipContentEntry entry : entries) {
+            if (entry.shift() || containsShiftNode(entry.content())) return true;
+        }
+        return false;
+    }
+
+    private static boolean containsShiftNode(TipContent content) {
+        ArrayDeque<TipContent> work = new ArrayDeque<>();
+        work.push(content);
+        while (!work.isEmpty()) {
+            TipContent current = work.pop();
+            if (current instanceof TipNode(TipContent inner, com.cooobird.datatip.api.node.TipModifiers modifiers)) {
+                if (modifiers.shift()) return true;
+                work.push(inner);
+                continue;
+            }
+            if (current instanceof ContainerContent container) {
+                for (TipContent child : container.children()) {
+                    work.push(child);
+                }
+                continue;
+            }
+            if (current instanceof CarouselContent carousel) {
+                for (TipContent frame : carousel.getFrames()) {
+                    work.push(frame);
+                }
+            }
+        }
+        return false;
     }
 
     private static void addShiftHint(RenderTooltipEvent.GatherComponents event, KeyMapping showTipKey) {
@@ -69,40 +119,99 @@ final class TipTooltipElements {
     private static void insertPrependContents(
         RenderTooltipEvent.GatherComponents event,
         List<TipContent> prependContents,
-        ItemStack stack
+        TooltipHit hit,
+        TooltipViewportBudget budget
     ) {
-        int insertIndex = 1;
-        for (TipContent content : prependContents) {
-            TipContentTooltipComponent component = prepareComponent(content, stack);
-            if (component != null) {
-                event.getTooltipElements().add(insertIndex, Either.right(component));
-                insertIndex++;
-            }
-        }
+        if (prependContents.isEmpty()) return;
+        TipContent content = prependContents.size() == 1
+            ? prependContents.getFirst()
+            : new VBoxContent(
+            prependContents,
+            0,
+            0,
+            VBoxContent.HorizontalAlign.LEFT
+        );
+        event.getTooltipElements().add(
+            Math.min(1, event.getTooltipElements().size()),
+            Either.right(prepareComponent(
+                content,
+                hit,
+                budget,
+                PREPEND_SCROLL_KEY
+            ))
+        );
     }
 
     private static void appendNormalContents(
         RenderTooltipEvent.GatherComponents event,
         List<TipContent> normalContents,
-        ItemStack stack
+        TooltipHit hit,
+        TooltipViewportBudget budget
     ) {
-        for (TipContent content : normalContents) {
-            TipContentTooltipComponent component = prepareComponent(content, stack);
-            if (component != null) event.getTooltipElements().add(Either.right(component));
-        }
+        if (normalContents.isEmpty()) return;
+        TipContent content = normalContents.size() == 1
+            ? normalContents.getFirst()
+            : new VBoxContent(
+            normalContents,
+            0,
+            0,
+            VBoxContent.HorizontalAlign.LEFT
+        );
+        event.getTooltipElements().add(
+            Either.right(prepareComponent(
+                content,
+                hit,
+                budget,
+                NORMAL_SCROLL_KEY
+            ))
+        );
     }
 
-    private static TipContentTooltipComponent prepareComponent(TipContent content, ItemStack stack) {
-        TipEventManager.PreRenderEvent event = TipEventManager.firePreRender(stack);
-        if (event.isCanceled()) return null;
-        ItemStack preparedStack = event.getItemStack() != null ? event.getItemStack() : ItemStack.EMPTY;
-        return new TipContentTooltipComponent(content, preparedStack);
+    private static TipContentTooltipComponent prepareComponent(
+        TipContent content,
+        TooltipHit hit,
+        TooltipViewportBudget budget,
+        Object scrollKey
+    ) {
+        return new TipContentTooltipComponent(
+            content,
+            hit.stackSnapshot(),
+            hit,
+            budget,
+            scrollKey
+        );
     }
 
-    static void appendExtraLines(RenderTooltipEvent.GatherComponents event, ItemStack stack) {
+    static List<Component> collectExtraLines(ItemStack stack) {
         TipEventManager.AppendLinesEvent appendEvent = TipEventManager.fireAppendLines(stack);
+        ArrayList<Component> result = new ArrayList<>();
         for (String line : appendEvent.getLines()) {
-            event.getTooltipElements().add(Either.left(Component.literal(line)));
+            result.add(Component.literal(line));
+        }
+        return List.copyOf(result);
+    }
+
+    static void appendExtraLines(
+        RenderTooltipEvent.GatherComponents event,
+        List<Component> lines
+    ) {
+        for (Component line : lines) {
+            event.getTooltipElements().add(Either.left(line));
         }
     }
+
+    static void appendScrollHint(
+        RenderTooltipEvent.GatherComponents event,
+        @Nullable TooltipViewportBudget budget,
+        KeyMapping scrollKey
+    ) {
+        if (budget == null) return;
+        event.getTooltipElements().add(
+            Either.right(new ScrollHintTooltipComponent(
+                budget,
+                scrollKey.getTranslatedKeyMessage()
+            ))
+        );
+    }
+
 }

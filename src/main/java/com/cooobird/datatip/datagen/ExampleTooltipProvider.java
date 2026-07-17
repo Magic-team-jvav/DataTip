@@ -9,7 +9,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * 示例 Tooltip 数据生成器。
- * 展示所有内容类型的所有组合。
+ * 展示所有内容类型与具有代表性的布局、动画和修饰符组合。
  *
  * @author cooobird
  * @since 1.2.0

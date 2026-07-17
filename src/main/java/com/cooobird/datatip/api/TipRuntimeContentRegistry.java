@@ -17,6 +17,7 @@ public final class TipRuntimeContentRegistry {
     private static final Map<String, List<TipContentEntry>> REGISTERED_BY_KEY = new HashMap<>();
     private static final TipContentIndex CONTENT_INDEX = new TipContentIndex();
     private static final TipContentSource SOURCE = TipRuntimeContentRegistry::find;
+    private static long revision;
 
     private TipRuntimeContentRegistry() {
     }
@@ -33,6 +34,7 @@ public final class TipRuntimeContentRegistry {
             .toList();
         REGISTERED_BY_KEY.computeIfAbsent(itemKey, key -> new ArrayList<>()).addAll(entries);
         CONTENT_INDEX.add(itemKey, entries);
+        revision++;
     }
 
     public static synchronized void register(
@@ -50,16 +52,23 @@ public final class TipRuntimeContentRegistry {
         Objects.requireNonNull(entry, "entry");
         REGISTERED_BY_KEY.computeIfAbsent(itemKey, key -> new ArrayList<>()).add(entry);
         CONTENT_INDEX.add(itemKey, List.of(entry));
+        revision++;
     }
 
     public static synchronized void clear() {
+        if (REGISTERED_BY_KEY.isEmpty()) return;
         REGISTERED_BY_KEY.clear();
         CONTENT_INDEX.clear();
+        revision++;
     }
 
     public static synchronized void clearNamespace(String namespace) {
-        REGISTERED_BY_KEY.keySet().removeIf(key -> belongsToNamespace(key, namespace));
-        rebuildIndex();
+        boolean removed = REGISTERED_BY_KEY.keySet()
+            .removeIf(key -> belongsToNamespace(key, namespace));
+        if (removed) {
+            rebuildIndex();
+            revision++;
+        }
     }
 
     public static synchronized List<TipContentEntry> find(ItemStack stack) {
@@ -68,6 +77,10 @@ public final class TipRuntimeContentRegistry {
 
     public static TipContentSource source() {
         return SOURCE;
+    }
+
+    public static synchronized long getRevision() {
+        return revision;
     }
 
     public static boolean isValidItemKey(String itemKey) {

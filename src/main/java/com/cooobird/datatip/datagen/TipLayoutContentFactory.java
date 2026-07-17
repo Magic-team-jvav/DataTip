@@ -1,10 +1,7 @@
 package com.cooobird.datatip.datagen;
 
 import com.cooobird.datatip.api.TipContent;
-import com.cooobird.datatip.api.content.AlignedContent;
-import com.cooobird.datatip.api.content.CarouselContent;
-import com.cooobird.datatip.api.content.HBoxContent;
-import com.cooobird.datatip.api.content.VBoxContent;
+import com.cooobird.datatip.api.content.*;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -56,6 +53,29 @@ final class TipLayoutContentFactory {
         return new HBoxContent(Arrays.asList(children), gap, padding, parseVerticalAlign(align));
     }
 
+    static StackContent stack(TipContent... children) {
+        return new StackContent(
+            Arrays.asList(children),
+            0,
+            StackContent.HorizontalAlign.LEFT,
+            StackContent.VerticalAlign.TOP
+        );
+    }
+
+    static StackContent stack(
+        int padding,
+        String horizontalAlign,
+        String verticalAlign,
+        TipContent... children
+    ) {
+        return new StackContent(
+            Arrays.asList(children),
+            padding,
+            parseStackHorizontalAlign(horizontalAlign),
+            parseStackVerticalAlign(verticalAlign)
+        );
+    }
+
     static CarouselContent carousel(int intervalSeconds, TipContent... frames) {
         CarouselContent carousel = CarouselContent.withInterval(intervalSeconds);
         for (TipContent frame : frames) {
@@ -81,6 +101,30 @@ final class TipLayoutContentFactory {
             return HBoxContent.VerticalAlign.valueOf(align.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException | NullPointerException ignored) {
             return HBoxContent.VerticalAlign.TOP;
+        }
+    }
+
+    private static StackContent.HorizontalAlign parseStackHorizontalAlign(
+        String align
+    ) {
+        try {
+            return StackContent.HorizontalAlign.valueOf(
+                align.toUpperCase(Locale.ROOT)
+            );
+        } catch (IllegalArgumentException | NullPointerException ignored) {
+            return StackContent.HorizontalAlign.LEFT;
+        }
+    }
+
+    private static StackContent.VerticalAlign parseStackVerticalAlign(
+        String align
+    ) {
+        try {
+            return StackContent.VerticalAlign.valueOf(
+                align.toUpperCase(Locale.ROOT)
+            );
+        } catch (IllegalArgumentException | NullPointerException ignored) {
+            return StackContent.VerticalAlign.TOP;
         }
     }
 

@@ -1,6 +1,7 @@
 package com.cooobird.datatip.client;
 
 import com.cooobird.datatip.Datatip;
+import com.cooobird.datatip.api.component.ScrollHintTooltipComponent;
 import com.cooobird.datatip.api.component.TipContentTooltipComponent;
 import com.cooobird.datatip.event.TipRenderEventHandler;
 import com.cooobird.datatip.internal.loader.TipContentLoader;
@@ -27,9 +28,18 @@ public class DatatipClient {
         SchemaExporter.exportDefaultSchema();
         modContainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         modEventBus.addListener(TipRenderEventHandler::registerKeyMapping);
-        modEventBus.addListener(RegisterClientTooltipComponentFactoriesEvent.class, event ->
-            event.register(TipContentTooltipComponent.class, tip -> tip));
+        modEventBus.addListener(
+            RegisterClientTooltipComponentFactoriesEvent.class,
+            DatatipClient::registerTooltipComponents
+        );
         modEventBus.addListener(RegisterClientReloadListenersEvent.class, this::registerReloadListeners);
+    }
+
+    private static void registerTooltipComponents(
+        RegisterClientTooltipComponentFactoriesEvent event
+    ) {
+        event.register(TipContentTooltipComponent.class, tip -> tip);
+        event.register(ScrollHintTooltipComponent.class, hint -> hint);
     }
 
     private void registerReloadListeners(RegisterClientReloadListenersEvent event) {
@@ -39,6 +49,7 @@ public class DatatipClient {
                 .supplyAsync(() -> null, bgExec)
                 .thenCompose(stage::wait)
                 .thenRunAsync(() -> {
+                    TooltipSessionRuntime.resourcesReloaded();
                     TipRenderEventHandler.setContentSource(CONTENT_LOADER);
                     LOGGER.info("TipContentLoader updated with {} entries",
                         CONTENT_LOADER.getExactItemIds().size());

@@ -1,8 +1,10 @@
 {
     "tooltip.datatip.hold_shift": "按住%s查看详细信息",
+    "tooltip.datatip.scroll_hint": "按住%s并滚动鼠标滚轮查看更多内容",
     "key.categories.datatip": "DataTip",
     "key.datatip.show_tip": "显示详细提示",
-    
+    "key.datatip.scroll_tooltip": "滚动 Tooltip 内容",
+
     "datatip.configuration.enabled": "启用 DataTip",
     "datatip.configuration.enabled.tooltip": "启用 DataTip tooltip。设为 false 时禁用所有自定义 tooltip。",
     "datatip.configuration.default_color": "默认文本颜色",
@@ -12,5 +14,6 @@
     "datatip.configuration.max_width": "宽度覆盖值",
     "datatip.configuration.max_width.tooltip": "tooltip 宽度覆盖值（像素）。设为 0 时使用原版 tooltip 宽度。",
     "datatip.configuration.shift_hint_color": "Shift 提示颜色",
-    "datatip.configuration.shift_hint_color.tooltip": "按住 Shift 显示详情的提示文字颜色（ARGB 格式）。"
+    "datatip.configuration.shift_hint_color.tooltip": "按住 Shift 显示详情的提示文字颜色（ARGB 格式）。",
+    "datatip.example.stack_foreground": "可翻译前景文字"
 }

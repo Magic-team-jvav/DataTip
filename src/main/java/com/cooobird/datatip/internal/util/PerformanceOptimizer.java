@@ -1,5 +1,6 @@
 package com.cooobird.datatip.internal.util;
 
+import com.cooobird.datatip.api.session.ItemStackFingerprint;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
@@ -25,11 +26,9 @@ public final class PerformanceOptimizer {
     }
 
     /**
-     * 获取用于短期缓存的物品语义签名。
+     * 获取用于缓存依赖比较的结构化物品指纹。
      */
-    public static String getItemSignature(ItemStack stack) {
-        return getItemId(stack) + "|count=" + stack.getCount()
-            + "|damage=" + stack.getDamageValue()
-            + "|components=" + stack.getComponents();
+    public static ItemStackFingerprint getItemFingerprint(ItemStack stack) {
+        return ItemStackFingerprint.capture(stack);
     }
 }

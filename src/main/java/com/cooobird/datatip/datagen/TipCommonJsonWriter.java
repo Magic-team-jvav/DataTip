@@ -4,6 +4,8 @@ import com.cooobird.datatip.api.content.*;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.util.Locale;
+
 /**
  * 通用内容 JSON 写出器。
  */
@@ -28,9 +30,9 @@ final class TipCommonJsonWriter {
         if (marginTop > 0) json.addProperty("marginTop", marginTop);
         if (marginBottom > 0) json.addProperty("marginBottom", marginBottom);
         if (style != DividerContent.DividerStyle.SOLID)
-            json.addProperty("style", style.toString().toLowerCase());
+            json.addProperty("style", style.toString().toLowerCase(Locale.ROOT));
         if (widthMode != DividerContent.WidthMode.FILL)
-            json.addProperty("widthMode", widthMode.toString().toLowerCase());
+            json.addProperty("widthMode", widthMode.toString().toLowerCase(Locale.ROOT));
     }
 
     static void writeItem(JsonObject json, ItemContent item) {
@@ -57,12 +59,12 @@ final class TipCommonJsonWriter {
         if (progress.colorBg() != 0xFF333333)
             json.addProperty("colorBg", DatagenJsonUtils.colorToHex(progress.colorBg()));
         if (progress.style() != ProgressContent.ProgressStyle.GRADIENT)
-            json.addProperty("style", progress.style().toString().toLowerCase());
+            json.addProperty("style", progress.style().toString().toLowerCase(Locale.ROOT));
         if (progress.showLabel()) {
             json.addProperty("showLabel", true);
             LocalizedTextJsonWriter.add(json, "label", progress.customLabel());
             if (progress.labelAlign() != ProgressContent.LabelAlign.LEFT)
-                json.addProperty("labelAlign", progress.labelAlign().toString().toLowerCase());
+                json.addProperty("labelAlign", progress.labelAlign().toString().toLowerCase(Locale.ROOT));
         }
         if (progress.animated()) {
             json.addProperty("animated", true);
@@ -114,7 +116,7 @@ final class TipCommonJsonWriter {
         if (typewriter.strikethrough()) json.addProperty("strikethrough", true);
         if (!typewriter.shadow()) json.addProperty("shadow", false);
         if (typewriter.align() != BaseTextContent.TextAlign.LEFT)
-            json.addProperty("align", typewriter.align().toString().toLowerCase());
+            json.addProperty("align", typewriter.align().toString().toLowerCase(Locale.ROOT));
         if (typewriter.lineHeight() != TextContentDefaults.lineHeight())
             json.addProperty("lineHeight", typewriter.lineHeight());
         if (typewriter.shift()) json.addProperty("shift", true);

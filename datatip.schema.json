@@ -81,17 +81,17 @@
       "description": "Minecraft or mod translation key.",
       "type": "object",
       "properties": {
-        "trans": {
+          "translate": {
           "type": "string"
         }
       },
       "required": [
-        "trans"
+          "translate"
       ],
       "additionalProperties": false
     },
     "localizedValue": {
-      "description": "Visible text. Accepts a literal string, a language-code map, or {\"trans\": \"translation.key\"}.",
+        "description": "Visible text. Accepts a literal string, a language-code map, or {\"translate\": \"translation.key\"}.",
       "anyOf": [
         {
           "type": "string"
@@ -332,12 +332,43 @@
             "carousel",
             "typewriter",
             "image",
-            "chart"
+              "chart",
+              "stack"
           ]
         },
         "conditions": {
           "$ref": "#/$defs/conditions"
         },
+          "constraints": {
+              "type": "object",
+              "properties": {
+                  "width": {
+                      "type": "integer",
+                      "minimum": 0
+                  },
+                  "height": {
+                      "type": "integer",
+                      "minimum": 0
+                  },
+                  "minWidth": {
+                      "type": "integer",
+                      "minimum": 0
+                  },
+                  "minHeight": {
+                      "type": "integer",
+                      "minimum": 0
+                  },
+                  "maxWidth": {
+                      "type": "integer",
+                      "minimum": 0
+                  },
+                  "maxHeight": {
+                      "type": "integer",
+                      "minimum": 0
+                  }
+              },
+              "additionalProperties": false
+          },
         "shift": {
           "type": "boolean"
         },
@@ -354,9 +385,39 @@
             }
           ]
         },
-        "trans": {
+          "translate": {
           "type": "string"
         },
+          "trans": false,
+          "offsetZ": {
+              "type": "integer",
+              "minimum": -9223372036854775808,
+              "maximum": 9223372036854775807
+          },
+          "selfAlignX": {
+              "enum": [
+                  "inherit",
+                  "left",
+                  "center",
+                  "right"
+              ]
+          },
+          "selfAlignY": {
+              "enum": [
+                  "inherit",
+                  "top",
+                  "center",
+                  "bottom"
+              ]
+          },
+          "selfAlign": {
+              "enum": [
+                  "inherit",
+                  "left",
+                  "center",
+                  "right"
+              ]
+          },
         "lines": {
           "oneOf": [
             {
@@ -397,6 +458,20 @@
             "bottom"
           ]
         },
+          "horizontalAlign": {
+              "enum": [
+                  "left",
+                  "center",
+                  "right"
+              ]
+          },
+          "verticalAlign": {
+              "enum": [
+                  "top",
+                  "center",
+                  "bottom"
+          ]
+        },
         "bold": {
           "type": "boolean"
         },
@@ -414,48 +489,53 @@
         },
         "lineHeight": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 32
+            "minimum": 1
         },
         "maxWidth": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 4096
+            "minimum": 0
+        },
+          "minWidth": {
+              "type": "integer",
+              "minimum": 0
+          },
+          "minHeight": {
+              "type": "integer",
+              "minimum": 0
+          },
+          "maxHeight": {
+              "type": "integer",
+              "minimum": 0
         },
         "gap": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 4096
+            "minimum": 0
         },
         "padding": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 4096
+            "minimum": 0
         },
         "width": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 4096
+            "minimum": 0
         },
         "height": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 4096
+            "minimum": 0
         },
         "size": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 4096
+            "minimum": 1
         },
         "offsetX": {
           "type": "integer",
-          "minimum": -4096,
-          "maximum": 4096
+            "minimum": -9223372036854775808,
+            "maximum": 9223372036854775807
         },
         "offsetY": {
           "type": "integer",
-          "minimum": -4096,
-          "maximum": 4096
+            "minimum": -9223372036854775808,
+            "maximum": 9223372036854775807
         },
         "item": {
           "type": "string"
@@ -522,18 +602,22 @@
         },
         "thickness": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 4096
+            "minimum": 1
         },
         "marginTop": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 4096
+            "type": "integer"
+        },
+          "marginRight": {
+              "type": "integer"
         },
         "marginBottom": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 4096
+            "type": "integer"
+        },
+          "marginLeft": {
+              "type": "integer"
+          },
+          "margin": {
+              "type": "integer"
         },
         "widthMode": {
           "enum": [
@@ -554,13 +638,11 @@
         },
         "animSpeed": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 4096
+            "minimum": 1
         },
         "intervalSeconds": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 86400
+            "minimum": 1
         },
         "transition": {
           "enum": [
@@ -590,18 +672,54 @@
         },
         "textureWidth": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 4096
+            "minimum": 1
         },
         "textureHeight": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 4096
+            "minimum": 1
         },
         "scale": {
           "type": "number",
           "exclusiveMinimum": 0
         },
+          "scaleX": {
+              "type": "number",
+              "exclusiveMinimum": 0
+          },
+          "scaleY": {
+              "type": "number",
+              "exclusiveMinimum": 0
+          },
+          "rotation": {
+              "type": "number"
+          },
+          "pivotX": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+          },
+          "pivotY": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+          },
+          "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+          },
+          "visible": {
+              "type": "boolean"
+          },
+          "overflow": {
+              "enum": [
+                  "none",
+                  "wrap",
+                  "scale_down",
+                  "scale-down",
+                  "clip"
+              ]
+          },
         "chartType": {
           "enum": [
             "bar",
@@ -629,40 +747,11 @@
         },
         "entries": {
           "type": "array",
-          "maxItems": 512,
           "items": {
             "$ref": "#/$defs/chartEntry"
           }
         }
       },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "chart"
-              },
-              "chartType": {
-                "const": "pie"
-              }
-            },
-            "required": [
-              "type",
-              "chartType"
-            ]
-          },
-          "then": {
-            "properties": {
-              "width": {
-                "maximum": 128
-              },
-              "height": {
-                "maximum": 128
-              }
-            }
-          }
-        }
-      ],
       "additionalProperties": true
     },
     "legacyObject": {

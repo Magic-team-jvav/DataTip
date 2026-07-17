@@ -5,7 +5,6 @@ import com.cooobird.datatip.api.ParseContext;
 import com.cooobird.datatip.api.content.TextContent;
 import com.google.gson.JsonObject;
 import net.minecraft.network.chat.Component;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * TextContent 解析器。
@@ -22,13 +21,15 @@ public class TextContentParser implements ContentParser {
 
     @Override
     public TextContent parse(JsonObject json, ParseContext context) {
-        TextContentSource source = TextContentSource.parse(json);
-        TextContentStyleOptions options = TextContentStyleOptions.parse(json, context);
-        Component component = parseComponent(json, context);
+        validateTextSource(json);
 
-        if (component != null) {
-            return options.createWithComponent(component);
-        } else if (source.hasStyledLanguages()) {
+        TextContentStyleOptions options = TextContentStyleOptions.parse(json, context);
+        if (json.has("translate")) {
+            return options.createWithComponent(Component.translatable(json.get("translate").getAsString()));
+        }
+
+        TextContentSource source = TextContentSource.parse(json);
+        if (source.hasStyledLanguages()) {
             return options.createWithStyledLanguages(source.langStyledText());
         } else if (source.hasLanguages()) {
             return options.createWithLanguages(source.langText());
@@ -36,16 +37,26 @@ public class TextContentParser implements ContentParser {
             return options.createWithText(source.text());
         }
 
-        return TextContent.of("");
+        throw new IllegalArgumentException("Text content requires either 'text' or 'translate'");
     }
 
-    @Nullable
-    private static Component parseComponent(JsonObject json, ParseContext context) {
-        if (!context.has(json, "trans")) {
-            return null;
+    private static void validateTextSource(JsonObject json) {
+        if (json.has("trans")) {
+            throw new IllegalArgumentException("Property 'trans' is not supported; use 'translate'");
         }
 
-        String transKey = context.getString(json, "trans", "");
-        return Component.translatable(transKey);
+        boolean hasText = json.has("text") && !json.get("text").isJsonNull();
+        boolean hasTranslate = json.has("translate") && !json.get("translate").isJsonNull();
+        if (hasText && hasTranslate) {
+            throw new IllegalArgumentException("Properties 'text' and 'translate' are mutually exclusive");
+        }
+        if (!hasText && !hasTranslate) {
+            throw new IllegalArgumentException("Text content requires either 'text' or 'translate'");
+        }
+        if (hasTranslate
+            && (!json.get("translate").isJsonPrimitive()
+            || !json.getAsJsonPrimitive("translate").isString())) {
+            throw new IllegalArgumentException("Property 'translate' must be a string");
+        }
     }
 }

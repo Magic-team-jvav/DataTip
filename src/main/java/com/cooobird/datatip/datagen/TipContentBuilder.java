@@ -2,7 +2,10 @@ package com.cooobird.datatip.datagen;
 
 import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.content.*;
+import com.cooobird.datatip.api.node.TipModifiers;
+import com.cooobird.datatip.api.node.TipNode;
 import com.google.gson.JsonObject;
+import net.minecraft.network.chat.Component;
 
 import java.util.List;
 import java.util.Map;
@@ -35,6 +38,10 @@ public class TipContentBuilder {
 
     public static TextContent text(String text, String color, String font) {
         return TipTextContentFactory.text(text, color, font);
+    }
+
+    public static TextContent translate(String key) {
+        return TextContent.of(Component.translatable(key));
     }
 
     public static TextContent langText(Map<String, String> langText) {
@@ -182,6 +189,24 @@ public class TipContentBuilder {
         return TipLayoutContentFactory.hbox(gap, padding, align, children);
     }
 
+    public static StackContent stack(TipContent... children) {
+        return TipLayoutContentFactory.stack(children);
+    }
+
+    public static StackContent stack(
+        int padding,
+        String horizontalAlign,
+        String verticalAlign,
+        TipContent... children
+    ) {
+        return TipLayoutContentFactory.stack(
+            padding,
+            horizontalAlign,
+            verticalAlign,
+            children
+        );
+    }
+
     public static CarouselContent carousel(int intervalSeconds, TipContent... frames) {
         return TipLayoutContentFactory.carousel(intervalSeconds, frames);
     }
@@ -200,6 +225,28 @@ public class TipContentBuilder {
 
     public static AlignedContent rightAlignedContent(TipContent content) {
         return TipLayoutContentFactory.rightAlignedContent(content);
+    }
+
+    public static TipNode modifiers(
+        TipContent content,
+        boolean shift,
+        long offsetZ,
+        TipModifiers.SelfAlignment selfAlignment
+    ) {
+        return TipNode.wrap(
+            content,
+            new TipModifiers(shift, offsetZ, selfAlignment)
+        );
+    }
+
+    /**
+     * 为任意内容节点应用完整的公共修饰符集合。
+     */
+    public static TipNode modifiers(
+        TipContent content,
+        TipModifiers modifiers
+    ) {
+        return TipNode.wrap(content, modifiers);
     }
 
     // 视觉内容

@@ -2,6 +2,10 @@ package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.TipLayoutContext;
 import com.cooobird.datatip.api.TipRenderContext;
+import com.cooobird.datatip.api.layout.PreparedContent;
+import com.cooobird.datatip.api.layout.PreparedLayout;
+import com.cooobird.datatip.api.layout.TipPrepareContext;
+import com.cooobird.datatip.internal.layout.PreparedTextLayout;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
@@ -29,7 +33,7 @@ import java.util.Map;
  * @see BaseTextContent 基类
  * @since 1.2.0
  */
-public class TextContent extends BaseTextContent {
+public class TextContent extends BaseTextContent implements PreparedContent {
 
     private final @Nullable String text;
     private final @Nullable Component component;
@@ -195,10 +199,6 @@ public class TextContent extends BaseTextContent {
         return TextFormattedTextResolver.resolve(this, stack);
     }
 
-    private FormattedText getFormattedText() {
-        return formattedText((net.minecraft.world.item.ItemStack) null);
-    }
-
     @Override
     public int getHeight(int availableWidth) {
         return TextContentLayout.getHeight(this, availableWidth);
@@ -235,5 +235,16 @@ public class TextContent extends BaseTextContent {
     @Override
     public void render(TipRenderContext context, int x, int y, int maxWidth, float alpha) {
         TextContentLayout.render(this, context, x, y, maxWidth, alpha);
+    }
+
+    @Override
+    public PreparedLayout prepare(TipPrepareContext context) {
+        var stack = context.requireLayoutContext().itemStack();
+        return PreparedTextLayout.prepare(
+            this,
+            context,
+            formattedText(stack),
+            resolveColor(stack)
+        );
     }
 }

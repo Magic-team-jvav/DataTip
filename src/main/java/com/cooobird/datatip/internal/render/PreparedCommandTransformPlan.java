@@ -1,0 +1,39 @@
+package com.cooobird.datatip.internal.render;
+
+import com.cooobird.datatip.api.render.*;
+import org.joml.Matrix4f;
+
+/**
+ * 选择公共仿射变换传递到各类绘制后端的方式。
+ */
+final class PreparedCommandTransformPlan {
+    private PreparedCommandTransformPlan() {
+    }
+
+    static Mode mode(RenderPayload payload) {
+        return payload instanceof ModelCommandPayload
+            ? Mode.MODEL_COMPOSITE
+            : Mode.POSE_STACK;
+    }
+
+    static boolean usesLocalViewport(RenderPayload payload) {
+        return switch (payload) {
+            case Visual2DCommandPayload visual -> visual.draw() instanceof PreparedViewportDraw;
+            case OverlayCommandPayload overlay -> overlay.draw() instanceof PreparedViewportDraw;
+            case TextCommandPayload ignored -> false;
+            case ModelCommandPayload ignored -> false;
+        };
+    }
+
+    static Matrix4f compositeMatrix(
+        Matrix4f base,
+        RenderTransform transform
+    ) {
+        return new Matrix4f(base).mul(transform.matrix());
+    }
+
+    enum Mode {
+        POSE_STACK,
+        MODEL_COMPOSITE
+    }
+}

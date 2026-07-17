@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 数据组件读取器注册表。
@@ -23,6 +24,7 @@ public final class ComponentReaderRegistry {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Map<String, ComponentValueReader> READERS = new ConcurrentHashMap<>();
     private static final Set<String> REPORTED_FAILURES = ConcurrentHashMap.newKeySet();
+    private static final AtomicLong REVISION = new AtomicLong();
 
     private ComponentReaderRegistry() {
     }
@@ -32,6 +34,7 @@ public final class ComponentReaderRegistry {
         if (READERS.putIfAbsent(normalizedName, requireReader(reader)) != null) {
             throw new IllegalArgumentException("Component reader already registered: " + normalizedName);
         }
+        REVISION.incrementAndGet();
         invalidateCaches();
     }
 
@@ -41,9 +44,13 @@ public final class ComponentReaderRegistry {
 
     public static void registerOrReplace(String componentName, ComponentValueReader reader) {
         String normalizedName = normalizeName(componentName);
-        READERS.put(normalizedName, requireReader(reader));
+        ComponentValueReader replacement = requireReader(reader);
+        ComponentValueReader previous = READERS.put(normalizedName, replacement);
         REPORTED_FAILURES.remove(normalizedName);
-        invalidateCaches();
+        if (previous != replacement) {
+            REVISION.incrementAndGet();
+            invalidateCaches();
+        }
     }
 
     public static void registerOrReplace(DataComponentType<?> componentType, ComponentValueReader reader) {
@@ -54,7 +61,10 @@ public final class ComponentReaderRegistry {
         String normalizedName = normalizeName(componentName);
         boolean removed = READERS.remove(normalizedName) != null;
         REPORTED_FAILURES.remove(normalizedName);
-        if (removed) invalidateCaches();
+        if (removed) {
+            REVISION.incrementAndGet();
+            invalidateCaches();
+        }
         return removed;
     }
 
@@ -67,9 +77,15 @@ public final class ComponentReaderRegistry {
     }
 
     public static void clear() {
+        if (READERS.isEmpty() && REPORTED_FAILURES.isEmpty()) return;
         READERS.clear();
         REPORTED_FAILURES.clear();
+        REVISION.incrementAndGet();
         invalidateCaches();
+    }
+
+    public static long getRevision() {
+        return REVISION.get();
     }
 
     @Nullable

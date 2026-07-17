@@ -7,6 +7,8 @@ import com.cooobird.datatip.api.text.LocalizedText;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.util.Locale;
+
 /**
  * ChartContent 解析器。
  * <p>
@@ -72,7 +74,7 @@ public class ChartContentParser implements ContentParser {
     public ChartContent parse(JsonObject json, ParseContext context) {
         // 解析图表类型
         String chartTypeStr = context.getString(json, "chartType", "bar");
-        ChartContent.ChartType chartType = switch (chartTypeStr.toLowerCase()) {
+        ChartContent.ChartType chartType = switch (chartTypeStr.toLowerCase(Locale.ROOT)) {
             case "pie" -> ChartContent.ChartType.PIE;
             case "line" -> ChartContent.ChartType.LINE;
             default -> ChartContent.ChartType.BAR;

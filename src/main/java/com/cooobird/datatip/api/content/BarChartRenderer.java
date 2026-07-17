@@ -19,6 +19,15 @@ final class BarChartRenderer {
         double[] values = entries.stream()
             .mapToDouble(entry -> entry.resolveValue(context))
             .toArray();
+        List<ChartGeometryBuckets.Bucket> buckets =
+            ChartGeometryBuckets.maximumAbsolute(
+                entries,
+                values,
+                renderWidth
+            );
+        values = buckets.stream()
+            .mapToDouble(ChartGeometryBuckets.Bucket::value)
+            .toArray();
 
         double maxValue = Arrays.stream(values).max().orElse(1);
         double minValue = Arrays.stream(values).min().orElse(0);
@@ -29,12 +38,12 @@ final class BarChartRenderer {
         if (range == 0) range = 1;
 
         int zeroLineY = y + chart.height() - (int) (((0 - minValue) / range) * chart.height());
-        for (int i = 0; i < entries.size(); i++) {
-            ChartContent.ChartEntry entry = entries.get(i);
+        for (int i = 0; i < buckets.size(); i++) {
+            ChartGeometryBuckets.Bucket bucket = buckets.get(i);
             double value = values[i];
 
-            int slotStart = x + (i * renderWidth) / entries.size();
-            int slotEnd = x + ((i + 1) * renderWidth) / entries.size();
+            int slotStart = x + (i * renderWidth) / buckets.size();
+            int slotEnd = x + ((i + 1) * renderWidth) / buckets.size();
             int slotWidth = Math.max(1, slotEnd - slotStart);
             int barX = slotStart;
             int barWidth = Math.max(1, slotWidth - 1);
@@ -45,9 +54,13 @@ final class BarChartRenderer {
             barY = Math.max(y, Math.min(y + chart.height(), barY));
             barHeight = Math.min(barHeight, y + chart.height() - barY);
 
-            context.fill(barX, barY, barX + barWidth, barY + barHeight, entry.color());
-            renderLabel(chart, context, entry, barX, barWidth, slotWidth, y);
-            renderValue(chart, context, value, barX, barWidth, slotWidth, barY);
+            context.fill(
+                barX,
+                barY,
+                barX + barWidth,
+                barY + barHeight,
+                bucket.color()
+            );
         }
 
         if (minValue < 0) {
@@ -55,38 +68,4 @@ final class BarChartRenderer {
         }
     }
 
-    private static void renderLabel(
-        ChartContent chart,
-        TipRenderContext context,
-        ChartContent.ChartEntry entry,
-        int barX,
-        int barWidth,
-        int slotWidth,
-        int y
-    ) {
-        if (!chart.showLabels()) return;
-
-        int labelWidth = context.getStringWidth(entry.labelComponent());
-        if (labelWidth > slotWidth) return;
-        context.drawString(entry.labelComponent(), barX + (barWidth - labelWidth) / 2, y + chart.height() + 2,
-            chart.labelColor());
-    }
-
-    private static void renderValue(
-        ChartContent chart,
-        TipRenderContext context,
-        double value,
-        int barX,
-        int barWidth,
-        int slotWidth,
-        int barY
-    ) {
-        if (!chart.showValues()) return;
-
-        String valueStr = String.format("%.0f", value);
-        int valueWidth = context.getStringWidth(valueStr);
-        if (valueWidth > slotWidth) return;
-        int valueY = value >= 0 ? barY - 12 : barY + 2;
-        context.drawString(valueStr, barX + (barWidth - valueWidth) / 2, valueY, chart.valueColor());
-    }
 }

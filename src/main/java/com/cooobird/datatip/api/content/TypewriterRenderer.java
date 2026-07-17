@@ -24,7 +24,10 @@ final class TypewriterRenderer {
         int maxWidth,
         float alpha
     ) {
-        List<String> currentLines = TypewriterTextSource.currentLines(content);
+        List<String> currentLines = TypewriterLayout.resolvedLines(
+            content,
+            context.itemStack()
+        );
         if (alpha <= 0 || currentLines.isEmpty()) return;
 
         if (content.shift && !BaseTextContent.isShowTipDown()) {
@@ -40,11 +43,21 @@ final class TypewriterRenderer {
             RenderLine line = buildLine(content, state, currentLines.get(i), i, resolvedColor);
             if (line == null) break;
 
-            int lineX = content.calcLineX(font, line.text(), x, maxWidth);
             int renderColor = TipRenderContext.applyAlpha(line.color(), alpha);
-            context.graphics().drawString(font, Component.literal(line.text()).withStyle(line.style()),
-                lineX, renderY, renderColor, content.shadow);
-            renderY += content.lineHeight;
+            Component styled = Component.literal(line.text()).withStyle(line.style());
+            var segments = font.split(styled, Math.max(1, maxWidth));
+            for (var segment : segments) {
+                int lineX = content.calcLineX(font, segment, x, maxWidth);
+                context.graphics().drawString(
+                    font,
+                    segment,
+                    lineX,
+                    renderY,
+                    renderColor,
+                    content.shadow
+                );
+                renderY += content.lineHeight;
+            }
         }
     }
 

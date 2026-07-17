@@ -8,6 +8,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * VBoxContent 解析器。
@@ -66,7 +67,7 @@ public class VBoxContentParser implements ContentParser {
 
         // 解析对齐方式
         String alignStr = context.getString(json, "align", "left");
-        VBoxContent.HorizontalAlign align = switch (alignStr.toLowerCase()) {
+        VBoxContent.HorizontalAlign align = switch (alignStr.toLowerCase(Locale.ROOT)) {
             case "center" -> VBoxContent.HorizontalAlign.CENTER;
             case "right" -> VBoxContent.HorizontalAlign.RIGHT;
             default -> VBoxContent.HorizontalAlign.LEFT;

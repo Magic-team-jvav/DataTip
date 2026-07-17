@@ -83,7 +83,7 @@ public final class ReloadOptimizer {
                 hex[i * 2] = HEX[value >>> 4];
                 hex[i * 2 + 1] = HEX[value & 0x0f];
             }
-            return new String(hex);
+            return String.valueOf(hex);
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 digest is unavailable", e);
         }
@@ -106,10 +106,24 @@ public final class ReloadOptimizer {
         int unchangedFiles,
         int totalFiles
     ) {
-        public ReloadPlan {
-            environmentSignature = environmentSignature != null ? environmentSignature : "";
-            changedFiles = List.copyOf(changedFiles);
-            deletedFiles = Set.copyOf(deletedFiles);
+        public ReloadPlan(
+            boolean firstLoad,
+            boolean environmentChanged,
+            String environmentSignature,
+            List<ChangedFile> changedFiles,
+            Set<ResourceLocation> deletedFiles,
+            int unchangedFiles,
+            int totalFiles
+        ) {
+            this.firstLoad = firstLoad;
+            this.environmentChanged = environmentChanged;
+            this.environmentSignature = environmentSignature != null
+                ? environmentSignature
+                : "";
+            this.changedFiles = List.copyOf(changedFiles);
+            this.deletedFiles = Set.copyOf(deletedFiles);
+            this.unchangedFiles = unchangedFiles;
+            this.totalFiles = totalFiles;
         }
 
         public boolean requiresReload() {
