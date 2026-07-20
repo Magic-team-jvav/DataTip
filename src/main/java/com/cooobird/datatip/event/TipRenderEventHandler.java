@@ -92,14 +92,19 @@ public class TipRenderEventHandler {
                 event,
                 entries,
                 hit,
-                shiftDown,
-                DatatipKeyMappings.SHOW_TIP
+                shiftDown
             );
         }
 
         TipTooltipElements.appendExtraLines(
             event,
             TipTooltipElements.collectExtraLines(effectiveStack)
+        );
+        TipTooltipElements.appendShiftHint(
+            event,
+            entries,
+            shiftDown,
+            DatatipKeyMappings.SHOW_TIP
         );
         TipTooltipElements.appendScrollHint(
             event,
