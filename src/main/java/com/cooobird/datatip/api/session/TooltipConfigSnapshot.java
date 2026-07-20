@@ -7,6 +7,7 @@ public record TooltipConfigSnapshot(
     int defaultColor,
     int defaultLineHeight,
     int maxWidth,
-    int shiftHintColor
+    int shiftHintColor,
+    int scrollHintColor
 ) {
 }

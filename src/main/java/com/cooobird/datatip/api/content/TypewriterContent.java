@@ -5,6 +5,7 @@ import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.api.session.TooltipInvalidation;
 import com.cooobird.datatip.api.session.TooltipSession;
 import com.cooobird.datatip.api.session.TooltipSessionContext;
+import com.cooobird.datatip.internal.text.FormattedTextLineBreaks;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
@@ -50,8 +51,8 @@ public class TypewriterContent extends BaseTextContent
                              TextAlign align, boolean shadow, int lineHeight, boolean shift) {
         super(font, color, colorExpression, shadow, align, lineHeight, bold, italic, underlined, strikethrough, shift);
         this.lines = copyLines(lines);
-        this.langLines = copyLineMap(langLines);
-        this.langStyledLines = copyLineMap(langStyledLines);
+        this.langLines = copyTextLineMap(langLines);
+        this.langStyledLines = copyStyledLineMap(langStyledLines);
         this.charsPerSecond = ContentBounds.dimension(charsPerSecond);
         this.pauseSeconds = ContentBounds.spacing(pauseSeconds);
         this.loop = loop;
@@ -141,13 +142,43 @@ public class TypewriterContent extends BaseTextContent
     }
 
     @Nullable
-    private static <T> Map<String, List<T>> copyLineMap(@Nullable Map<String, List<T>> source) {
+    private static Map<String, List<String>> copyTextLineMap(
+        @Nullable Map<String, List<String>> source
+    ) {
         if (source == null) return null;
-        Map<String, List<T>> copy = new HashMap<>();
+        Map<String, List<String>> copy = new HashMap<>();
         source.forEach((language, values) -> {
             if (language == null || values == null) return;
-            List<T> cleanValues = values.stream().filter(java.util.Objects::nonNull).toList();
-            copy.put(language, cleanValues);
+            copy.put(language, copyLines(values));
+        });
+        return Map.copyOf(copy);
+    }
+
+    @Nullable
+    private static Map<String, List<LangStyle>> copyStyledLineMap(
+        @Nullable Map<String, List<LangStyle>> source
+    ) {
+        if (source == null) return null;
+        Map<String, List<LangStyle>> copy = new HashMap<>();
+        source.forEach((language, values) -> {
+            if (language == null || values == null) return;
+            ArrayList<LangStyle> lines = new ArrayList<>();
+            for (LangStyle value : values) {
+                if (value == null) continue;
+                for (String line : splitLines(value.text())) {
+                    lines.add(new LangStyle(
+                        line,
+                        value.color(),
+                        value.bold(),
+                        value.italic(),
+                        value.underlined(),
+                        value.strikethrough(),
+                        value.align(),
+                        value.shift()
+                    ));
+                }
+            }
+            copy.put(language, List.copyOf(lines));
         });
         return Map.copyOf(copy);
     }
@@ -155,8 +186,14 @@ public class TypewriterContent extends BaseTextContent
     private static List<String> copyLines(@Nullable List<String> source) {
         if (source == null) return List.of();
         List<String> copy = new ArrayList<>();
-        source.stream().filter(java.util.Objects::nonNull).forEach(copy::add);
+        for (String value : source) {
+            if (value != null) copy.addAll(splitLines(value));
+        }
         return List.copyOf(copy);
+    }
+
+    private static List<String> splitLines(String value) {
+        return List.of(FormattedTextLineBreaks.decode(value).split("\n", -1));
     }
 
     @Override

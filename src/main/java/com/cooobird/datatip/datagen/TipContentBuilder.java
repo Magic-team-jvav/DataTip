@@ -4,6 +4,7 @@ import com.cooobird.datatip.api.TipContent;
 import com.cooobird.datatip.api.content.*;
 import com.cooobird.datatip.api.node.TipModifiers;
 import com.cooobird.datatip.api.node.TipNode;
+import com.cooobird.datatip.api.util.ColorParser;
 import com.google.gson.JsonObject;
 import net.minecraft.network.chat.Component;
 
@@ -42,6 +43,32 @@ public class TipContentBuilder {
 
     public static TextContent translate(String key) {
         return TextContent.of(Component.translatable(key));
+    }
+
+    public static CyclingTextContent cycleText(
+        TextContent text,
+        double cycleSeconds,
+        String transition,
+        String... colors
+    ) {
+        CyclingTextContent.Transition parsedTransition = switch (
+            transition.toLowerCase(java.util.Locale.ROOT)
+            ) {
+            case "smooth" -> CyclingTextContent.Transition.SMOOTH;
+            case "step" -> CyclingTextContent.Transition.STEP;
+            default -> throw new IllegalArgumentException(
+                "transition must be 'smooth' or 'step'"
+            );
+        };
+        return new CyclingTextContent(
+            text,
+            java.util.Arrays.stream(colors)
+                .map(ColorParser::parseStrict)
+                .toList(),
+            cycleSeconds,
+            parsedTransition,
+            0.0
+        );
     }
 
     public static TextContent langText(Map<String, String> langText) {

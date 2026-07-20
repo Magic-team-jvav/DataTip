@@ -32,7 +32,7 @@ public class TypewriterContentParser implements ContentParser {
         int charsPerSecond = context.getInt(json, "charsPerSecond", 2);
         int pauseSeconds = context.getInt(json, "pauseSeconds", 1);
         boolean loop = context.getBoolean(json, "loop", false);
-        int color = context.getColor(json, "color", DatatipConfig.DEFAULT_COLOR.get());
+        int color = context.getColor(json, "color", DatatipConfig.defaultColor());
 
         boolean shadow = context.getBoolean(json, "shadow", true);
         int lineHeight = context.getInt(json, "lineHeight", TextContentDefaults.lineHeight());
@@ -105,7 +105,7 @@ public class TypewriterContentParser implements ContentParser {
                                 for (var el : entry.getValue().getAsJsonArray()) {
                                     if (el.isJsonPrimitive()) {
                                         styledList.add(new TypewriterContent.LangStyle(
-                                            el.getAsString(), DatatipConfig.DEFAULT_COLOR.get(), false, false, false, false));
+                                            el.getAsString(), DatatipConfig.defaultColor(), false, false, false, false));
                                     } else if (el.isJsonObject()) {
                                         JsonObject lineObj = el.getAsJsonObject();
                                         String lineText = lineObj.has("text") ? lineObj.get("text").getAsString() : "";
@@ -142,6 +142,6 @@ public class TypewriterContentParser implements ContentParser {
     }
 
     private static int parseColor(String colorStr) {
-        return BaseTextContent.parseColorString(colorStr, DatatipConfig.DEFAULT_COLOR.get());
+        return BaseTextContent.parseColorString(colorStr, DatatipConfig.defaultColor());
     }
 }

@@ -11,8 +11,8 @@ import com.cooobird.datatip.api.content.ContainerContent;
 import com.cooobird.datatip.api.content.VBoxContent;
 import com.cooobird.datatip.api.node.TipNode;
 import com.cooobird.datatip.api.session.TooltipHit;
+import com.cooobird.datatip.config.DatatipConfig;
 import com.mojang.datafixers.util.Either;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -60,10 +60,11 @@ final class TipTooltipElements {
         RenderTooltipEvent.GatherComponents event,
         List<TipContentEntry> entries,
         boolean shiftDown,
-        KeyMapping showTipKey
+        KeyMapping showTipKey,
+        TooltipHit hit
     ) {
         if (hasShiftContent(entries) && !shiftDown) {
-            addShiftHint(event, showTipKey);
+            addShiftHint(event, entries, showTipKey, hit);
         }
     }
 
@@ -99,9 +100,29 @@ final class TipTooltipElements {
         return false;
     }
 
-    private static void addShiftHint(RenderTooltipEvent.GatherComponents event, KeyMapping showTipKey) {
-        Component hint = Component.translatable("tooltip.datatip.hold_shift", showTipKey.getTranslatedKeyMessage())
-            .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC);
+    private static void addShiftHint(
+        RenderTooltipEvent.GatherComponents event,
+        List<TipContentEntry> entries,
+        KeyMapping showTipKey,
+        TooltipHit hit
+    ) {
+        TipContent custom = firstHint(entries, true);
+        if (custom != null) {
+            event.getTooltipElements().add(Either.right(
+                new TipContentTooltipComponent(
+                    custom,
+                    hit.stackSnapshot(),
+                    hit
+                )
+            ));
+            return;
+        }
+        Component hint = Component.translatable(
+            "tooltip.datatip.hold_shift",
+            showTipKey.getTranslatedKeyMessage()
+        ).withStyle(style -> style
+            .withColor(DatatipConfig.shiftHintColor())
+            .withItalic(true));
         event.getTooltipElements().add(Either.left(hint));
     }
 
@@ -209,15 +230,34 @@ final class TipTooltipElements {
     static void appendScrollHint(
         RenderTooltipEvent.GatherComponents event,
         @Nullable TooltipViewportBudget budget,
-        KeyMapping scrollKey
+        KeyMapping scrollKey,
+        List<TipContentEntry> entries,
+        TooltipHit hit
     ) {
         if (budget == null) return;
+        TipContent custom = firstHint(entries, false);
         event.getTooltipElements().add(
-            Either.right(new ScrollHintTooltipComponent(
+            Either.right(custom != null
+                ? new ScrollHintTooltipComponent(budget, custom, hit)
+                : new ScrollHintTooltipComponent(
                 budget,
                 scrollKey.getTranslatedKeyMessage()
             ))
         );
+    }
+
+    @Nullable
+    private static TipContent firstHint(
+        List<TipContentEntry> entries,
+        boolean shiftHint
+    ) {
+        for (TipContentEntry entry : entries) {
+            TipContent hint = shiftHint
+                ? entry.shiftHint()
+                : entry.scrollHint();
+            if (hint != null) return hint;
+        }
+        return null;
     }
 
 }

@@ -317,6 +317,7 @@
           "minLength": 1,
           "examples": [
             "text",
+              "cycle_text",
             "spacer",
             "divider",
             "item",
@@ -372,6 +373,34 @@
         "prepend": {
           "type": "boolean"
         },
+          "shiftHint": {
+              "description": "Custom content replacing the merged Shift hint.",
+              "oneOf": [
+                  {
+                      "$ref": "#/$defs/content"
+                  },
+                  {
+                      "type": "array",
+                      "items": {
+                          "$ref": "#/$defs/content"
+                      }
+                  }
+              ]
+          },
+          "scrollHint": {
+              "description": "Custom content shown when the physical tooltip viewport overflows.",
+              "oneOf": [
+                  {
+                      "$ref": "#/$defs/content"
+                  },
+                  {
+                      "type": "array",
+                      "items": {
+                          "$ref": "#/$defs/content"
+                      }
+                  }
+              ]
+          },
         "text": {
           "oneOf": [
             {
@@ -385,6 +414,41 @@
           "translate": {
           "type": "string"
         },
+          "keybind": {
+              "type": "string"
+          },
+          "with": {
+              "type": "array",
+              "items": {
+                  "oneOf": [
+                      {
+                          "type": [
+                              "string",
+                              "number",
+                              "boolean"
+                          ]
+                      },
+                      {
+                          "type": "object",
+                          "properties": {
+                              "text": {
+                                  "type": "string"
+                              },
+                              "translate": {
+                                  "type": "string"
+                              },
+                              "keybind": {
+                                  "type": "string"
+                              },
+                              "with": {
+                                  "type": "array"
+                              }
+                          },
+                          "additionalProperties": false
+                      }
+                  ]
+              }
+          },
           "trans": false,
           "offsetZ": {
               "type": "integer",
@@ -442,6 +506,20 @@
         },
         "color": {
           "$ref": "#/$defs/color"
+        },
+          "colors": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                  "$ref": "#/$defs/color"
+              }
+          },
+          "cycleSeconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+          },
+          "phase": {
+              "type": "number"
         },
         "font": {
           "type": "string"
@@ -645,7 +723,9 @@
           "enum": [
             "none",
             "fade",
-            "slide"
+              "slide",
+              "smooth",
+              "step"
           ]
         },
         "charsPerSecond": {

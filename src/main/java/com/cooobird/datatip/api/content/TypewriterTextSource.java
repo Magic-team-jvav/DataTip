@@ -1,6 +1,6 @@
 package com.cooobird.datatip.api.content;
 
-import net.minecraft.client.Minecraft;
+import com.cooobird.datatip.internal.text.LanguageTextSelector;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -18,10 +18,7 @@ final class TypewriterTextSource {
             return styledTextLines(content);
         }
         if (content.langLines != null && !content.langLines.isEmpty()) {
-            String lang = currentLanguage();
-            List<String> langLinesList = content.langLines.get(lang);
-            if (langLinesList == null) langLinesList = content.langLines.get("en_us");
-            if (langLinesList == null) langLinesList = firstNonNull(content.langLines.values());
+            List<String> langLinesList = LanguageTextSelector.selectCurrent(content.langLines);
             return langLinesList != null ? langLinesList : List.of();
         }
         return content.lines;
@@ -33,10 +30,8 @@ final class TypewriterTextSource {
             return null;
         }
 
-        String lang = currentLanguage();
-        List<BaseTextContent.LangStyle> styledLines = content.langStyledLines.get(lang);
-        if (styledLines == null) styledLines = content.langStyledLines.get("en_us");
-        if (styledLines == null) styledLines = firstNonNull(content.langStyledLines.values());
+        List<BaseTextContent.LangStyle> styledLines =
+            LanguageTextSelector.selectCurrent(content.langStyledLines);
         if (styledLines != null && lineIndex >= 0 && lineIndex < styledLines.size()) {
             return styledLines.get(lineIndex);
         }
@@ -44,10 +39,8 @@ final class TypewriterTextSource {
     }
 
     private static List<String> styledTextLines(TypewriterContent content) {
-        String lang = currentLanguage();
-        List<BaseTextContent.LangStyle> styledLines = content.langStyledLines.get(lang);
-        if (styledLines == null) styledLines = content.langStyledLines.get("en_us");
-        if (styledLines == null) styledLines = firstNonNull(content.langStyledLines.values());
+        List<BaseTextContent.LangStyle> styledLines =
+            LanguageTextSelector.selectCurrent(content.langStyledLines);
         if (styledLines == null) return List.of();
 
         List<String> result = new ArrayList<>();
@@ -57,18 +50,4 @@ final class TypewriterTextSource {
         return result;
     }
 
-    private static String currentLanguage() {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null || minecraft.getLanguageManager() == null) return "en_us";
-        String selected = minecraft.getLanguageManager().getSelected();
-        return selected != null && !selected.isBlank() ? selected : "en_us";
-    }
-
-    @Nullable
-    private static <T> T firstNonNull(Iterable<T> values) {
-        for (T value : values) {
-            if (value != null) return value;
-        }
-        return null;
-    }
 }

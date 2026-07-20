@@ -98,7 +98,7 @@ final class LegacyTipContentJsonSerializer {
 
     private static int getDefaultColor() {
         try {
-            return DatatipConfig.DEFAULT_COLOR.get();
+            return DatatipConfig.defaultColor();
         } catch (IllegalStateException ignored) {
             return FALLBACK_COLOR;
         }

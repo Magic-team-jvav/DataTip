@@ -6,7 +6,18 @@ DataTip is a JSON-driven custom item tooltip system for Minecraft 1.20.1 and For
 text, item icons, textures, rotating blocks and entities, progress bars, charts, animation, and nested layouts without
 writing Java code.
 
-Current project version: `1.2.5-forge`.
+Current project version: `1.2.6-forge`.
+
+## Documentation map
+
+- **Getting started:** [resource-pack setup](#resource-pack-setup),
+  [vanilla tooltip integration](#vanilla-tooltip-integration), and [controls](#controls)
+- **JSON reference:** [entry properties](#entry-properties), [common modifiers](#common-modifiers),
+  [built-in content types](#built-in-content-types), [variables](#variables-and-expressions),
+  [conditions](#conditions), and [colors](#colors)
+- **Tooling and extension:** [configuration](#configuration), [JSON Schema](#json-schema),
+  [legacy conversion](#legacy-conversion), [generated examples](#generated-examples), [Java API](#java-api),
+  and the [complete JSON example](#complete-json-example)
 
 ## Resource-pack setup
 
@@ -117,8 +128,76 @@ The object selected by an item key is both the root content node and the entry d
 | `prepend`    | `false`                  | Inserts the entry after the item name and before the remaining vanilla lines     |
 | `shift`      | `false`                  | Folds only this node and its subtree until the Show Detailed Tooltip key is held |
 | `conditions` | `{}`                     | AND-combined conditions for this node                                            |
+| `shiftHint`  | unset                    | Replaces the merged Shift hint with full DataTip content                         |
+| `scrollHint` | unset                    | Replaces the overflow scroll hint with full DataTip content                      |
 
 `shift` and `conditions` are common modifiers, so they also work on any nested node—not only the root.
+
+Custom hints remain after ordinary DataTip content and may use `divider`, containers, `cycle_text`, or any other node.
+Use `{"keybind": "key.datatip.show_tip"}` or `{"keybind": "key.datatip.scroll_tooltip"}` inside hint text to display
+the actual mapped key instead of hard-coding Shift or Ctrl. The configured hint colors apply only to generated default
+hints; a custom node's own `color`, formatting, and animation settings take precedence.
+
+```json
+{
+  "minecraft:diamond": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {
+        "type": "text",
+        "text": "Ordinary content"
+      },
+      {
+        "type": "text",
+        "text": "Detailed content",
+        "shift": true
+      }
+    ],
+    "shiftHint": {
+      "type": "vbox",
+      "gap": 1,
+      "children": [
+        {
+          "type": "divider",
+          "color": "aqua"
+        },
+        {
+          "type": "text",
+          "translate": "tooltip.datatip.hold_shift",
+          "with": [
+            {
+              "keybind": "key.datatip.show_tip"
+            }
+          ]
+        }
+      ]
+    },
+    "scrollHint": {
+      "type": "vbox",
+      "gap": 1,
+      "children": [
+        {
+          "type": "divider",
+          "style": "dashed",
+          "color": "gray"
+        },
+        {
+          "type": "text",
+          "translate": "tooltip.datatip.scroll_hint",
+          "with": [
+            {
+              "keybind": "key.datatip.scroll_tooltip"
+            }
+          ],
+          "color": "yellow",
+          "italic": true
+        }
+      ]
+    }
+  }
+}
+```
 
 ## Common modifiers
 
@@ -170,9 +249,12 @@ translation → local Z order → overflow and viewport clipping.
 
 ### Z order and real overlap
 
-`offsetZ` orders siblings inside their current parent. Smaller values draw first; larger values draw later. Equal values
-preserve JSON source order. A child cannot escape an ancestor's command group, and `offsetZ` does not write to the
-Minecraft world depth buffer.
+`offsetZ` is a local painter-order key for siblings inside their current parent, not a world-space Z coordinate. Smaller
+values draw first; larger values draw later; equal values preserve JSON source order. Entity, block, and item commands
+retain normal internal 3D depth while they draw, then isolate that depth at the command boundary. Later text and other
+2D content with a higher `offsetZ` therefore stays visible above a lower model. A child still cannot escape an
+ancestor's
+command group.
 
 Use `stack` when nodes must share the same XY area. Z order only changes content that actually overlaps:
 
@@ -194,6 +276,7 @@ Use `stack` when nodes must share the same XY area. Z order only changes content
 | Type         | Purpose                                              |
 |--------------|------------------------------------------------------|
 | `text`       | Literal, language-map, or translation-key text       |
+| `cycle_text` | Whole-text color cycling through a palette           |
 | `spacer`     | Empty vertical space                                 |
 | `divider`    | Solid, dashed, or dotted line                        |
 | `item`       | Item stack icon                                      |
@@ -211,7 +294,7 @@ Use `stack` when nodes must share the same XY area. Z order only changes content
 
 ### Text and localization
 
-A `text` node must provide exactly one of `text` or `translate`:
+A `text` or `cycle_text` node must provide exactly one of `text`, `translate`, or `keybind`:
 
 ```json
 {
@@ -237,9 +320,33 @@ A `text` node must provide exactly one of `text` or `translate`:
 }
 ```
 
-Language maps resolve the active language, then `en_us`, then the first entry. Translation keys use the ordinary
-Minecraft language files and can therefore be added without editing the DataTip JSON. The old `trans` property is not
-accepted by the modern parser; the legacy converter rewrites it to `translate`.
+```json
+{
+  "type": "text",
+  "keybind": "key.datatip.show_tip"
+}
+```
+
+Language maps resolve only the active client language. If it is absent, that node is omitted instead of mixing in
+`en_us` or the first map entry. Translation keys use ordinary Minecraft language files and can be added without editing
+the DataTip JSON. `translate` accepts `with` arguments containing strings, literal components, nested translations, or
+keybind components:
+
+```json
+{
+  "type": "text",
+  "translate": "tooltip.datatip.hold_shift",
+  "with": [
+    {
+      "keybind": "key.datatip.show_tip"
+    }
+  ]
+}
+```
+
+Both DataTip JSON strings and translations in `assets/<namespace>/lang/*.json` support explicit `\n` line breaks. Write
+`\\n` when the visible text must contain the literal characters `\n`. The old `trans` property is not accepted by the
+modern parser; the legacy converter rewrites it to `translate`.
 
 | Text property                                   | Default        | Description                                              |
 |-------------------------------------------------|----------------|----------------------------------------------------------|
@@ -254,6 +361,30 @@ accepted by the modern parser; the legacy converter rewrites it to `translate`.
 Visible `label` and `title` properties accept a literal string, a language map, styled language entries, or
 `{"translate": "key"}`. Variables are resolved before measurement, so wrapped size and rendering use the same final
 text.
+
+`cycle_text` applies one current color to the whole text and cycles through the array in order; it is not a per-glyph
+rainbow:
+
+```json
+{
+  "type": "cycle_text",
+  "text": "Whole-text color cycle",
+  "colors": [
+    "red",
+    "#FFAA00",
+    "yellow",
+    "green",
+    "aqua",
+    "light_purple"
+  ],
+  "cycleSeconds": 3,
+  "transition": "smooth",
+  "phase": 0
+}
+```
+
+`colors` must contain at least one color. `cycleSeconds` is the full-loop duration, `transition` is `smooth` or `step`,
+and `phase` shifts the initial position. Color is calculated only while drawing and does not remeasure text every frame.
 
 ### Layout containers
 
@@ -397,22 +528,32 @@ Colors accept `#RRGGBB` or named values: `black`, `dark_blue`, `dark_green`, `da
 `magenta`, `lime`, and `brown`. The aliases `orange`, `grey`, `dark_grey`, `light_blue`, `light_green`, and `light_red`
 are also accepted.
 
-Configuration colors use signed integer ARGB values.
+Configuration colors can directly select any of the 16 vanilla chat colors: `BLACK`, `DARK_BLUE`, `DARK_GREEN`,
+`DARK_AQUA`, `DARK_RED`, `DARK_PURPLE`, `GOLD`, `GRAY`, `DARK_GRAY`, `BLUE`, `GREEN`, `AQUA`, `RED`,
+`LIGHT_PURPLE`, `YELLOW`, and `WHITE`. Select `CUSTOM` to use the associated custom value. Custom values accept
+`#RRGGBB`, `#AARRGGBB`, `0xAARRGGBB`, or the legacy signed decimal ARGB representation.
 
 ## Configuration
 
 The common configuration file is `config/datatip-common.toml`.
 
-| Option                | Default      | Description                                                                                  |
-|-----------------------|--------------|----------------------------------------------------------------------------------------------|
-| `enabled`             | `true`       | Enables DataTip content                                                                      |
-| `default_color`       | `0xFFAAAAAA` | Default text color as integer ARGB                                                           |
-| `default_line_height` | `0`          | Default line height; `0` uses vanilla font height                                            |
-| `max_width`           | `0`          | Tooltip width override in pixels; `0` uses natural width plus vanilla screen-fit constraints |
-| `shift_hint_color`    | `0xFF888888` | Color of the merged Shift hint                                                               |
+| Option                    | Default     | Description                                                                                  |
+|---------------------------|-------------|----------------------------------------------------------------------------------------------|
+| `enabled`                 | `true`      | Enables DataTip content                                                                      |
+| `default_color`           | `GRAY`      | Default text color preset; accepts a vanilla color or `CUSTOM`                               |
+| `default_color_value`     | `#FFAAAAAA` | Custom color used when `default_color = CUSTOM`                                              |
+| `default_line_height`     | `0`         | Default line height; `0` uses vanilla font height                                            |
+| `max_width`               | `0`         | Tooltip width override in pixels; `0` uses natural width plus vanilla screen-fit constraints |
+| `shift_hint_color`        | `CUSTOM`    | Color preset for the merged Shift hint                                                       |
+| `shift_hint_color_value`  | `#FF888888` | Custom color used when `shift_hint_color = CUSTOM`                                           |
+| `scroll_hint_color`       | `CUSTOM`    | Color preset for the default scrolling hint                                                  |
+| `scroll_hint_color_value` | `#FF888888` | Custom color used when `scroll_hint_color = CUSTOM`                                          |
 
 `max_width` is a width override, not permission to exceed the screen. The final width, wrapping, height viewport,
 position, background, and border still follow the vanilla tooltip pipeline.
+
+`shift_hint_color*` and `scroll_hint_color*` style only the generated default hints. If an entry supplies `shiftHint` or
+`scrollHint`, that node uses its own `color`, formatting, and `cycle_text` palette instead.
 
 ## JSON Schema
 

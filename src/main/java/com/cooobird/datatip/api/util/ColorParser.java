@@ -46,6 +46,18 @@ public final class ColorParser {
         };
     }
 
+    /**
+     * 严格解析颜色，供必须显式拒绝无效配置的调用方使用。
+     */
+    public static int parseStrict(String colorStr) {
+        int marker = 0x01020304;
+        int parsed = parse(colorStr, marker);
+        if (parsed == marker && !"#01020304".equalsIgnoreCase(colorStr)) {
+            throw new IllegalArgumentException("Invalid color: " + colorStr);
+        }
+        return parsed;
+    }
+
     public static String toHex(int argb) {
         return String.format("#%06X", argb & 0xFFFFFF);
     }

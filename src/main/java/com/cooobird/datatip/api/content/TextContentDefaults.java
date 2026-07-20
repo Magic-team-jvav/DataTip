@@ -14,7 +14,7 @@ public final class TextContentDefaults {
 
     public static int color() {
         try {
-            return DatatipConfig.DEFAULT_COLOR.get();
+            return DatatipConfig.defaultColor();
         } catch (IllegalStateException e) {
             return FALLBACK_COLOR;
         }

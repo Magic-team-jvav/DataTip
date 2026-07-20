@@ -169,10 +169,11 @@ public final class TooltipSessionRuntime {
             minecraft.getWindow().getGuiScaledWidth(),
             minecraft.getWindow().getGuiScaledHeight(),
             new TooltipConfigSnapshot(
-                DatatipConfig.DEFAULT_COLOR.get(),
+                DatatipConfig.defaultColor(),
                 DatatipConfig.DEFAULT_LINE_HEIGHT.get(),
                 DatatipConfig.MAX_WIDTH.get(),
-                DatatipConfig.SHIFT_HINT_COLOR.get()
+                DatatipConfig.shiftHintColor(),
+                DatatipConfig.scrollHintColor()
             ),
             shiftDown,
             world

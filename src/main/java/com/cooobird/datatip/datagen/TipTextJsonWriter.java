@@ -1,8 +1,10 @@
 package com.cooobird.datatip.datagen;
 
 import com.cooobird.datatip.api.content.BaseTextContent;
+import com.cooobird.datatip.api.content.CyclingTextContent;
 import com.cooobird.datatip.api.content.TextContent;
 import com.cooobird.datatip.api.content.TextContentDefaults;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.network.chat.contents.TranslatableContents;
 
@@ -61,5 +63,24 @@ final class TipTextJsonWriter {
             json.addProperty("lineHeight", textContent.lineHeight());
         if (textContent.shift()) json.addProperty("shift", true);
         if (textContent.maxWidth() > 0) json.addProperty("maxWidth", textContent.maxWidth());
+    }
+
+    static void writeCycling(JsonObject json, CyclingTextContent cycling) {
+        write(json, cycling.textContent());
+        json.addProperty("type", "cycle_text");
+        JsonArray colors = new JsonArray();
+        cycling.colors().forEach(color -> colors.add(
+            DatagenJsonUtils.colorToHex(color)
+        ));
+        json.add("colors", colors);
+        if (Double.compare(cycling.cycleSeconds(), 2.0) != 0) {
+            json.addProperty("cycleSeconds", cycling.cycleSeconds());
+        }
+        if (cycling.transition() != CyclingTextContent.Transition.SMOOTH) {
+            json.addProperty("transition", "step");
+        }
+        if (Double.compare(cycling.phase(), 0.0) != 0) {
+            json.addProperty("phase", cycling.phase());
+        }
     }
 }

@@ -4,7 +4,6 @@ import com.cooobird.datatip.api.ContentParser;
 import com.cooobird.datatip.api.ParseContext;
 import com.cooobird.datatip.api.content.TextContent;
 import com.google.gson.JsonObject;
-import net.minecraft.network.chat.Component;
 
 /**
  * TextContent 解析器。
@@ -24,8 +23,8 @@ public class TextContentParser implements ContentParser {
         validateTextSource(json);
 
         TextContentStyleOptions options = TextContentStyleOptions.parse(json, context);
-        if (json.has("translate")) {
-            return options.createWithComponent(Component.translatable(json.get("translate").getAsString()));
+        if (json.has("translate") || json.has("keybind")) {
+            return options.createWithComponent(TextComponentSourceParser.parse(json));
         }
 
         TextContentSource source = TextContentSource.parse(json);
@@ -37,7 +36,9 @@ public class TextContentParser implements ContentParser {
             return options.createWithText(source.text());
         }
 
-        throw new IllegalArgumentException("Text content requires either 'text' or 'translate'");
+        throw new IllegalArgumentException(
+            "Text content requires one of 'text', 'translate', or 'keybind'"
+        );
     }
 
     private static void validateTextSource(JsonObject json) {
@@ -47,16 +48,19 @@ public class TextContentParser implements ContentParser {
 
         boolean hasText = json.has("text") && !json.get("text").isJsonNull();
         boolean hasTranslate = json.has("translate") && !json.get("translate").isJsonNull();
-        if (hasText && hasTranslate) {
-            throw new IllegalArgumentException("Properties 'text' and 'translate' are mutually exclusive");
+        boolean hasKeybind = json.has("keybind") && !json.get("keybind").isJsonNull();
+        int sourceCount = (hasText ? 1 : 0)
+            + (hasTranslate ? 1 : 0)
+            + (hasKeybind ? 1 : 0);
+        if (sourceCount != 1) {
+            throw new IllegalArgumentException(
+                "Text content requires exactly one of 'text', 'translate', or 'keybind'"
+            );
         }
-        if (!hasText && !hasTranslate) {
-            throw new IllegalArgumentException("Text content requires either 'text' or 'translate'");
-        }
-        if (hasTranslate
-            && (!json.get("translate").isJsonPrimitive()
-            || !json.getAsJsonPrimitive("translate").isString())) {
-            throw new IllegalArgumentException("Property 'translate' must be a string");
+        if (json.has("with") && !hasTranslate) {
+            throw new IllegalArgumentException(
+                "Property 'with' is only valid with 'translate'"
+            );
         }
     }
 }

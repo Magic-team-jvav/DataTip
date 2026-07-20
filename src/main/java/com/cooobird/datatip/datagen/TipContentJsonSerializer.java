@@ -30,7 +30,9 @@ final class TipContentJsonSerializer {
         }
         JsonObject json = new JsonObject();
 
-        if (content instanceof TextContent textContent) {
+        if (content instanceof CyclingTextContent cycling) {
+            TipTextJsonWriter.writeCycling(json, cycling);
+        } else if (content instanceof TextContent textContent) {
             TipTextJsonWriter.write(json, textContent);
         } else if (content instanceof SpacerContent spacer) {
             json.addProperty("type", "spacer");
