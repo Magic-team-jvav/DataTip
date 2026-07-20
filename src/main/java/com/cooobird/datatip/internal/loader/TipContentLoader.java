@@ -108,12 +108,31 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener implement
                 List<ConditionChecker.Condition> conditions = entryParser.parseConditions(itemElement);
                 boolean shift = entryParser.parseBoolean(itemElement, "shift", false);
                 boolean prepend = entryParser.parseBoolean(itemElement, "prepend", false);
+                TipContent shiftHint = entryParser.parseHint(
+                    itemKey,
+                    itemElement,
+                    "shiftHint",
+                    context
+                );
+                TipContent scrollHint = entryParser.parseHint(
+                    itemKey,
+                    itemElement,
+                    "scrollHint",
+                    context
+                );
 
                 List<TipContent> contents = entryParser.parseItemContent(itemKey, itemElement, context);
                 if (contents.isEmpty()) continue;
 
                 List<TipContentEntry> entries = contents.stream()
-                    .map(c -> new TipContentEntry(c, conditions, shift, prepend))
+                    .map(c -> new TipContentEntry(
+                        c,
+                        conditions,
+                        shift,
+                        prepend,
+                        shiftHint,
+                        scrollHint
+                    ))
                     .toList();
 
                 entriesByItemKey.put(itemKey, entries);
@@ -198,7 +217,7 @@ public class TipContentLoader extends SimpleJsonResourceReloadListener implement
     private static String parseEnvironmentSignature() {
         List<String> parserTypes = new ArrayList<>(TipContentRegistry.getRegisteredTypes());
         Collections.sort(parserTypes);
-        return "defaultColor=" + DatatipConfig.DEFAULT_COLOR.get()
+        return "defaultColor=" + DatatipConfig.defaultColor()
             + "|lineHeight=" + DatatipConfig.DEFAULT_LINE_HEIGHT.get()
             + "|parserRevision=" + TipContentRegistry.getRevision()
             + "|parsers=" + String.join(",", parserTypes);

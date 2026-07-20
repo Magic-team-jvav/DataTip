@@ -13,6 +13,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -60,6 +61,41 @@ public final class TipContentEntryParser {
         }
 
         return defaultValue;
+    }
+
+    /**
+     * 使用与普通 DataTip 节点相同的格式解析自定义提示内容。
+     */
+    @Nullable
+    public TipContent parseHint(
+        String itemKey,
+        JsonElement itemElement,
+        String key,
+        ParseContext context
+    ) {
+        if (!itemElement.isJsonObject()) return null;
+        JsonElement hintElement = itemElement.getAsJsonObject().get(key);
+        if (hintElement == null || hintElement.isJsonNull()) return null;
+
+        ArrayList<TipContent> contents = new ArrayList<>();
+        if (hintElement.isJsonArray()) {
+            for (JsonElement child : hintElement.getAsJsonArray()) {
+                contents.addAll(parseItemContent(itemKey + "." + key, child, context));
+            }
+        } else {
+            contents.addAll(parseItemContent(itemKey + "." + key, hintElement, context));
+        }
+        if (contents.isEmpty()) {
+            throw new IllegalArgumentException(key + " must contain at least one valid content node");
+        }
+        return contents.size() == 1
+            ? contents.get(0)
+            : new VBoxContent(
+            contents,
+            0,
+            0,
+            VBoxContent.HorizontalAlign.LEFT
+        );
     }
 
     private void parseLegacyStringArray(JsonArray array, List<TipContent> result) {
@@ -127,7 +163,7 @@ public final class TipContentEntryParser {
 
     private int getDefaultColor() {
         try {
-            return DatatipConfig.DEFAULT_COLOR.get();
+            return DatatipConfig.defaultColor();
         } catch (IllegalStateException ignored) {
             return 0xFFAAAAAA;
         }

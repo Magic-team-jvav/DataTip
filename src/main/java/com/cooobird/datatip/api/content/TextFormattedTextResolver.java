@@ -1,7 +1,8 @@
 package com.cooobird.datatip.api.content;
 
 import com.cooobird.datatip.api.util.VariableResolver;
-import net.minecraft.client.Minecraft;
+import com.cooobird.datatip.internal.text.FormattedTextLineBreaks;
+import com.cooobird.datatip.internal.text.LanguageTextSelector;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.Style;
@@ -16,6 +17,10 @@ final class TextFormattedTextResolver {
     }
 
     static FormattedText resolve(TextContent content, @Nullable ItemStack stack) {
+        return FormattedTextLineBreaks.decode(resolveRaw(content, stack));
+    }
+
+    private static FormattedText resolveRaw(TextContent content, @Nullable ItemStack stack) {
         if (content.formattedText() != null) return content.formattedText();
         if (content.component() != null) {
             return content.component().copy().withStyle(content.buildStyle());
@@ -46,10 +51,7 @@ final class TextFormattedTextResolver {
             return FormattedText.EMPTY;
         }
 
-        String lang = currentLanguage();
-        BaseTextContent.LangStyle langStyle = content.langStyledText().get(lang);
-        if (langStyle == null) langStyle = content.langStyledText().get("en_us");
-        if (langStyle == null) langStyle = firstNonNull(content.langStyledText().values());
+        BaseTextContent.LangStyle langStyle = LanguageTextSelector.selectCurrent(content.langStyledText());
         if (langStyle == null) return FormattedText.EMPTY;
 
         Style style = Style.EMPTY.withColor(langStyle.color());
@@ -66,10 +68,7 @@ final class TextFormattedTextResolver {
             return FormattedText.EMPTY;
         }
 
-        String lang = currentLanguage();
-        String langContent = content.langText().get(lang);
-        if (langContent == null) langContent = content.langText().get("en_us");
-        if (langContent == null) langContent = firstNonNull(content.langText().values());
+        String langContent = LanguageTextSelector.selectCurrent(content.langText());
         if (langContent == null) return FormattedText.EMPTY;
 
         return Component.literal(resolveVariables(langContent, stack)).withStyle(style);
@@ -81,18 +80,4 @@ final class TextFormattedTextResolver {
         return resolved != null ? resolved : "";
     }
 
-    private static String currentLanguage() {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null || minecraft.getLanguageManager() == null) return "en_us";
-        String selected = minecraft.getLanguageManager().getSelected();
-        return selected != null && !selected.isBlank() ? selected : "en_us";
-    }
-
-    @Nullable
-    private static <T> T firstNonNull(Iterable<T> values) {
-        for (T value : values) {
-            if (value != null) return value;
-        }
-        return null;
-    }
 }

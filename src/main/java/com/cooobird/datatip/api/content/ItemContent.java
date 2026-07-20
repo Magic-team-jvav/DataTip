@@ -241,7 +241,7 @@ public record ItemContent(
             visualHeight(),
             frozenLabel,
             color,
-            com.cooobird.datatip.api.render.RenderPhase.VISUAL_2D,
+            com.cooobird.datatip.api.render.RenderPhase.ISOLATED_MODEL,
             "item",
             (renderContext, x, y, scale, alpha) -> {
                 if (frozenStack.isEmpty()) return;

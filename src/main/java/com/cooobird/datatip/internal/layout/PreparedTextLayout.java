@@ -1,6 +1,7 @@
 package com.cooobird.datatip.internal.layout;
 
 import com.cooobird.datatip.api.TipLayoutContext;
+import com.cooobird.datatip.api.TipRenderContext;
 import com.cooobird.datatip.api.content.TextContent;
 import com.cooobird.datatip.api.layout.*;
 import com.cooobird.datatip.api.render.*;
@@ -23,6 +24,18 @@ public final class PreparedTextLayout {
         TipPrepareContext context,
         FormattedText text,
         int color
+    ) {
+        return prepareDynamic(content, context, text, ignored -> color);
+    }
+
+    /**
+     * 准备颜色可随渲染时间变化的文本，布局结果仍只计算一次。
+     */
+    public static PreparedLayout prepareDynamic(
+        TextContent content,
+        TipPrepareContext context,
+        FormattedText text,
+        TextColorProvider colorProvider
     ) {
         TipLayoutContext layoutContext = context.requireLayoutContext();
         Font font = layoutContext.font();
@@ -70,7 +83,7 @@ public final class PreparedTextLayout {
             new VisibleTextDraw(
                 frozenLines,
                 font,
-                color,
+                colorProvider,
                 content.shadow()
             )
         );
@@ -196,7 +209,7 @@ public final class PreparedTextLayout {
     private record VisibleTextDraw(
         List<PreparedLine> lines,
         Font font,
-        int color,
+        TextColorProvider colorProvider,
         boolean shadow
     ) implements PreparedViewportDraw {
         @Override
@@ -215,8 +228,10 @@ public final class PreparedTextLayout {
             int visualHeight = font.lineHeight + (shadow ? 1 : 0);
             int first = lowerBound(lines, localTop - visualHeight + 1);
             int last = lowerBound(lines, localBottom);
-            int drawColor = com.cooobird.datatip.api.TipRenderContext
-                .applyAlpha(color, alpha);
+            int drawColor = TipRenderContext.applyAlpha(
+                colorProvider.color(context),
+                alpha
+            );
             for (int index = first; index < last; index++) {
                 PreparedLine line = lines.get(index);
                 context.graphics().drawString(
@@ -260,5 +275,13 @@ public final class PreparedTextLayout {
         int width,
         int height
     ) {
+    }
+
+    /**
+     * 在实际绘制时解析整段文本颜色。
+     */
+    @FunctionalInterface
+    public interface TextColorProvider {
+        int color(TipRenderContext context);
     }
 }

@@ -86,7 +86,7 @@ record TextContentSource(
 
     private static Map<String, BaseTextContent.LangStyle> parseStyledLanguages(JsonObject langObj) {
         Map<String, BaseTextContent.LangStyle> result = new HashMap<>();
-        int defaultColor = DatatipConfig.DEFAULT_COLOR.get();
+        int defaultColor = DatatipConfig.defaultColor();
 
         for (Map.Entry<String, JsonElement> entry : langObj.entrySet()) {
             if (entry.getValue().isJsonObject()) {

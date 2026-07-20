@@ -138,6 +138,7 @@ public final class TooltipViewportBudget {
         Objects.requireNonNull(font, "font");
         // 原版仅在 Tooltip 只有一个组件时从总高度中减去两个像素。
         long fixedHeight = finalComponents.size() == 1 ? -2L : 0L;
+        int scrollHintHeight = 0;
         if (finalComponents.size() > 1) {
             // 原版绘制循环会在首组件后额外下移两像素，但总高度并未包含它。
             fixedHeight += FIRST_COMPONENT_RENDER_GAP;
@@ -149,6 +150,10 @@ public final class TooltipViewportBudget {
             }
             if (component instanceof ScrollHintTooltipComponent hint
                 && hint.viewportBudget() == this) {
+                scrollHintHeight = Math.max(
+                    scrollHintHeight,
+                    hint.intrinsicHeight(font)
+                );
                 continue;
             }
             fixedHeight += component.getHeight();
@@ -160,7 +165,8 @@ public final class TooltipViewportBudget {
         HeightAllocation allocation = allocateHeight(
             screenHeight,
             fixedHeight,
-            naturalHeight
+            naturalHeight,
+            scrollHintHeight
         );
         scrollHintVisible = allocation.scrollHintVisible();
         availableHeight = allocation.availableHeight();
@@ -241,6 +247,20 @@ public final class TooltipViewportBudget {
         long fixedHeight,
         long naturalHeight
     ) {
+        return allocateHeight(
+            screenHeight,
+            fixedHeight,
+            naturalHeight,
+            ScrollHintTooltipComponent.HEIGHT
+        );
+    }
+
+    static HeightAllocation allocateHeight(
+        int screenHeight,
+        long fixedHeight,
+        long naturalHeight,
+        int scrollHintHeight
+    ) {
         long physicalContentLimit = Math.max(
             0L,
             (long) screenHeight
@@ -253,10 +273,12 @@ public final class TooltipViewportBudget {
         );
         boolean overflow = Math.max(0L, naturalHeight)
             > remainingWithoutHint;
+        int normalizedHintHeight = Math.max(0, scrollHintHeight);
         boolean hintVisible = overflow
-            && remainingWithoutHint >= ScrollHintTooltipComponent.HEIGHT;
+            && normalizedHintHeight > 0
+            && remainingWithoutHint >= normalizedHintHeight;
         long remaining = remainingWithoutHint
-            - (hintVisible ? ScrollHintTooltipComponent.HEIGHT : 0L);
+            - (hintVisible ? normalizedHintHeight : 0L);
         return new HeightAllocation(
             (int) Math.min(Integer.MAX_VALUE, remaining),
             hintVisible

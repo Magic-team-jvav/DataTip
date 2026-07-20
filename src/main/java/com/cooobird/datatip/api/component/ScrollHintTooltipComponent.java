@@ -1,11 +1,15 @@
 package com.cooobird.datatip.api.component;
 
+import com.cooobird.datatip.api.TipContent;
+import com.cooobird.datatip.api.session.TooltipHit;
+import com.cooobird.datatip.config.DatatipConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -17,7 +21,8 @@ public final class ScrollHintTooltipComponent
     static final int HEIGHT = 10;
 
     private final TooltipViewportBudget viewportBudget;
-    private final Component message;
+    private final @Nullable Component message;
+    private final @Nullable TipContentTooltipComponent customContent;
 
     public ScrollHintTooltipComponent(
         TooltipViewportBudget viewportBudget,
@@ -30,7 +35,25 @@ public final class ScrollHintTooltipComponent
         this.message = Component.translatable(
             "tooltip.datatip.scroll_hint",
             Objects.requireNonNull(scrollKeyMessage, "scrollKeyMessage")
-        ).withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC);
+        ).withStyle(ChatFormatting.ITALIC);
+        this.customContent = null;
+    }
+
+    public ScrollHintTooltipComponent(
+        TooltipViewportBudget viewportBudget,
+        TipContent content,
+        TooltipHit hit
+    ) {
+        this.viewportBudget = Objects.requireNonNull(
+            viewportBudget,
+            "viewportBudget"
+        );
+        this.message = null;
+        this.customContent = new TipContentTooltipComponent(
+            Objects.requireNonNull(content, "content"),
+            Objects.requireNonNull(hit, "hit").stackSnapshot(),
+            hit
+        );
     }
 
     TooltipViewportBudget viewportBudget() {
@@ -39,13 +62,14 @@ public final class ScrollHintTooltipComponent
 
     @Override
     public int getHeight() {
-        return viewportBudget.scrollHintVisible() ? HEIGHT : 0;
+        if (!viewportBudget.scrollHintVisible()) return 0;
+        return customContent != null ? customContent.getHeight() : HEIGHT;
     }
 
     @Override
     public int getWidth(Font font) {
         return viewportBudget.scrollHintVisible()
-            ? font.width(message)
+            ? intrinsicWidth(font)
             : 0;
     }
 
@@ -57,6 +81,33 @@ public final class ScrollHintTooltipComponent
         GuiGraphics graphics
     ) {
         if (!viewportBudget.scrollHintVisible()) return;
-        graphics.drawString(font, message, x, y, 0xFFFFFFFF, false);
+        if (customContent != null) {
+            customContent.renderImage(font, x, y, graphics);
+        } else {
+            graphics.drawString(
+                font,
+                message(),
+                x,
+                y,
+                DatatipConfig.scrollHintColor(),
+                false
+            );
+        }
+    }
+
+    int intrinsicHeight(Font font) {
+        return customContent != null
+            ? customContent.intrinsicHeight(font)
+            : HEIGHT;
+    }
+
+    int intrinsicWidth(Font font) {
+        return customContent != null
+            ? customContent.intrinsicWidth(font)
+            : font.width(message());
+    }
+
+    private Component message() {
+        return Objects.requireNonNull(message, "message");
     }
 }

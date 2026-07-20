@@ -104,12 +104,15 @@ public class TipRenderEventHandler {
             event,
             entries,
             shiftDown,
-            DatatipKeyMappings.SHOW_TIP
+            DatatipKeyMappings.SHOW_TIP,
+            hit
         );
         TipTooltipElements.appendScrollHint(
             event,
             viewportBudget,
-            DatatipKeyMappings.SCROLL_TOOLTIP
+            DatatipKeyMappings.SCROLL_TOOLTIP,
+            entries,
+            hit
         );
     }
 

@@ -1,6 +1,7 @@
 package com.cooobird.datatip.api.text;
 
-import net.minecraft.client.Minecraft;
+import com.cooobird.datatip.internal.text.FormattedTextLineBreaks;
+import com.cooobird.datatip.internal.text.LanguageTextSelector;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentContents;
 import net.minecraft.network.chat.Style;
@@ -46,17 +47,15 @@ public final class LocalizedText implements Component {
             }
         });
 
-        Component fallback = normalized.get("en_us");
-        if (fallback == null && !normalized.isEmpty()) fallback = normalized.values().iterator().next();
-        return new LocalizedText(fallback != null ? fallback : Component.empty(), normalized);
+        return new LocalizedText(Component.empty(), normalized);
     }
 
     public Component resolve() {
-        if (translations.isEmpty()) return fallback;
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft == null || minecraft.getLanguageManager() == null) return fallback;
-        String language = normalizeLanguage(minecraft.getLanguageManager().getSelected());
-        return translations.getOrDefault(language, fallback);
+        if (translations.isEmpty()) return FormattedTextLineBreaks.decode(fallback);
+        Component resolved = LanguageTextSelector.selectCurrent(translations);
+        return resolved != null
+            ? FormattedTextLineBreaks.decode(resolved)
+            : Component.empty();
     }
 
     @Override

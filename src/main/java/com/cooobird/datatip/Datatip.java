@@ -27,6 +27,7 @@ public class Datatip {
     static void registerContentParsers() {
         // 基础内容类型
         TipContentRegistry.registerParser("text", new TextContentParser());
+        TipContentRegistry.registerParser("cycle_text", new CyclingTextContentParser());
         TipContentRegistry.registerParser("spacer", new SpacerContentParser());
         TipContentRegistry.registerParser("divider", new DividerContentParser());
 

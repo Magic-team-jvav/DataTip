@@ -85,6 +85,26 @@ final class ExampleShowcaseTooltips {
             true, true, true, false, "center", false, 14, false
         )));
 
+        root.add("minecraft:honeycomb", toJson(cycleText(
+            langText(languages("整段循环变色", "Whole-text color cycle"), "white", true, false, false, false),
+            3.0,
+            "smooth",
+            "red",
+            "gold",
+            "yellow",
+            "green",
+            "aqua",
+            "light_purple"
+        )));
+
+        JsonObject customHints = toJson(vbox(2,
+            text("JSON newline A\\nJSON newline B", "white"),
+            text("Only this row is folded", "aqua", false, false, false, false, true)
+        ));
+        customHints.add("shiftHint", customShiftHint());
+        customHints.add("scrollHint", customScrollHint());
+        root.add("minecraft:book", customHints);
+
         root.add("minecraft:emerald", toJson(chart("bar", 150, 48,
             languages("柱状图", "Bar chart"), true, true,
             "#55FFFF", "#AAAAAA", "#FFFFFF", "#888888",
@@ -142,5 +162,43 @@ final class ExampleShowcaseTooltips {
         root.add("#minecraft:swords", toJson(langText(languages("标签匹配", "Tag match"), "aqua")));
         root.add("minecraft:*_axe", toJson(langText(languages("通配符匹配", "Wildcard match"), "yellow")));
         return root;
+    }
+
+    private static JsonObject customShiftHint() {
+        JsonObject hint = new JsonObject();
+        hint.addProperty("type", "vbox");
+        hint.addProperty("gap", 1);
+        com.google.gson.JsonArray children = new com.google.gson.JsonArray();
+        children.add(toJson(divider("#55FFFF", "dashed")));
+        children.add(keyHint(
+            "tooltip.datatip.hold_shift",
+            "key.datatip.show_tip"
+        ));
+        hint.add("children", children);
+        return hint;
+    }
+
+    private static JsonObject customScrollHint() {
+        return keyHint(
+            "tooltip.datatip.scroll_hint",
+            "key.datatip.scroll_tooltip"
+        );
+    }
+
+    private static JsonObject keyHint(String translation, String keybind) {
+        JsonObject text = new JsonObject();
+        text.addProperty("type", "cycle_text");
+        text.addProperty("translate", translation);
+        com.google.gson.JsonArray arguments = new com.google.gson.JsonArray();
+        JsonObject key = new JsonObject();
+        key.addProperty("keybind", keybind);
+        arguments.add(key);
+        text.add("with", arguments);
+        com.google.gson.JsonArray colors = new com.google.gson.JsonArray();
+        colors.add("aqua");
+        colors.add("light_purple");
+        text.add("colors", colors);
+        text.addProperty("cycleSeconds", 2);
+        return text;
     }
 }

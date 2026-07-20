@@ -256,7 +256,7 @@ public abstract class BaseTextContent implements TipContent {
 
     private static int shiftHintColor() {
         try {
-            return DatatipConfig.SHIFT_HINT_COLOR.get();
+            return DatatipConfig.shiftHintColor();
         } catch (IllegalStateException e) {
             return FALLBACK_SHIFT_HINT_COLOR;
         }

@@ -5,7 +5,15 @@
 DataTip 是面向 Minecraft 1.21.1 与 NeoForge 21 的 JSON 驱动物品 Tooltip
 系统。资源包可以直接组合文本、物品图标、纹理、旋转方块与实体、进度条、图表、动画和嵌套布局，无需编写 Java 代码。
 
-当前项目版本：`1.2.5-neoforge`。
+当前项目版本：`1.2.6-neoforge`。
+
+## 文档导航
+
+- **快速开始：** [资源包结构](#资源包结构)、[原版 Tooltip 集成](#原版-tooltip-集成)和[键位](#键位)
+- **JSON 参考：** [条目属性](#条目属性)、[通用修饰符](#通用修饰符)、[内置内容类型](#内置内容类型)、
+  [变量与表达式](#变量与表达式)、[条件](#条件)和[颜色](#颜色)
+- **工具与扩展：** [配置](#配置)、[JSON Schema](#json-schema)、[旧格式转换](#旧格式转换)、
+  [生成完整示例](#生成完整示例)、[Java API](#java-api)和[完整 JSON 示例](#完整-json-示例)
 
 ## 资源包结构
 
@@ -103,14 +111,82 @@ DataTip 接入 Minecraft/NeoForge 的 Tooltip 流程，而不是替换原版 Too
 
 物品选择器对应的对象既是根内容节点，也是该条目的定义。
 
-| 属性           | 默认值        | 说明                        |
-|--------------|------------|---------------------------|
-| `type`       | 现代 JSON 必填 | 根内容类型                     |
-| `prepend`    | `false`    | 插入在物品名称之后、其余原版文本之前        |
-| `shift`      | `false`    | 在“显示详细提示”键按下前，仅折叠当前节点及其子树 |
-| `conditions` | `{}`       | 当前节点必须全部通过的条件             |
+| 属性           | 默认值        | 说明                            |
+|--------------|------------|-------------------------------|
+| `type`       | 现代 JSON 必填 | 根内容类型                         |
+| `prepend`    | `false`    | 插入在物品名称之后、其余原版文本之前            |
+| `shift`      | `false`    | 在“显示详细提示”键按下前，仅折叠当前节点及其子树     |
+| `conditions` | `{}`       | 当前节点必须全部通过的条件                 |
+| `shiftHint`  | 未设置        | 用完整 DataTip 节点替换合并后的 Shift 提示 |
+| `scrollHint` | 未设置        | 用完整 DataTip 节点替换溢出时的滚动提示      |
 
 `shift` 和 `conditions` 都是通用修饰符，因此也可以用于任意嵌套节点，并非只能写在根节点。
+
+自定义提示仍位于普通 DataTip 内容之后；可直接使用 `divider`、容器、`cycle_text` 等节点。需要显示真实绑定键名时，
+在提示的文本节点中使用 `{"keybind": "key.datatip.show_tip"}` 或
+`{"keybind": "key.datatip.scroll_tooltip"}`，不要写死 Shift/Ctrl。配置中的提示颜色只作用于自动生成的默认提示；
+自定义节点自身的 `color`、格式和动画设置优先。
+
+```json
+{
+  "minecraft:diamond": {
+    "type": "vbox",
+    "gap": 2,
+    "children": [
+      {
+        "type": "text",
+        "text": "普通内容"
+      },
+      {
+        "type": "text",
+        "text": "详细内容",
+        "shift": true
+      }
+    ],
+    "shiftHint": {
+      "type": "vbox",
+      "gap": 1,
+      "children": [
+        {
+          "type": "divider",
+          "color": "aqua"
+        },
+        {
+          "type": "text",
+          "translate": "tooltip.datatip.hold_shift",
+          "with": [
+            {
+              "keybind": "key.datatip.show_tip"
+            }
+          ]
+        }
+      ]
+    },
+    "scrollHint": {
+      "type": "vbox",
+      "gap": 1,
+      "children": [
+        {
+          "type": "divider",
+          "style": "dashed",
+          "color": "gray"
+        },
+        {
+          "type": "text",
+          "translate": "tooltip.datatip.scroll_hint",
+          "with": [
+            {
+              "keybind": "key.datatip.scroll_tooltip"
+            }
+          ],
+          "color": "yellow",
+          "italic": true
+        }
+      ]
+    }
+  }
+}
+```
 
 ## 通用修饰符
 
@@ -162,8 +238,9 @@ DataTip 接入 Minecraft/NeoForge 的 Tooltip 流程，而不是替换原版 Too
 
 ### Z 顺序与真实重叠
 
-`offsetZ` 只排序当前父节点内的兄弟节点。数值较小的先绘制，较大的后绘制；数值相同则保持 JSON 中的原始顺序。子节点不能越过祖先命令组，
-`offsetZ` 也不会写入 Minecraft 世界的深度缓冲。
+`offsetZ` 是当前父节点内兄弟节点的局部绘制顺序，不是世界坐标。数值较小的先绘制，较大的后绘制；数值相同则保持 JSON
+中的原始顺序。实体、方块和物品命令在自身绘制期间保留正常的三维深度，命令结束时再隔离这段深度，因此后绘制且
+`offsetZ` 更高的文本和其他二维内容不会被较低层模型遮挡。子节点仍不能越过祖先命令组。
 
 需要多个节点共用同一 XY 区域时使用 `stack`。Z 顺序只会改变真正发生重叠的内容：
 
@@ -185,6 +262,7 @@ DataTip 接入 Minecraft/NeoForge 的 Tooltip 流程，而不是替换原版 Too
 | 类型           | 用途              |
 |--------------|-----------------|
 | `text`       | 字面文本、语言映射或翻译键文本 |
+| `cycle_text` | 整段文本按调色板循环变色    |
 | `spacer`     | 空白垂直间距          |
 | `divider`    | 实线、虚线或点线分隔符     |
 | `item`       | 物品堆图标           |
@@ -202,7 +280,7 @@ DataTip 接入 Minecraft/NeoForge 的 Tooltip 流程，而不是替换原版 Too
 
 ### 文本与本地化
 
-`text` 节点必须在 `text` 和 `translate` 中二选一：
+`text` 与 `cycle_text` 节点必须在 `text`、`translate` 和 `keybind` 中三选一：
 
 ```json
 {"type": "text", "text": "字面文本"}
@@ -222,8 +300,31 @@ DataTip 接入 Minecraft/NeoForge 的 Tooltip 流程，而不是替换原版 Too
 {"type": "text", "translate": "example.tooltip.key"}
 ```
 
-语言映射会依次尝试当前语言、`en_us` 和第一项。翻译键使用普通 Minecraft 语言文件，因此可以在不修改 DataTip JSON
-的情况下新增或替换翻译。现代解析器不接受旧 `trans` 属性；旧格式转换器会将其改写为 `translate`。
+```json
+{
+  "type": "text",
+  "keybind": "key.datatip.show_tip"
+}
+```
+
+语言映射只读取当前客户端语言；缺少当前语言时该节点不显示，不会混入 `en_us` 或映射第一项。翻译键使用普通 Minecraft
+语言文件，因此可以在不修改 DataTip JSON 的情况下新增或替换翻译。`translate` 可通过 `with` 传入字符串、字面组件、
+嵌套翻译组件或键位组件：
+
+```json
+{
+  "type": "text",
+  "translate": "tooltip.datatip.hold_shift",
+  "with": [
+    {
+      "keybind": "key.datatip.show_tip"
+    }
+  ]
+}
+```
+
+DataTip JSON 字符串和 `assets/<namespace>/lang/*.json` 的翻译值都支持 `\n` 显式换行；需要显示字面 `\n` 时写成
+`\\n`。现代解析器不接受旧 `trans` 属性；旧格式转换器会将其改写为 `translate`。
 
 | 文本属性                                         | 默认值     | 说明                                      |
 |----------------------------------------------|---------|-----------------------------------------|
@@ -237,6 +338,29 @@ DataTip 接入 Minecraft/NeoForge 的 Tooltip 流程，而不是替换原版 Too
 
 可见的 `label` 和 `title` 属性可以使用字面字符串、语言映射、带样式的语言项或 `{"translate": "key"}`
 。变量会在测量前解析，所以换行尺寸与最终绘制文本保持一致。
+
+`cycle_text` 会让整段文本使用同一种当前颜色，并按数组顺序循环，不会逐字符生成彩虹：
+
+```json
+{
+  "type": "cycle_text",
+  "text": "整段循环变色",
+  "colors": [
+    "red",
+    "#FFAA00",
+    "yellow",
+    "green",
+    "aqua",
+    "light_purple"
+  ],
+  "cycleSeconds": 3,
+  "transition": "smooth",
+  "phase": 0
+}
+```
+
+`colors` 至少包含一种颜色；`cycleSeconds` 是完整循环耗时，`transition` 可为平滑插值的 `smooth` 或逐项切换的
+`step`，`phase` 用于调整初始相位。颜色只在绘制时计算，不会每帧重新测量文本。
 
 ### 布局容器
 
@@ -375,21 +499,31 @@ DataTip 接入 Minecraft/NeoForge 的 Tooltip 流程，而不是替换原版 Too
 `dark_gray`、`blue`、`green`、`aqua`、`red`、`light_purple`、`yellow`、`white`、`pink`、`cyan`、`magenta`、`lime`、`brown`。同时接受
 `orange`、`grey`、`dark_grey`、`light_blue`、`light_green`、`light_red` 别名。
 
-配置文件中的颜色使用有符号整数 ARGB 值。
+配置颜色可直接选择 16 种原版聊天颜色：`BLACK`、`DARK_BLUE`、`DARK_GREEN`、`DARK_AQUA`、`DARK_RED`、
+`DARK_PURPLE`、`GOLD`、`GRAY`、`DARK_GRAY`、`BLUE`、`GREEN`、`AQUA`、`RED`、`LIGHT_PURPLE`、`YELLOW`、
+`WHITE`。选择 `CUSTOM` 时使用对应的自定义颜色值；自定义值支持 `#RRGGBB`、`#AARRGGBB`、`0xAARRGGBB`
+或旧的有符号十进制 ARGB。
 
 ## 配置
 
 通用配置文件位于 `config/datatip-common.toml`。
 
-| 选项                    | 默认值          | 说明                                |
-|-----------------------|--------------|-----------------------------------|
-| `enabled`             | `true`       | 启用 DataTip 内容                     |
-| `default_color`       | `0xFFAAAAAA` | 整数 ARGB 格式的默认文本颜色                 |
-| `default_line_height` | `0`          | 默认行高；`0` 使用原版字体高度                 |
-| `max_width`           | `0`          | Tooltip 宽度覆盖值；`0` 使用自然宽度和原版屏幕适配限制 |
-| `shift_hint_color`    | `0xFF888888` | 合并后的 Shift 提示颜色                   |
+| 选项                        | 默认值         | 说明                                     |
+|---------------------------|-------------|----------------------------------------|
+| `enabled`                 | `true`      | 启用 DataTip 内容                          |
+| `default_color`           | `GRAY`      | 默认文本颜色预设；可选择原版颜色或 `CUSTOM`             |
+| `default_color_value`     | `#FFAAAAAA` | `default_color = CUSTOM` 时使用的自定义颜色     |
+| `default_line_height`     | `0`         | 默认行高；`0` 使用原版字体高度                      |
+| `max_width`               | `0`         | Tooltip 宽度覆盖值；`0` 使用自然宽度和原版屏幕适配限制      |
+| `shift_hint_color`        | `CUSTOM`    | 合并后的 Shift 提示颜色预设                      |
+| `shift_hint_color_value`  | `#FF888888` | `shift_hint_color = CUSTOM` 时使用的自定义颜色  |
+| `scroll_hint_color`       | `CUSTOM`    | 默认滚动提示颜色预设                             |
+| `scroll_hint_color_value` | `#FF888888` | `scroll_hint_color = CUSTOM` 时使用的自定义颜色 |
 
 `max_width` 只是宽度覆盖值，并不允许 Tooltip 超出屏幕。最终宽度、换行、高度视口、位置、背景和边框仍然遵从原版 Tooltip 流程。
+
+`shift_hint_color*` 和 `scroll_hint_color*` 只设置自动生成的默认提示。条目提供 `shiftHint` 或 `scrollHint` 后，
+该节点会使用自身的 `color`、格式以及 `cycle_text` 调色板。
 
 ## JSON Schema
 

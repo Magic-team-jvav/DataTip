@@ -5,7 +5,10 @@ import com.cooobird.datatip.api.layout.PreparedLayout;
 import com.cooobird.datatip.api.layout.TipMath;
 import com.cooobird.datatip.api.layout.TipRect;
 import com.cooobird.datatip.api.render.*;
+import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayDeque;
 
@@ -682,17 +685,21 @@ public final class PreparedPlanRenderer {
             }
             case ModelCommandPayload payload -> {
                 if (payload.draw() != null) {
-                    renderPreparedDraw(
-                        payload.draw(),
-                        context,
-                        x,
-                        y,
-                        viewportX,
-                        viewportY,
-                        viewportWidth,
-                        viewportHeight,
-                        alpha
-                    );
+                    try {
+                        renderPreparedDraw(
+                            payload.draw(),
+                            context,
+                            x,
+                            y,
+                            viewportX,
+                            viewportY,
+                            viewportWidth,
+                            viewportHeight,
+                            alpha
+                        );
+                    } finally {
+                        finishDepthIsolatedCommand(command, context);
+                    }
                 }
             }
             case OverlayCommandPayload payload -> {
@@ -713,6 +720,19 @@ public final class PreparedPlanRenderer {
             case TextCommandPayload ignored -> {
             }
         }
+    }
+
+    /**
+     * 提交当前三维命令并清除其局部深度，使下一条命令严格遵循 painter order。
+     * 外层已启用 Tooltip 视口裁剪，因此深度清除不会越出当前内容区域。
+     */
+    private static void finishDepthIsolatedCommand(
+        RenderCommand command,
+        TipRenderContext context
+    ) {
+        if (!RenderDepthIsolation.requiresBarrier(command.phase())) return;
+        context.graphics().flush();
+        RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
     }
 
     private static void renderPreparedDraw(

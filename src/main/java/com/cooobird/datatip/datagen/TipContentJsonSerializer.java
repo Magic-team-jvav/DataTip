@@ -36,6 +36,7 @@ final class TipContentJsonSerializer {
 
         switch (content) {
             case TextContent textContent -> TipTextJsonWriter.write(json, textContent);
+            case CyclingTextContent cycling -> TipTextJsonWriter.writeCycling(json, cycling);
             case SpacerContent(int height) -> {
                 json.addProperty("type", "spacer");
                 json.addProperty("height", height);
