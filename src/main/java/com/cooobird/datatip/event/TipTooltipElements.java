@@ -38,13 +38,8 @@ final class TipTooltipElements {
         RenderTooltipEvent.GatherComponents event,
         List<TipContentEntry> entries,
         TooltipHit hit,
-        boolean shiftDown,
-        KeyMapping showTipKey
+        boolean shiftDown
     ) {
-        if (hasShiftContent(entries) && !shiftDown) {
-            addShiftHint(event, showTipKey);
-        }
-
         List<TipContent> prependContents = new ArrayList<>();
         List<TipContent> normalContents = new ArrayList<>();
         collectVisibleContents(entries, shiftDown, prependContents, normalContents);
@@ -59,6 +54,17 @@ final class TipTooltipElements {
         return prependContents.isEmpty() && normalContents.isEmpty()
             ? null
             : budget;
+    }
+
+    static void appendShiftHint(
+        RenderTooltipEvent.GatherComponents event,
+        List<TipContentEntry> entries,
+        boolean shiftDown,
+        KeyMapping showTipKey
+    ) {
+        if (hasShiftContent(entries) && !shiftDown) {
+            addShiftHint(event, showTipKey);
+        }
     }
 
     private static boolean hasShiftContent(List<TipContentEntry> entries) {
