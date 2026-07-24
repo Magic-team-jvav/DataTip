@@ -6,8 +6,10 @@ import com.cooobird.datatip.api.layout.TipMath;
 import com.cooobird.datatip.api.layout.TipRect;
 import com.cooobird.datatip.api.render.*;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.Minecraft;
+import com.mojang.blaze3d.vertex.*;
+import net.minecraft.client.renderer.GameRenderer;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
 import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayDeque;
@@ -119,6 +121,9 @@ public final class PreparedPlanRenderer {
         if (viewportRight <= viewportX || viewportBottom <= viewportY) return;
 
         boolean managePhysicalScissor = TRANSFORMED_VIEWPORT_DEPTH.get() == 0;
+        Matrix4f hostTooltipPose = new Matrix4f(
+            context.graphics().pose().last().pose()
+        );
         if (managePhysicalScissor) {
             context.graphics().flush();
             context.graphics().enableScissor(
@@ -140,7 +145,8 @@ public final class PreparedPlanRenderer {
                     viewportY,
                     viewportWidth,
                     viewportHeight,
-                    alpha
+                    alpha,
+                    hostTooltipPose
                 );
             }
             renderTree(
@@ -153,7 +159,8 @@ public final class PreparedPlanRenderer {
                 viewportY,
                 viewportWidth,
                 viewportHeight,
-                alpha
+                alpha,
+                hostTooltipPose
             );
         } finally {
             if (managePhysicalScissor) {
@@ -176,7 +183,8 @@ public final class PreparedPlanRenderer {
         int viewportY,
         int viewportWidth,
         int viewportHeight,
-        float alpha
+        float alpha,
+        Matrix4f hostTooltipPose
     ) {
         ArrayDeque<RenderTraversal> work = new ArrayDeque<>();
         work.push(new RenderTraversal(
@@ -204,7 +212,8 @@ public final class PreparedPlanRenderer {
                     viewportX,
                     viewportY,
                     viewportWidth,
-                    viewportHeight
+                    viewportHeight,
+                    hostTooltipPose
                 );
                 continue;
             }
@@ -246,7 +255,8 @@ public final class PreparedPlanRenderer {
         int viewportX,
         int viewportY,
         int viewportWidth,
-        int viewportHeight
+        int viewportHeight,
+        Matrix4f hostTooltipPose
     ) {
         TipRect bounds = transform.transformBounds(command.bounds());
         TipRect clip = inheritedClip;
@@ -272,7 +282,8 @@ public final class PreparedPlanRenderer {
                 viewportY,
                 viewportWidth,
                 viewportHeight,
-                alpha
+                alpha,
+                hostTooltipPose
             );
             return;
         }
@@ -331,7 +342,12 @@ public final class PreparedPlanRenderer {
                         dimension(command.bounds().y()),
                         dimension(command.bounds().width()),
                         dimension(command.bounds().height()),
-                        alpha
+                        dimension(physicalClip.x()),
+                        dimension(physicalClip.y()),
+                        dimension(physicalClip.width()),
+                        dimension(physicalClip.height()),
+                        alpha,
+                        hostTooltipPose
                     );
                 } finally {
                     if (viewportDraw) {
@@ -370,7 +386,8 @@ public final class PreparedPlanRenderer {
         int viewportY,
         int viewportWidth,
         int viewportHeight,
-        float alpha
+        float alpha,
+        Matrix4f hostTooltipPose
     ) {
         if (command.phase() == RenderPhase.ORDINARY_TEXT) {
             renderTextCommand(
@@ -394,7 +411,8 @@ public final class PreparedPlanRenderer {
                 viewportY,
                 viewportWidth,
                 viewportHeight,
-                alpha
+                alpha,
+                hostTooltipPose
             );
         }
     }
@@ -555,6 +573,9 @@ public final class PreparedPlanRenderer {
             viewportRight,
             viewportBottom
         );
+        Matrix4f hostTooltipPose = new Matrix4f(
+            context.graphics().pose().last().pose()
+        );
         try {
             renderImageCommandInsideViewport(
                 command,
@@ -565,7 +586,8 @@ public final class PreparedPlanRenderer {
                 viewportY,
                 viewportWidth,
                 viewportHeight,
-                alpha
+                alpha,
+                hostTooltipPose
             );
         } finally {
             try {
@@ -585,7 +607,8 @@ public final class PreparedPlanRenderer {
         int viewportY,
         int viewportWidth,
         int viewportHeight,
-        float alpha
+        float alpha,
+        Matrix4f hostTooltipPose
     ) {
         int commandLeft = addCoordinate(originX, command.bounds().x());
         int commandTop = addCoordinate(originY, command.bounds().y());
@@ -612,7 +635,12 @@ public final class PreparedPlanRenderer {
                 viewportY,
                 viewportWidth,
                 viewportHeight,
-                alpha
+                viewportX,
+                viewportY,
+                viewportWidth,
+                viewportHeight,
+                alpha,
+                hostTooltipPose
             );
             return;
         }
@@ -645,7 +673,12 @@ public final class PreparedPlanRenderer {
                 top,
                 right - left,
                 bottom - top,
-                alpha
+                left,
+                top,
+                right - left,
+                bottom - top,
+                alpha,
+                hostTooltipPose
             );
         } finally {
             try {
@@ -665,7 +698,12 @@ public final class PreparedPlanRenderer {
         int viewportY,
         int viewportWidth,
         int viewportHeight,
-        float alpha
+        int hostViewportX,
+        int hostViewportY,
+        int hostViewportWidth,
+        int hostViewportHeight,
+        float alpha,
+        Matrix4f hostTooltipPose
     ) {
         switch (command.payload()) {
             case Visual2DCommandPayload payload -> {
@@ -698,7 +736,15 @@ public final class PreparedPlanRenderer {
                             alpha
                         );
                     } finally {
-                        finishDepthIsolatedCommand(command, context);
+                        finishDepthIsolatedCommand(
+                            command,
+                            context,
+                            hostTooltipPose,
+                            hostViewportX,
+                            hostViewportY,
+                            hostViewportWidth,
+                            hostViewportHeight
+                        );
                     }
                 }
             }
@@ -723,16 +769,68 @@ public final class PreparedPlanRenderer {
     }
 
     /**
-     * 提交当前三维命令并清除其局部深度，使下一条命令严格遵循 painter order。
-     * 外层已启用 Tooltip 视口裁剪，因此深度清除不会越出当前内容区域。
+     * 用原版 Tooltip 的宿主平面覆盖当前模型留下的局部三维深度。
+     * 该屏障只写深度，不清理共享缓冲，也不改变已经完成的颜色结果。
      */
     private static void finishDepthIsolatedCommand(
         RenderCommand command,
-        TipRenderContext context
+        TipRenderContext context,
+        Matrix4f hostTooltipPose,
+        int viewportX,
+        int viewportY,
+        int viewportWidth,
+        int viewportHeight
     ) {
-        if (!RenderDepthIsolation.requiresBarrier(command.phase())) return;
+        if (command.phase() != RenderPhase.ISOLATED_MODEL) return;
+        restoreHostTooltipDepth(
+            context,
+            hostTooltipPose,
+            viewportX,
+            viewportY,
+            viewportWidth,
+            viewportHeight
+        );
+    }
+
+    private static void restoreHostTooltipDepth(
+        TipRenderContext context,
+        Matrix4f hostTooltipPose,
+        int viewportX,
+        int viewportY,
+        int viewportWidth,
+        int viewportHeight
+    ) {
+        int right = addCoordinate(viewportX, viewportWidth);
+        int bottom = addCoordinate(viewportY, viewportHeight);
+        if (right <= viewportX || bottom <= viewportY) return;
+
         context.graphics().flush();
-        RenderSystem.clear(GL11.GL_DEPTH_BUFFER_BIT, Minecraft.ON_OSX);
+        BufferBuilder buffer = Tesselator.getInstance().begin(
+            VertexFormat.Mode.QUADS,
+            DefaultVertexFormat.POSITION_COLOR
+        );
+        buffer.addVertex(hostTooltipPose, viewportX, viewportY, 0)
+            .setColor(0xFFFFFFFF);
+        buffer.addVertex(hostTooltipPose, viewportX, bottom, 0)
+            .setColor(0xFFFFFFFF);
+        buffer.addVertex(hostTooltipPose, right, bottom, 0)
+            .setColor(0xFFFFFFFF);
+        buffer.addVertex(hostTooltipPose, right, viewportY, 0)
+            .setColor(0xFFFFFFFF);
+
+        // 用宿主 Tooltip 平面覆盖模型深度，不触碰屏幕上其他 GUI 的深度。
+        RenderSystem.enableDepthTest();
+        RenderSystem.depthMask(true);
+        RenderSystem.depthFunc(GL11.GL_ALWAYS);
+        RenderSystem.colorMask(false, false, false, false);
+        try {
+            RenderSystem.setShader(GameRenderer::getPositionColorShader);
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
+        } finally {
+            RenderSystem.colorMask(true, true, true, true);
+            RenderSystem.depthFunc(GL11.GL_LEQUAL);
+            RenderSystem.disableDepthTest();
+        }
     }
 
     private static void renderPreparedDraw(
